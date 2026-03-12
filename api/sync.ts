@@ -1,11 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
+import { kv } from '@vercel/kv';
 
-// Memória temporária para o Vercel (dura alguns minutos)
-// Nota: Para produção real com persistência, usaríamos Vercel KV.
-// Mas para o fluxo de 30 segundos, isso funciona como cache.
-let globalData: any = null;
-
-export default function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Configurar CORS
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -20,17 +16,22 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  const DATA_KEY = 'picking_shared_data';
+
   if (req.method === 'POST') {
     const { records } = req.body;
     if (records) {
-      globalData = records;
+      // Salva no banco de dados permanente (Redis/KV)
+      await kv.set(DATA_KEY, records);
       return res.status(200).json({ success: true, message: 'Dados sincronizados com sucesso!' });
     }
     return res.status(400).json({ error: 'Formato inválido' });
   }
 
   if (req.method === 'GET') {
-    return res.status(200).json({ records: globalData });
+    // Busca do banco de dados permanente
+    const sharedData = await kv.get(DATA_KEY);
+    return res.status(200).json({ records: sharedData || [] });
   }
 
   res.status(405).json({ error: 'Método não permitido' });
