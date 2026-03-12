@@ -143,25 +143,19 @@ export default function App() {
 
   const fetchData = async () => {
     try {
-      // 1. Try SharePoint/Direct Link first if available
-      if (sharepointUrl) {
-        const response = await fetch(sharepointUrl);
-        if (response.ok) {
-          const arrayBuffer = await response.arrayBuffer();
-          const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-          const firstSheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[firstSheetName];
-          const data = XLSX.utils.sheet_to_json(worksheet);
-          
-          const newRecords = dataService.importJSON(data);
+      // 1. Try the new Sync API (where VBA pushes data)
+      const syncResponse = await fetch('/api/sync');
+      if (syncResponse.ok) {
+        const syncData = await syncResponse.json();
+        if (syncData.records && syncData.records.length > 0) {
+          const newRecords = dataService.importJSON(syncData.records);
           setDbRecords([...newRecords]);
           setLastUpdate(new Date());
-          return; // Success, exit
+          return; // Success from push data
         }
-        console.warn("SharePoint fetch failed, falling back to other methods...");
       }
 
-      // 2. Fallback to Local/Remote API
+      // 2. Try SharePoint/Direct Link second if available...
       const baseUrl = remoteApiUrl || '';
       const query = localExcelPath ? `?path=${encodeURIComponent(localExcelPath)}` : '';
       const response = await fetch(`${baseUrl}/api/data${query}`);
