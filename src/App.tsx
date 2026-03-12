@@ -228,7 +228,27 @@ export default function App() {
     }
   };
 
-  const autoGenerateBays = () => {
+  // Carregar dados salvos ao iniciar
+  useEffect(() => {
+    const saved = localStorage.getItem('picking_records');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) setDbRecords(parsed);
+      } catch (e) {
+        console.error("Erro ao carregar cache local", e);
+      }
+    }
+  }, []);
+
+  // Salvar dados sempre que mudar
+  useEffect(() => {
+    if (dbRecords.length > 0) {
+      localStorage.setItem('picking_records', JSON.stringify(dbRecords));
+    }
+  }, [dbRecords]);
+
+  const toggleAutoRefresh = () => {
     if (dbRecords.length === 0) {
       alert('Nenhum dado encontrado na base. Importe um arquivo Excel primeiro.');
       return;
@@ -678,110 +698,38 @@ export default function App() {
 
               {mode === 'database' ? (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className={cn(
-                      "text-xs font-bold uppercase tracking-widest transition-colors duration-300",
-                      theme === 'dark' ? "text-slate-500" : "text-slate-400"
-                    )}>
-                      Base de Dados
-                    </h2>
-                    <button 
-                      onClick={() => setShowImport(true)}
-                      className="p-1.5 text-blue-500 hover:bg-blue-500/10 rounded-md transition-colors flex items-center gap-1"
-                    >
-                      <Plus className="w-3 h-3" />
-                      <span className="text-[10px] font-bold">Importar</span>
-                    </button>
+                  {/* SEÇÃO: MODO AUTOMÁTICO (MACRO VBA) */}
+                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-3">
+                    <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      MODO AUTOMÁTICO ATIVO
+                    </div>
+                    <p className="text-[10px] text-emerald-400/70 leading-relaxed italic">
+                      O sistema agora recebe dados diretamente da sua Macro VBA. Os campos abaixo são opcionais para redundância.
+                    </p>
                   </div>
 
-                  <div className={cn(
-                    "p-3 rounded-xl border transition-all duration-300 space-y-3",
-                    theme === 'dark' ? "bg-slate-800/30 border-slate-800/50" : "bg-white border-slate-200 shadow-sm"
-                  )}>
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <Upload className="w-3 h-3" /> Selecionar Arquivo (Vercel/Nuvem)
-                      </label>
-                      <input 
-                        type="file" 
-                        accept=".xlsx, .xls, .xlsb, .csv"
-                        onChange={handleFileUpload}
-                        className={cn(
-                          "w-full text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-semibold",
-                          theme === 'dark' 
-                            ? "text-slate-400 file:bg-slate-700 file:text-slate-300" 
-                            : "text-slate-500 file:bg-emerald-50 file:text-emerald-700"
-                        )}
-                      />
-                    </div>
-
-                    <div className="h-px bg-slate-500/10" />
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <RefreshCw className="w-3 h-3" /> Caminho Local (Desktop/Auto)
-                      </label>
+                  <div className="space-y-4 pt-2 opacity-50 hover:opacity-100 transition-opacity">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">
+                      Fontes de Backup (Opcional)
+                    </p>
+                    
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-medium text-slate-400 ml-1">Carregar Arquivo Manual</label>
                       <div className="flex gap-2">
-                        <input 
-                          type="text"
-                          value={localExcelPath}
-                          onChange={(e) => {
-                            setLocalExcelPath(e.target.value);
-                            localStorage.setItem(EXCEL_PATH_KEY, e.target.value);
-                          }}
-                          placeholder="Ex: C:\Pasta\PICKING.xlsb"
-                          className={cn(
-                            "flex-1 border rounded-lg px-2 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500/50",
-                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-slate-300" : "bg-white border-slate-300 text-slate-700"
-                          )}
-                        />
-                        <button 
-                          onClick={() => fetchData()}
-                          className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-500 transition-colors"
-                        >
-                          Carregar
-                        </button>
+                        <label className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-800/50 hover:bg-slate-800 border-2 border-dashed border-slate-700 hover:border-blue-500/50 rounded-lg cursor-pointer transition-all group">
+                          <Upload className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-400" />
+                          <span className="text-xs text-slate-400 group-hover:text-blue-400">Escolher .xlsb</span>
+                          <input type="file" className="hidden" accept=".xlsx, .xls, .xlsb" onChange={handleFileUpload} />
+                        </label>
                       </div>
                     </div>
 
-                    <div className="h-px bg-slate-500/10" />
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-blue-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <FileSpreadsheet className="w-3 h-3" /> Link Direto (SharePoint/Web)
-                      </label>
-                      <input 
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-medium text-slate-400 ml-1">Link SharePoint</label>
+                      <input
                         type="text"
                         value={sharepointUrl}
-                        onChange={(e) => {
-                          setSharepointUrl(e.target.value);
-                          localStorage.setItem('picking_sharepoint_url', e.target.value);
-                        }}
-                        placeholder="Link 'Anyone with the link'..."
-                        className={cn(
-                          "w-full border rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none focus:ring-1 focus:ring-blue-500/50",
-                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-slate-300" : "bg-white border-slate-300 text-slate-700"
-                        )}
-                      />
-                      <p className="text-[9px] text-slate-500 italic">Funciona no Vercel mesmo com Zscaler.</p>
-                    </div>
-
-                    <div className="h-px bg-slate-500/10" />
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-amber-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <Activity className="w-3 h-3" /> URL Túnel (Vercel para PC)
-                      </label>
-                      <input 
-                        type="text"
-                        value={remoteApiUrl}
-                        onChange={(e) => {
-                          setRemoteApiUrl(e.target.value);
-                          localStorage.setItem('picking_remote_api', e.target.value);
-                        }}
-                        placeholder="Ex: https://abc-123.ngrok-free.app"
-                        className={cn(
-                          "w-full border rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none focus:ring-1 focus:ring-amber-500/50",
                           theme === 'dark' ? "bg-slate-900 border-slate-700 text-slate-300" : "bg-white border-slate-300 text-slate-700"
                         )}
                       />
