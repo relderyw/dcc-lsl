@@ -1066,6 +1066,19 @@ export default function App() {
 
       {/* --- Main Content Area --- */}
       <main className="flex-1 relative flex flex-col overflow-hidden">
+        {!sidebarOpen && (
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className={cn(
+              "absolute left-4 top-4 z-30 p-2 rounded-xl border shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 animate-in fade-in slide-in-from-left-4",
+              theme === 'dark' 
+                ? "bg-slate-900 border-slate-800 text-slate-400 hover:text-white" 
+                : "bg-white border-slate-200 text-slate-500 hover:text-slate-900"
+            )}
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        )}
         {mode === 'database' ? (
           <div className={cn(
             "flex-1 p-8 overflow-y-auto custom-scrollbar transition-colors duration-300",
