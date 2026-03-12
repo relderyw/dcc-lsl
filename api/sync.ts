@@ -1,5 +1,11 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
+
+// Inicialização robusta do cliente Redis
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '',
+  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '',
+});
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Configurar CORS
@@ -19,19 +25,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const DATA_KEY = 'picking_shared_data';
 
   try {
+    // Validar se as variáveis de ambiente estão presentes
+    if (!process.env.KV_REST_API_URL && !process.env.UPSTASH_REDIS_REST_URL) {
+      throw new Error('DATABASE_MISSING_VARS: Favor reconectar o Redis ao projeto e fazer o REDEPLOY do site.');
+    }
+
     if (req.method === 'POST') {
       const { records } = req.body;
       if (records) {
-        // Salva no banco de dados permanente (Redis/KV)
-        await kv.set(DATA_KEY, records);
+        await redis.set(DATA_KEY, records);
         return res.status(200).json({ success: true, message: 'Dados sincronizados com sucesso!' });
       }
-      return res.status(400).json({ error: 'Formato inválido: records não encontrado no body.' });
+      return res.status(400).json({ error: 'Formato inválido: records não encontrado.' });
     }
 
     if (req.method === 'GET') {
-      // Busca do banco de dados permanente
-      const sharedData = await kv.get(DATA_KEY);
+      const sharedData = await redis.get(DATA_KEY);
       return res.status(200).json({ records: sharedData || [] });
     }
 
@@ -40,15 +49,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (error: any) {
     console.error('Error in sync API:', error);
     
-    // Erro comum: KV_URL missing (Database não conectada ao projeto)
-    if (error.message && error.message.includes('KV_URL')) {
-      return res.status(500).json({ 
-        success: false, 
-        error: 'DATABASE_NOT_CONNECTED',
-        message: 'O banco de dados foi criado, mas NÃO foi conectado ao seu projeto dcc-lsl no painel do Vercel.' 
-      });
-    }
-
     return res.status(500).json({ 
       success: false, 
       error: 'INTERNAL_ERROR',
