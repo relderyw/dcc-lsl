@@ -1,29 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { Redis } from '@upstash/redis';
-
-// Função para tentar criar o cliente com o que estiver disponível
-const getRedisClient = () => {
-  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.REDIS_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.REDIS_REST_API_TOKEN;
-
-  // Se tivermos URL e TOKEN (Upstash/HTTP)
-  if (url && token) {
-    return new Redis({ url, token });
-  }
-  
-  // Caso o Vercel tenha injetado via REDIS_URL (Padrão Marketplace)
-  if (process.env.REDIS_URL) {
-    // Nota: @upstash/redis prefere REST. Se for apenas REDIS_URL, pode ser um nó diferente.
-    // Mas vamos tentar carregar do ambiente se ele encontrar os padrões automáticos.
-    try {
-      return Redis.fromEnv();
-    } catch (e) {
-      return null;
-    }
-  }
-
-  return null;
-};
+import { kv } from '@vercel/kv';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Configurar CORS
@@ -41,36 +17,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const DATA_KEY = 'picking_shared_data';
-  const redis = getRedisClient();
 
   try {
-    if (!redis) {
-      // Diagnóstico: Listar as chaves de ambiente disponíveis (sem mostrar os valores por segurança)
-      const availableKeys = Object.keys(process.env).filter(k => k.includes('REDIS') || k.includes('KV') || k.includes('UPSTASH'));
-      throw new Error(`DATABASE_NOT_CONFIGURED: Nenhuma variável de conexão encontrada. Chaves disponíveis: ${availableKeys.join(', ')}`);
+    // Verificação básica de conexão antes de prosseguir
+    // O @vercel/kv injeta automaticamente as variáveis KV_REST_API_URL e KV_REST_API_TOKEN
+    if (!process.env.KV_REST_API_URL) {
+      throw new Error("VARIÁVEL_AUSENTE: O banco de dados KV não está conectado a este projeto. Vá em 'Storage' no Vercel e clique em 'Connect'.");
     }
 
     if (req.method === 'POST') {
       const { records } = req.body;
-      if (records) {
-        await redis.set(DATA_KEY, records);
-        return res.status(200).json({ success: true, message: 'Dados sincronizados com sucesso!' });
+      if (records && Array.isArray(records)) {
+        await kv.set(DATA_KEY, records);
+        return res.status(200).json({ success: true, message: 'Dados sincronizados!' });
       }
-      return res.status(400).json({ error: 'Formato inválido: records não encontrado.' });
+      return res.status(400).json({ error: 'Dados inválidos. Envie um objeto com a chave "records" contendo uma lista.' });
     }
 
     if (req.method === 'GET') {
-      const sharedData = await redis.get(DATA_KEY);
+      const sharedData = await kv.get(DATA_KEY);
       return res.status(200).json({ records: sharedData || [] });
     }
 
     return res.status(405).json({ error: 'Método não permitido' });
 
   } catch (error: any) {
-    console.error('Error in sync API:', error);
+    console.error('API Sync Error:', error.message);
+    
     return res.status(500).json({ 
       success: false, 
-      error: 'STORAGE_ERROR',
+      error: 'SERVER_STORAGE_ERROR',
       message: error.message 
     });
   }
