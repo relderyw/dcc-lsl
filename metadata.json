@@ -1,0 +1,5 @@
+{
+  "name": "MotoLog - Warehouse Manager",
+  "description": "Sistema de controle de locação, picking e atendimento de carros para linha de produção de motos.",
+  "requestFramePermissions": []
+}
