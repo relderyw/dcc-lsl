@@ -248,7 +248,7 @@ export default function App() {
     }
   }, [dbRecords]);
 
-  const toggleAutoRefresh = () => {
+  const autoGenerateBays = () => {
     if (dbRecords.length === 0) {
       alert('Nenhum dado encontrado na base. Importe um arquivo Excel primeiro.');
       return;
@@ -730,10 +730,17 @@ export default function App() {
                       <input
                         type="text"
                         value={sharepointUrl}
+                        onChange={(e) => {
+                          setSharepointUrl(e.target.value);
+                          localStorage.setItem('picking_sharepoint_url', e.target.value);
+                        }}
+                        placeholder="https://..."
+                        className={cn(
+                          "w-full px-3 py-2 border rounded-lg text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500/50",
                           theme === 'dark' ? "bg-slate-900 border-slate-700 text-slate-300" : "bg-white border-slate-300 text-slate-700"
                         )}
                       />
-                      <p className="text-[9px] text-slate-500 italic">Use para conectar o Vercel ao seu PC via ngrok.</p>
+                      <p className="text-[9px] text-slate-500 italic">Funciona no Vercel mesmo com Zscaler.</p>
                     </div>
                   </div>
                   
