@@ -501,11 +501,23 @@ export default function App() {
 
   return (
     <div className={cn(
-      "flex h-screen w-screen font-sans overflow-hidden transition-colors duration-500",
+      "flex h-screen w-screen font-sans overflow-hidden transition-colors duration-500 relative",
       theme === 'dark' 
         ? "bg-slate-950 text-slate-200" 
         : "bg-slate-50 text-slate-900"
     )}>
+      {/* Mobile Backdrop */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSidebarOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+          />
+        )}
+      </AnimatePresence>
       {/* --- Sidebar --- */}
       <AnimatePresence mode="wait">
         {sidebarOpen && (
@@ -513,8 +525,10 @@ export default function App() {
             initial={{ x: -450 }}
             animate={{ x: 0 }}
             exit={{ x: -450 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className={cn(
-              "w-[420px] min-w-[420px] shrink-0 h-full border-r flex flex-col z-20 shadow-2xl transition-all duration-300",
+              "w-full sm:w-[420px] min-w-full sm:min-w-[420px] shrink-0 h-full border-r flex flex-col z-50 shadow-2xl transition-all duration-300",
+              "fixed lg:relative inset-y-0 left-0",
               theme === 'dark' 
                 ? "bg-slate-900 border-slate-800" 
                 : "bg-white/95 border-slate-200/60 backdrop-blur-xl shadow-slate-200/50"
@@ -1085,20 +1099,20 @@ export default function App() {
             theme === 'dark' ? "bg-slate-950" : "bg-slate-50"
           )}>
             <div className="max-w-6xl mx-auto space-y-8">
-              <div className="flex justify-between items-end">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
                 <div className="space-y-1">
                   <h1 className={cn(
-                    "text-3xl font-black tracking-tight transition-colors duration-300",
+                    "text-2xl sm:text-3xl font-black tracking-tight transition-colors duration-300",
                     theme === 'dark' ? "text-white" : "text-slate-900"
                   )}>
                     Base de Dados
                   </h1>
-                  <p className="text-slate-400 text-sm">Gerencie os registros importados da planilha Excel.</p>
+                  <p className="text-slate-400 text-xs sm:text-sm">Gerencie os registros importados da planilha Excel.</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-3 w-full sm:w-auto">
                   <button 
                     onClick={() => setShowImport(true)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20"
+                    className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20"
                   >
                     <FileSpreadsheet className="w-4 h-4" />
                     Importar Excel
@@ -1107,7 +1121,7 @@ export default function App() {
               </div>
 
               <div className={cn(
-                "rounded-3xl border overflow-hidden transition-all duration-300",
+                "rounded-3xl border overflow-x-auto transition-all duration-300 custom-scrollbar-none sm:custom-scrollbar",
                 theme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200 shadow-xl"
               )}>
                 <table className="w-full text-left border-collapse">
@@ -1210,6 +1224,7 @@ export default function App() {
                 {/* Filters */}
                 <div className={cn(
                   "px-3 py-1.5 backdrop-blur-xl border rounded-xl flex items-center gap-3 h-11 shadow-2xl transition-all duration-300",
+                  "max-w-[calc(100vw-40px)] overflow-x-auto lg:overflow-visible custom-scrollbar-none",
                   theme === 'dark' 
                     ? "bg-slate-900/80 border-slate-700 shadow-black/20" 
                     : "bg-white/90 border-slate-200/60 shadow-slate-200/50"
@@ -1219,16 +1234,16 @@ export default function App() {
                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest hidden sm:inline">Filtros</span>
                   </div>
                   
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 shrink-0 pr-4 lg:pr-0">
                     {/* CarID Input */}
                     <div className="relative group">
                       <input 
                         type="text"
-                        placeholder="Buscar Placa/Carro..."
+                        placeholder="Buscar..."
                         value={filterCarId}
                         onChange={e => setFilterCarId(e.target.value)}
                         className={cn(
-                          "w-48 text-[11px] font-bold bg-transparent border-b border-transparent focus:border-emerald-500 focus:outline-none transition-all placeholder:text-slate-500 placeholder:font-medium py-0.5",
+                          "w-28 sm:w-48 text-[11px] font-bold bg-transparent border-b border-transparent focus:border-emerald-500 focus:outline-none transition-all placeholder:text-slate-500 placeholder:font-medium py-0.5",
                           theme === 'dark' ? "text-slate-200" : "text-slate-700"
                         )}
                       />
@@ -1241,11 +1256,11 @@ export default function App() {
                       value={filterSector} 
                       onChange={e => setFilterSector(e.target.value)}
                       className={cn(
-                        "text-[11px] font-bold bg-transparent focus:outline-none appearance-none cursor-pointer hover:text-emerald-500 transition-colors",
+                        "text-[11px] font-bold bg-transparent focus:outline-none appearance-none cursor-pointer hover:text-emerald-500 transition-colors whitespace-nowrap",
                         theme === 'dark' ? "text-slate-300" : "text-slate-700"
                       )}
                     >
-                      <option value="ALL">Todos os Setores</option>
+                      <option value="ALL">Setores</option>
                       {availableSectors.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
 
@@ -1256,11 +1271,11 @@ export default function App() {
                       value={filterModel} 
                       onChange={e => setFilterModel(e.target.value)}
                       className={cn(
-                        "text-[11px] font-bold bg-transparent focus:outline-none appearance-none cursor-pointer hover:text-emerald-500 transition-colors",
+                        "text-[11px] font-bold bg-transparent focus:outline-none appearance-none cursor-pointer hover:text-emerald-500 transition-colors whitespace-nowrap",
                         theme === 'dark' ? "text-slate-300" : "text-slate-700"
                       )}
                     >
-                      <option value="ALL">Todos os Modelos</option>
+                      <option value="ALL">Modelos</option>
                       {availableModels.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
 
@@ -1271,11 +1286,11 @@ export default function App() {
                       value={filterStatus} 
                       onChange={e => setFilterStatus(e.target.value)}
                       className={cn(
-                        "text-[11px] font-bold bg-transparent focus:outline-none appearance-none cursor-pointer hover:text-emerald-500 transition-colors",
+                        "text-[11px] font-bold bg-transparent focus:outline-none appearance-none cursor-pointer hover:text-emerald-500 transition-colors whitespace-nowrap",
                         theme === 'dark' ? "text-slate-300" : "text-slate-700"
                       )}
                     >
-                      <option value="ALL">Qualquer SLA</option>
+                      <option value="ALL">SLA</option>
                       <option value="LATE">Atrasado</option>
                       <option value="NEXT">Próx. Embarque</option>
                       <option value="ONTIME">No Prazo</option>
@@ -1288,11 +1303,11 @@ export default function App() {
                       value={filterExcelStatus} 
                       onChange={e => setFilterExcelStatus(e.target.value)}
                       className={cn(
-                        "text-[11px] font-bold bg-transparent focus:outline-none appearance-none cursor-pointer pr-1 hover:text-emerald-500 transition-colors",
+                        "text-[11px] font-bold bg-transparent focus:outline-none appearance-none cursor-pointer pr-1 hover:text-emerald-500 transition-colors whitespace-nowrap",
                         theme === 'dark' ? "text-slate-300" : "text-slate-700"
                       )}
                     >
-                      <option value="ALL">Situação Original</option>
+                      <option value="ALL">Situação</option>
                       {availableExcelStatuses.map(st => <option key={st} value={st}>{st}</option>)}
                     </select>
                   </div>
