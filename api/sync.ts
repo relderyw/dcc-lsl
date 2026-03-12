@@ -33,7 +33,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const DATA_KEY = 'picking_shared_data';
+  const RECORDS_KEY = 'picking_shared_data';
+  const LAYOUT_KEY = 'picking_layout_data';
   const connection = getClient();
 
   try {
@@ -45,29 +46,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { type, client } = connection;
 
     if (req.method === 'POST') {
-      const { records } = req.body;
+      const { records, bays } = req.body;
+      
+      // Salvar Registros do Excel
       if (records && Array.isArray(records)) {
-        const value = JSON.stringify(records);
-        if (type === 'ioredis') {
-          await (client as IORedis).set(DATA_KEY, value);
-        } else {
-          await (client as UpstashRedis).set(DATA_KEY, value);
-        }
-        return res.status(200).json({ success: true, message: 'Dados sincronizados com sucesso!' });
+        const val = JSON.stringify(records);
+        if (type === 'ioredis') await (client as IORedis).set(RECORDS_KEY, val);
+        else await (client as UpstashRedis).set(RECORDS_KEY, val);
       }
-      return res.status(400).json({ error: 'Payload inválido' });
+      
+      // Salvar Layout do Mapa (Baias)
+      if (bays && Array.isArray(bays)) {
+        const val = JSON.stringify(bays);
+        if (type === 'ioredis') await (client as IORedis).set(LAYOUT_KEY, val);
+        else await (client as UpstashRedis).set(LAYOUT_KEY, val);
+      }
+
+      return res.status(200).json({ success: true, message: 'Sincronizado!' });
     }
 
     if (req.method === 'GET') {
-      let data: any;
+      let recordsData: any;
+      let layoutData: any;
+
       if (type === 'ioredis') {
-        data = await (client as IORedis).get(DATA_KEY);
+        recordsData = await (client as IORedis).get(RECORDS_KEY);
+        layoutData = await (client as IORedis).get(LAYOUT_KEY);
       } else {
-        data = await (client as UpstashRedis).get(DATA_KEY);
+        recordsData = await (client as UpstashRedis).get(RECORDS_KEY);
+        layoutData = await (client as UpstashRedis).get(LAYOUT_KEY);
       }
       
-      const records = typeof data === 'string' ? JSON.parse(data) : (data || []);
-      return res.status(200).json({ records });
+      return res.status(200).json({ 
+        records: typeof recordsData === 'string' ? JSON.parse(recordsData) : (recordsData || []),
+        bays: typeof layoutData === 'string' ? JSON.parse(layoutData) : (layoutData || [])
+      });
     }
 
     return res.status(405).json({ error: 'Método não permitido' });

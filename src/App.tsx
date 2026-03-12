@@ -143,16 +143,27 @@ export default function App() {
 
   const fetchData = async () => {
     try {
-      // 1. Try the new Sync API (where VBA pushes data)
+      // 1. Try the new Sync API (where VBA pushes data + Layout)
       const syncResponse = await fetch('/api/sync');
       if (syncResponse.ok) {
         const syncData = await syncResponse.json();
+        
+        // Atualizar Carros
         if (syncData.records && syncData.records.length > 0) {
           const newRecords = dataService.importJSON(syncData.records);
           setDbRecords([...newRecords]);
           setLastUpdate(new Date());
-          return; // Success from push data
         }
+
+        // Atualizar Layout (Baias)
+        if (syncData.bays && syncData.bays.length > 0) {
+          // Só atualizamos se as baias atuais estiverem vazias ou se for o primeiro carregamento
+          // Para evitar sobrescrever edições locais em progresso (opcional: adicionar timestamp)
+          setBays(syncData.bays);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(syncData.bays));
+        }
+
+        if (syncData.records) return; 
       }
 
       // 2. Try SharePoint/Direct Link second if available...
@@ -207,6 +218,7 @@ export default function App() {
 
   // Load data
   useEffect(() => {
+    // Primeiro tenta carregar do LocalStorage (Rápido)
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
@@ -215,16 +227,24 @@ export default function App() {
         console.error('Failed to load bays', e);
       }
     }
+    // Depois busca na nuvem (Global)
+    fetchData();
   }, []);
 
   // Save data
-  const saveBays = (newBays: Bay[]) => {
+  const saveBays = async (newBays: Bay[]) => {
     try {
       setBays(newBays);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newBays));
+      
+      // Sincronizar com o servidor (Global)
+      await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bays: newBays })
+      });
     } catch (e) {
       console.error('Failed to save bays', e);
-      alert('Erro ao salvar as configurações no navegador. O armazenamento pode estar cheio.');
     }
   };
 
