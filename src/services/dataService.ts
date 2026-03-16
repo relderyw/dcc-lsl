@@ -39,8 +39,8 @@ class DataService {
       { carId: 'C8733507', model: 'K2G B02NS', status: 'CHECK DCC', sectorId: '050010809', sectorName: 'PINT.TQVZ2', location: 'PICK-06-01', carPhysical: 'C8733507', embarkDate: '18/08/2025', embarkTime: '17:29' },
       { carId: 'C8733702', model: 'K62', status: 'CHECK DCC', sectorId: '050010718', sectorName: 'SOLDA CHASSI', location: 'PICK-06-01', carPhysical: 'C8733701', embarkDate: '27/08/2025', embarkTime: '08:45' },
       { carId: 'C8736952', model: 'K62', status: 'CHECK DCC', sectorId: '050011207', sectorName: 'EMB.MET H2', location: 'PICK-18-09', carPhysical: 'C8736952', embarkDate: '22/08/2025', embarkTime: '16:00' },
-      { carId: 'C8737161', model: 'K1H 050NS', status: 'CHECK DCC', sectorId: '050010809', sectorName: 'PINT.TQVZ2', location: 'PICK-06-02', carPhysical: 'C8737374', embarkDate: '21/08/2025', embarkTime: '09:18' },
-      { carId: 'C8737750', model: 'K99', status: 'CHECK DCC', sectorId: '050011102', sectorName: 'L. MONT. 2', location: 'PICK-07-02', carPhysical: 'C8739144', embarkDate: '26/08/2025', embarkTime: '10:30' },
+      { carId: 'C8737161', model: 'K1H 050NS', status: 'CHECK DCC', sectorId: '050010809', sectorName: 'PINT.TQVZ2', location: 'ALAN', carPhysical: 'C8737374', embarkDate: '21/08/2025', embarkTime: '09:18' },
+      { carId: 'C8737750', model: 'K99', status: 'CHECK DCC', sectorId: '050011102', sectorName: 'L. MONT. 2', location: 'MARCO', carPhysical: 'C8739144', embarkDate: '26/08/2025', embarkTime: '10:30' },
     ];
   }
 
@@ -86,8 +86,6 @@ class DataService {
       const values = line.split('\t');
       const record: any = {};
       
-      // Map based on the headers provided in the image
-      // CARRO	CRRMOD	STATUS	SETOR	DSC_SETOR	LOC_FISICA	CAR_FISICO	DATAEMB	DT_EMB	HORAEMB
       const mapping: Record<string, keyof CarRecord> = {
         'CARRO': 'carId',
         'CRRMOD': 'model',

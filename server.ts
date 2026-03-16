@@ -11,6 +11,26 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  app.use(express.json());
+
+  // Memory store for sync (coordination between clients)
+  let syncData = {
+    records: [] as any[],
+    bays: [] as any[]
+  };
+
+  // API Route to sync data
+  app.get("/api/sync", (req, res) => {
+    res.json(syncData);
+  });
+
+  app.post("/api/sync", (req, res) => {
+    const { records, bays } = req.body;
+    if (records) syncData.records = records;
+    if (bays) syncData.bays = bays;
+    res.json({ success: true });
+  });
+
   // API Route to read the Excel file (.xlsb)
   app.get("/api/data", (req, res) => {
     let filePath = process.env.EXCEL_FILE_PATH || "PICKING.xlsb";

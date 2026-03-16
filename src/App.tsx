@@ -33,7 +33,13 @@ import {
   Truck,
   Copy,
   AlertTriangle,
-  X
+  X,
+  PieChart,
+  BarChart3,
+  TrendingUp,
+  LayoutDashboard,
+  Users,
+  Filter
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'motion/react';
@@ -63,7 +69,7 @@ interface Bay {
   slotHeight?: number; // Custom height for each car slot in pixels
 }
 
-type Mode = 'view' | 'edit' | 'database';
+type Mode = 'view' | 'edit' | 'database' | 'dashboard';
 
 // --- Constants ---
 const STORAGE_KEY = 'motolog_warehouse_config';
@@ -95,6 +101,18 @@ function getSlaStatus(car: CarRecord): { text: string, color: string, isLate: bo
   } else {
     return { text: 'NO PRAZO', color: 'bg-emerald-500', isLate: false };
   }
+}
+
+function getLocationCategory(location: string): string {
+  if (!location) return 'Indefinido';
+  const loc = location.toUpperCase().trim();
+  if (loc.startsWith('PICK')) return 'Picking (Geral)';
+  if (loc.startsWith('EXP')) return 'Expedição';
+  if (loc.startsWith('PK')) return 'Picking (Format. Carro)';
+  if (loc.startsWith('DEP-D')) return 'Picking (DCC II)';
+  if (loc.startsWith('MIUD')) return 'Picking (Miúdo)';
+  if (loc.startsWith('SFA')) return 'Picking (Sala de Faixa)';
+  return 'Controlador';
 }
 
 export default function App() {
@@ -137,9 +155,49 @@ export default function App() {
   const [filterSector, setFilterSector] = useState<string>('ALL');
   const [filterStatus, setFilterStatus] = useState<string>('ALL'); // 'ALL' | 'LATE' | 'NEXT' | 'ONTIME'
   const [filterExcelStatus, setFilterExcelStatus] = useState<string>('ALL'); // 'ALL' | string from Excel 'status' column
+  const [filterController, setFilterController] = useState<string>('ALL');
+  const [filterDate, setFilterDate] = useState<string>('ALL');
+  const [filterTime, setFilterTime] = useState<string>('ALL');
   const [filterCarId, setFilterCarId] = useState<string>('');
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [controllerPageIndex, setControllerPageIndex] = useState(0);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // --- Filtered Data ---
+  const filteredRecords = useMemo(() => {
+    return dbRecords.filter(r => {
+      const matchModel = filterModel === 'ALL' || r.model === filterModel;
+      const matchSector = filterSector === 'ALL' || r.sectorName === filterSector;
+      const matchExcelStatus = filterExcelStatus === 'ALL' || r.status === filterExcelStatus;
+      const matchController = filterController === 'ALL' || r.location === filterController;
+      const matchDate = filterDate === 'ALL' || r.embarkDate === filterDate;
+      const matchTime = filterTime === 'ALL' || r.embarkTime === filterTime;
+      const matchCarId = !filterCarId || r.carId.toLowerCase().includes(filterCarId.toLowerCase());
+      
+      const sla = getSlaStatus(r);
+      const matchStatus = filterStatus === 'ALL' || 
+        (filterStatus === 'LATE' && sla.isLate) ||
+        (filterStatus === 'NEXT' && sla.text === 'PRÓX. EMB.') ||
+        (filterStatus === 'ONTIME' && sla.text === 'NO PRAZO');
+
+      return matchModel && matchSector && matchStatus && matchExcelStatus && matchCarId && 
+             matchController && matchDate && matchTime;
+    });
+  }, [dbRecords, filterModel, filterSector, filterStatus, filterExcelStatus, filterCarId, filterController, filterDate, filterTime]);
+
+  // Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const fetchData = async () => {
     try {
@@ -163,7 +221,7 @@ export default function App() {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(syncData.bays));
         }
 
-        if (syncData.records) return; 
+        if (syncData.records && syncData.records.length > 0) return; 
       }
 
       // 2. Try SharePoint/Direct Link second if available...
@@ -176,6 +234,13 @@ export default function App() {
           const newRecords = dataService.importJSON(data.records);
           setDbRecords([...newRecords]);
           setLastUpdate(new Date());
+
+          // Sincronizar com outros clientes
+          fetch('/api/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ records: data.records })
+          }).catch(console.error);
         }
       } else {
         const err = await response.json();
@@ -315,6 +380,31 @@ export default function App() {
 
   const availableExcelStatuses = useMemo(() => {
     return Array.from(new Set(dbRecords.map(r => r.status).filter(Boolean))).sort((a, b) => String(a).localeCompare(String(b)));
+  }, [dbRecords]);
+
+  const availableControllers = useMemo(() => {
+    return Array.from(new Set(
+      dbRecords
+        .filter(r => getLocationCategory(r.location) === 'Controlador')
+        .map(r => r.location)
+        .filter(Boolean)
+    )).sort((a, b) => String(a).localeCompare(String(b)));
+  }, [dbRecords]);
+
+  const availableDates = useMemo(() => {
+    return Array.from(new Set(dbRecords.map(r => r.embarkDate).filter(Boolean))).sort((a, b) => {
+      const parseDate = (d: string) => {
+        const parts = d.split('/');
+        if (parts.length < 3) return 0;
+        const [day, month, year] = parts.map(Number);
+        return new Date(year, month - 1, day).getTime();
+      };
+      return parseDate(b as string) - parseDate(a as string); // Newest first
+    });
+  }, [dbRecords]);
+
+  const availableTimes = useMemo(() => {
+    return Array.from(new Set(dbRecords.map(r => r.embarkTime).filter(Boolean))).sort((a, b) => String(a).localeCompare(String(b)));
   }, [dbRecords]);
 
   const selectedBay = useMemo(() => bays.find(b => b.id === selectedBayId), [bays, selectedBayId]);
@@ -547,7 +637,7 @@ export default function App() {
             exit={{ x: -450 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className={cn(
-              "w-full sm:w-[420px] min-w-full sm:min-w-[420px] shrink-0 h-full border-r flex flex-col z-50 shadow-2xl transition-all duration-300",
+              "w-[320px] xs:w-[380px] sm:w-[420px] shrink-0 h-full border-r flex flex-col z-50 shadow-2xl transition-[background-color,border-color] duration-300",
               "fixed lg:relative inset-y-0 left-0",
               theme === 'dark' 
                 ? "bg-slate-900 border-slate-800" 
@@ -555,32 +645,42 @@ export default function App() {
             )}
           >
             <div className={cn(
-              "p-6 border-b flex flex-col gap-4 transition-colors duration-300",
-              theme === 'dark' ? "border-slate-800" : "border-slate-200"
+              "p-8 border-b flex flex-col gap-6 transition-colors duration-300 relative overflow-hidden",
+              theme === 'dark' ? "border-white/5" : "border-slate-200"
             )}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg overflow-hidden bg-white flex items-center justify-center border border-slate-200 shadow-sm">
-                    <img src={LOGO_URL} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+              {/* Decorative background glow for sidebar header */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[60px] rounded-full -mr-16 -mt-16" />
+              
+              <div className="flex items-center justify-between relative z-10">
+                <div className="flex items-center gap-4">
+                  <div className={cn(
+                    "w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center border shadow-xl transition-all duration-300",
+                    theme === 'dark' 
+                      ? "bg-white/10 border-white/20 backdrop-blur-md glow-indigo" 
+                      : "bg-white border-slate-100 shadow-slate-200/50"
+                  )}>
+                    <img src={LOGO_URL} alt="Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
                   </div>
                   <div className="flex flex-col justify-center">
                     <h1 className={cn(
-                      "font-black text-lg tracking-tight leading-none transition-colors duration-300",
+                      "font-black text-xl tracking-tighter leading-none transition-colors duration-300",
                       theme === 'dark' ? "text-white" : "text-slate-900"
                     )}>
                       Controle
                     </h1>
-                    <h1 className="font-black text-lg tracking-tight leading-none text-emerald-500">
+                    <h1 className="font-black text-xl tracking-tighter leading-none text-emerald-500 mt-1">
                       DCC
                     </h1>
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                   <button 
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                     className={cn(
-                      "p-2 rounded-lg transition-all duration-300",
-                      theme === 'dark' ? "hover:bg-slate-800 text-amber-400" : "hover:bg-slate-100 text-slate-600"
+                      "p-2.5 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95",
+                      theme === 'dark' 
+                        ? "bg-white/5 hover:bg-white/10 text-amber-400 border border-white/10" 
+                        : "bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200"
                     )}
                   >
                     {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -588,58 +688,97 @@ export default function App() {
                   <button 
                     onClick={() => setSidebarOpen(false)}
                     className={cn(
-                      "p-1 rounded-md transition-colors",
-                      theme === 'dark' ? "hover:bg-slate-800 text-slate-400" : "hover:bg-slate-100 text-slate-500"
+                      "p-2.5 rounded-xl transition-all hover:scale-110 active:scale-95 group/collapse",
+                      theme === 'dark' ? "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/10" : "bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 border border-slate-200"
                     )}
+                    title="Retrair Painel"
                   >
-                    <ChevronLeft className="w-5 h-5" />
+                    <ChevronLeft className="w-5 h-5 group-hover/collapse:-translate-x-0.5 transition-transform" />
                   </button>
                 </div>
               </div>
             </div>
+                       <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
+              {/* Navigation Group */}
+              <div className="space-y-3">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] pl-2">Navegação</span>
+                
+                <div className={cn(
+                  "p-1.5 rounded-[1.5rem] flex flex-col gap-1 transition-all duration-300",
+                  theme === 'dark' ? "bg-black/40 border border-white/5 shadow-inner" : "bg-slate-200/40 border border-slate-200/60"
+                )}>
+                  <button
+                    onClick={() => setMode('dashboard')}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-black transition-all",
+                      mode === 'dashboard' 
+                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-white text-slate-900 shadow-md") 
+                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-white/50")
+                    )}
+                  >
+                    <div className={cn(
+                      "p-2 rounded-xl transition-colors",
+                      mode === 'dashboard' ? "bg-indigo-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500")
+                    )}>
+                      <LayoutDashboard className="w-4 h-4" />
+                    </div>
+                    Dashboard Geral
+                  </button>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
-              {/* Mode Toggle */}
-              <div className={cn(
-                "p-1 rounded-xl flex gap-1 transition-all duration-300",
-                theme === 'dark' ? "bg-slate-800/50" : "bg-slate-200/40 border border-slate-200/60"
-              )}>
-                <button
-                  onClick={() => setMode('view')}
-                  className={cn(
-                    "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all",
-                    mode === 'view' 
-                      ? (theme === 'dark' ? "bg-slate-700 text-white shadow-lg" : "bg-white text-slate-900 shadow-sm") 
-                      : (theme === 'dark' ? "text-slate-400 hover:text-slate-200" : "text-slate-500 hover:text-slate-700")
-                  )}
-                >
-                  <MousePointer2 className="w-3.5 h-3.5" />
-                  Mapa
-                </button>
-                <button
-                  onClick={() => setMode('edit')}
-                  className={cn(
-                    "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all",
-                    mode === 'edit' 
-                      ? "bg-emerald-600 text-white shadow-lg active:scale-95" 
-                      : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-slate-700/50" : "text-slate-500 hover:text-emerald-600 hover:bg-emerald-50")
-                  )}
-                >
-                  <Settings2 className="w-3.5 h-3.5" />
-                  Layout
-                </button>
-                <button
-                  onClick={() => setMode('database')}
-                  className={cn(
-                    "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all",
-                    mode === 'database' 
-                      ? "bg-blue-600 text-white shadow-lg" 
-                      : (theme === 'dark' ? "text-slate-400 hover:text-slate-200" : "text-slate-500 hover:text-slate-700")
-                  )}
-                >
-                  <Database className="w-3.5 h-3.5" />
-                  Dados
-                </button>
+                  <button
+                    onClick={() => setMode('view')}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-black transition-all",
+                      mode === 'view' 
+                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-white text-slate-900 shadow-md") 
+                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-white/50")
+                    )}
+                  >
+                    <div className={cn(
+                      "p-2 rounded-xl transition-colors",
+                      mode === 'view' ? "bg-emerald-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500")
+                    )}>
+                      <MousePointer2 className="w-4 h-4" />
+                    </div>
+                    Monitoramento
+                  </button>
+                  
+                  <button
+                    onClick={() => setMode('database')}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-black transition-all",
+                      mode === 'database' 
+                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-white text-slate-900 shadow-md") 
+                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-white/50")
+                    )}
+                  >
+                    <div className={cn(
+                      "p-2 rounded-xl transition-colors",
+                      mode === 'database' ? "bg-blue-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500")
+                    )}>
+                      <Database className="w-4 h-4" />
+                    </div>
+                    Base de Dados
+                  </button>
+
+                  <button
+                    onClick={() => setMode('edit')}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-black transition-all",
+                      mode === 'edit' 
+                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-white text-slate-900 shadow-md") 
+                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-white/50")
+                    )}
+                  >
+                    <div className={cn(
+                      "p-2 rounded-xl transition-colors",
+                      mode === 'edit' ? "bg-amber-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500")
+                    )}>
+                      <Settings2 className="w-4 h-4" />
+                    </div>
+                    Editar Layout
+                  </button>
+                </div>
               </div>
 
               {/* Sidebar Content based on Mode */}
@@ -1100,96 +1239,573 @@ export default function App() {
 
       {/* --- Main Content Area --- */}
       <main className="flex-1 relative flex flex-col overflow-hidden">
-        {!sidebarOpen && (
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className={cn(
-              "absolute left-4 top-4 z-30 p-2 rounded-xl border shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 animate-in fade-in slide-in-from-left-4",
-              theme === 'dark' 
-                ? "bg-slate-900 border-slate-800 text-slate-400 hover:text-white" 
-                : "bg-white border-slate-200 text-slate-500 hover:text-slate-900"
-            )}
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        )}
-        {mode === 'database' ? (
+        {/* Global Sidebar Toggle (Visible when sidebar is closed) */}
+        <AnimatePresence>
+          {!sidebarOpen && (
+            <motion.div 
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -20, opacity: 0 }}
+              className="fixed top-6 left-6 z-[60]"
+            >
+              <button 
+                onClick={() => setSidebarOpen(true)}
+                className={cn(
+                  "p-4 rounded-[1.5rem] transition-all hover:scale-110 active:scale-95 group relative border shadow-2xl backdrop-blur-3xl",
+                  theme === 'dark' 
+                    ? "bg-slate-900/90 text-white border-white/10 glow-indigo" 
+                    : "bg-white/95 text-slate-900 border-slate-200 shadow-slate-200/50"
+                )}
+                title="Abrir Painel"
+              >
+                <ChevronRight className="w-6 h-6" />
+                <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-slate-950 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {mode === 'dashboard' ? (
           <div className={cn(
-            "flex-1 p-8 overflow-y-auto custom-scrollbar transition-colors duration-300",
+            "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
             theme === 'dark' ? "bg-slate-950" : "bg-slate-50"
           )}>
-            <div className="max-w-6xl mx-auto space-y-8">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+            {/* Background Glows */}
+            <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-indigo-500/5 blur-[120px] rounded-full -ml-64 -mt-64 pointer-events-none" />
+            <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-emerald-500/5 blur-[120px] rounded-full -mr-64 -mb-64 pointer-events-none" />
+
+            <div className="max-w-7xl mx-auto space-y-8 relative z-10">
+              <div className="flex flex-col gap-1">
+                <h1 className={cn(
+                  "text-3xl font-black tracking-tight",
+                  theme === 'dark' ? "text-white" : "text-slate-900"
+                )}>
+                  Dashboard Operacional
+                </h1>
+                <p className="text-slate-400 text-sm font-medium">Análise em tempo real da performance de picking.</p>
+              </div>
+
+              {/* KPI Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[
+                  { label: 'Total de Carros', value: filteredRecords.length, icon: <Car className="w-5 h-5" />, color: 'indigo' },
+                  { label: 'Embarcados', value: filteredRecords.filter(r => r.status === 'EMBARCADO').length, icon: <CheckCircle2 className="w-5 h-5" />, color: 'blue' },
+                  { label: 'Em Atraso', value: filteredRecords.filter(r => getSlaStatus(r).isLate).length, icon: <AlertCircle className="w-5 h-5" />, color: 'rose' },
+                  { 
+                    label: 'Ocupação Total', 
+                    value: `${Math.round((bays.reduce((acc, b) => acc + (b.currentCars || 0), 0) / (bays.reduce((acc, b) => acc + b.capacity, 0) || 1)) * 100)}%`, 
+                    icon: <TrendingUp className="w-5 h-5" />, 
+                    color: 'emerald' 
+                  },
+                ].map((kpi, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className={cn(
+                      "p-6 rounded-[2rem] border backdrop-blur-3xl transition-all duration-300",
+                      theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-xl"
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className={cn(
+                        "p-3 rounded-2xl",
+                        kpi.color === 'indigo' ? "bg-indigo-500/10 text-indigo-400" :
+                        kpi.color === 'blue' ? "bg-blue-500/10 text-blue-400" :
+                        kpi.color === 'rose' ? "bg-rose-500/10 text-rose-400" :
+                        "bg-emerald-500/10 text-emerald-400"
+                      )}>
+                        {kpi.icon}
+                      </div>
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">{kpi.label}</h3>
+                      <p className={cn("text-3xl font-black tabular-nums", theme === 'dark' ? "text-white" : "text-slate-900")}>
+                        {kpi.value}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Advanced Operational Health Chart */}
+                <div className={cn(
+                  "lg:col-span-3 p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-8 transition-all duration-300",
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-xl"
+                )}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-blue-500/10 text-blue-400 rounded-xl">
+                        <TrendingUp className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className={cn("text-lg font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
+                          Saúde Operacional
+                        </h3>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Plano vs Real vs Diferente vs Acumulado</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4">
+                    {[
+                      { label: 'Plano (Total)', value: filteredRecords.length, color: 'text-slate-400' },
+                      { label: 'Real (Emb.)', value: filteredRecords.filter(r => r.status === 'EMBARCADO').length, color: 'text-blue-500' },
+                      { label: 'Diferença', value: filteredRecords.length - filteredRecords.filter(r => r.status === 'EMBARCADO').length, color: 'text-amber-500' },
+                      { label: 'Aproveitamento', value: `${Math.round((filteredRecords.filter(r => r.status === 'EMBARCADO').length / (filteredRecords.length || 1)) * 100)}%`, color: 'text-emerald-500' }
+                    ].map((stat, i) => (
+                      <div key={i} className="space-y-1">
+                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em]">{stat.label}</span>
+                        <p className={cn("text-xl font-black tabular-nums", stat.color)}>{stat.value}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="h-48 w-full relative flex items-end gap-1 overflow-hidden group px-2">
+                    {/* Background Grid Lines */}
+                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-5">
+                      {[1, 2, 3, 4].map(i => <div key={i} className="w-full h-px bg-white" />)}
+                    </div>
+
+                    {/* Bars & Cumulative Line Overlay */}
+                    {(() => {
+                      const hourlyData = Array.from({ length: 24 }).map((_, h) => {
+                        return filteredRecords.filter(r => r.status === 'EMBARCADO' && r.embarkTime?.startsWith(h.toString().padStart(2, '0'))).length;
+                      });
+                      const max = Math.max(...hourlyData) || 1;
+                      let cumulative = 0;
+                      const cumulativeData = hourlyData.map(d => {
+                        cumulative += d;
+                        return cumulative;
+                      });
+                      const totalMax = filteredRecords.length || 1;
+
+                      return hourlyData.map((count, h) => {
+                        const hPerc = (count / max) * 100;
+                        const cumPerc = (cumulativeData[h] / totalMax) * 100;
+                        
+                        return (
+                          <div key={h} className="flex-1 flex flex-col items-center gap-2 group/bar relative h-full">
+                            <div className="w-full relative flex-1 flex flex-col justify-end">
+                              {/* Hourly Bar */}
+                              <motion.div 
+                                initial={{ height: 0 }}
+                                animate={{ height: `${hPerc * 0.7}%` }}
+                                className={cn(
+                                  "w-full rounded-t-sm transition-all duration-500",
+                                  count > 0 ? "bg-blue-500/20 group-hover/bar:bg-blue-500/40" : "bg-white/5"
+                                )}
+                              />
+                              
+                              {/* Cumulative Point/Line segment (simplified as a dot) */}
+                              <motion.div 
+                                initial={{ bottom: 0 }}
+                                animate={{ bottom: `${cumPerc}%` }}
+                                className="absolute left-1/2 -translate-x-1/2 w-1 h-1 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)] z-10"
+                              />
+                            </div>
+                            <span className="text-[7px] font-black text-slate-600 tabular-nums">{h}h</span>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+
+                {/* Late by Model & Sector */}
+                <div className={cn(
+                  "lg:col-span-2 p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-xl"
+                )}>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-rose-500/10 text-rose-400 rounded-xl">
+                      <AlertTriangle className="w-5 h-5" />
+                    </div>
+                    <h3 className={cn("text-lg font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
+                      Atrasos Críticos
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between px-1">
+                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Por Modelo</h4>
+                        <div className="w-1 h-1 rounded-full bg-rose-500 animate-pulse" />
+                      </div>
+                      <div className="space-y-2">
+                        {Array.from(new Set(filteredRecords.map(r => r.model))).filter(Boolean).map(model => {
+                          const late = filteredRecords.filter(r => r.model === model && getSlaStatus(r).isLate).length;
+                          if (late === 0) return null;
+                          return (
+                            <div key={model} className="flex items-center justify-between text-[11px] font-black p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-rose-500/20 transition-colors group">
+                              <span className="text-slate-400 group-hover:text-slate-200 transition-colors">{model}</span>
+                              <span className="text-rose-500 tabular-nums bg-rose-500/10 px-2 py-0.5 rounded-lg">{late}</span>
+                            </div>
+                          );
+                        }).filter(Boolean).sort((a, b) => (b?.props.children[1].props.children || 0) - (a?.props.children[1].props.children || 0)).slice(0, 5)}
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between px-1">
+                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Por Setor</h4>
+                        <div className="w-1 h-1 rounded-full bg-rose-500 animate-pulse" />
+                      </div>
+                      <div className="space-y-2">
+                        {Array.from(new Set(filteredRecords.map(r => r.sectorName))).filter(Boolean).map(sector => {
+                          const late = filteredRecords.filter(r => r.sectorName === sector && getSlaStatus(r).isLate).length;
+                          if (late === 0) return null;
+                          return (
+                            <div key={sector} className="flex items-center justify-between text-[11px] font-black p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-rose-500/20 transition-colors group">
+                              <span className="text-slate-400 group-hover:text-slate-200 transition-colors">{sector}</span>
+                              <span className="text-rose-500 tabular-nums bg-rose-500/10 px-2 py-0.5 rounded-lg">{late}</span>
+                            </div>
+                          );
+                        }).filter(Boolean).sort((a, b) => (b?.props.children[1].props.children || 0) - (a?.props.children[1].props.children || 0)).slice(0, 5)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Location Classification Breakdown */}
+                <div className={cn(
+                  "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-xl"
+                )}>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl">
+                      <Layout className="w-5 h-5" />
+                    </div>
+                    <h3 className={cn("text-lg font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
+                      Categorização Picking
+                    </h3>
+                  </div>
+
+                  <div className="space-y-4">
+                    {(() => {
+                      const categories = [
+                        'Picking (Geral)',
+                        'Expedição',
+                        'Picking (Format. Carro)',
+                        'Picking (DCC II)',
+                        'Picking (Miúdo)',
+                        'Picking (Sala de Faixa)',
+                        'Controlador'
+                      ];
+                      
+                      return categories.map(cat => {
+                        const count = filteredRecords.filter(r => getLocationCategory(r.location) === cat).length;
+                        if (count === 0 && cat === 'Controlador') return null;
+                        
+                        const percent = Math.round((count / (filteredRecords.length || 1)) * 100);
+                        
+                        return (
+                          <div key={cat} className="space-y-1.5">
+                            <div className="flex justify-between items-end px-1">
+                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{cat}</span>
+                              <span className="text-[11px] font-black text-slate-400 tabular-nums">{count}</span>
+                            </div>
+                            <div className={cn("h-1.5 w-full rounded-full overflow-hidden", theme === 'dark' ? "bg-white/5" : "bg-slate-100")}>
+                              <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${percent}%` }}
+                                className={cn(
+                                  "h-full rounded-full transition-all duration-1000",
+                                  cat.includes('Picking') ? "bg-blue-500" : "bg-emerald-500"
+                                )}
+                              />
+                            </div>
+                          </div>
+                        );
+                      }).filter(Boolean);
+                    })()}
+                  </div>
+                </div>
+
+                {/* Controller Activity - Line Chart Style */}
+                <div className={cn(
+                  "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-xl"
+                )}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-rose-500/10 text-rose-400 rounded-xl">
+                        <Users className="w-5 h-5" />
+                      </div>
+                      <h3 className={cn("text-lg font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
+                        Atividade por Controlador
+                      </h3>
+                    </div>
+                    <div className="flex gap-1">
+                      <button 
+                        disabled={controllerPageIndex === 0}
+                        onClick={() => setControllerPageIndex(prev => Math.max(0, prev - 1))}
+                        className="p-1.5 rounded-lg bg-white/5 text-slate-400 disabled:opacity-20 hover:bg-white/10"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => setControllerPageIndex(prev => prev + 1)}
+                        className="p-1.5 rounded-lg bg-white/5 text-slate-400 hover:bg-white/10"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="relative h-48 w-full mt-4">
+                    {(() => {
+                      const controllerStats = filteredRecords
+                        .filter(r => getLocationCategory(r.location) === 'Controlador')
+                        .reduce((acc, r) => {
+                          const c = r.location || 'NÃO IDENTIFICADO';
+                          acc[c] = (acc[c] || 0) + 1;
+                          return acc;
+                        }, {} as Record<string, number>);
+
+                      const sortedControllers = (Object.entries(controllerStats) as [string, number][])
+                        .sort((a, b) => b[1] - a[1]);
+
+                      const displayControllers = sortedControllers.slice(controllerPageIndex * 4, (controllerPageIndex * 4) + 4);
+
+                      if (displayControllers.length === 0 && controllerPageIndex > 0) {
+                        setControllerPageIndex(0);
+                        return null;
+                      }
+
+                      const max = Math.max(...(Object.values(controllerStats) as number[]), 1);
+
+                      return (
+                        <div className="flex flex-col gap-6 h-full justify-center py-2">
+                          {displayControllers.map(([ctrl, count]) => (
+                            <div key={ctrl} className="flex flex-col gap-2 group">
+                              <div className="flex justify-between items-end px-1">
+                                <span className="text-[10px] font-black text-slate-500 uppercase truncate max-w-[120px]">{ctrl}</span>
+                                <span className="text-[11px] font-black text-rose-500 tabular-nums">{count}</span>
+                              </div>
+                              <div className={cn(
+                                "h-3 w-full rounded-full relative bg-white/5 overflow-hidden ring-1 ring-white/5",
+                                theme === 'light' && "bg-slate-100 ring-slate-200"
+                              )}>
+                                <motion.div 
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${(count / max) * 100}%` }}
+                                  className="h-full bg-gradient-to-r from-rose-500 to-rose-400 rounded-full shadow-[0_0_15px_rgba(244,63,94,0.3)] transition-all duration-1000"
+                                />
+                              </div>
+                            </div>
+                          ))}
+                          {sortedControllers.length === 0 && (
+                            <div className="flex-1 flex flex-col items-center justify-center opacity-40">
+                              <Users className="w-6 h-6 mb-2" />
+                              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nenhum dado de controlador</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* Stagnant Vehicles */}
+                <div className={cn(
+                  "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-xl"
+                )}>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-amber-500/10 text-amber-400 rounded-xl">
+                      <Clock className="w-5 h-5" />
+                    </div>
+                    <h3 className={cn("text-lg font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
+                      Veículos Parados
+                    </h3>
+                  </div>
+
+                  <div className="space-y-3">
+                    {dbRecords
+                      .filter(r => r.status !== 'EMBARCADO')
+                      .map(r => {
+                        const targetDate = parseExcelDate(r.embarkDate, r.embarkTime);
+                        if (!targetDate) return { ...r, daysLate: 0 };
+                        const diffMs = new Date().getTime() - targetDate.getTime();
+                        const daysLate = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+                        return { ...r, daysLate };
+                      })
+                      .filter(r => r.daysLate > 0)
+                      .sort((a, b) => b.daysLate - a.daysLate)
+                      .slice(0, 5)
+                      .map(r => (
+                        <div key={r.carId} className="flex items-center gap-3 p-4 rounded-[1.5rem] bg-white/5 border border-white/5 group hover:border-amber-500/30 transition-all">
+                          <div className="flex flex-col items-center justify-center w-12 h-12 bg-amber-500/10 rounded-2xl group-hover:bg-amber-500/20 transition-colors border border-amber-500/20">
+                            <span className="text-[14px] font-black text-amber-500">+{r.daysLate}</span>
+                            <span className="text-[7px] font-black text-amber-500/60 uppercase">Dias</span>
+                          </div>
+                          <div className="flex flex-col flex-1 overflow-hidden">
+                            <span className={cn("text-xs font-black truncate transition-colors", theme === 'dark' ? "text-white" : "text-slate-900")}>{r.carId}</span>
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{r.location}</span>
+                          </div>
+                        </div>
+                      ))}
+                    {dbRecords.filter(r => r.status !== 'EMBARCADO' && parseExcelDate(r.embarkDate, r.embarkTime) && new Date() > parseExcelDate(r.embarkDate, r.embarkTime)!).length === 0 && (
+                      <div className="py-12 text-center opacity-40">
+                        <CheckCircle2 className="w-8 h-8 mx-auto mb-3 text-emerald-500" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">Nenhum veículo atrasado</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : mode === 'database' ? (
+          <div className={cn(
+            "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
+            theme === 'dark' ? "bg-slate-950" : "bg-slate-50"
+          )}>
+            {/* Decorative background glows for Database View */}
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 blur-[120px] rounded-full -mr-64 -mt-64 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-emerald-500/5 blur-[120px] rounded-full -ml-64 -mb-64 pointer-events-none" />
+
+            <div className="max-w-6xl mx-auto space-y-8 relative z-10">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="space-y-1">
                   <h1 className={cn(
-                    "text-2xl sm:text-3xl font-black tracking-tight transition-colors duration-300",
+                    "text-xl sm:text-3xl font-black tracking-tight transition-colors duration-300",
                     theme === 'dark' ? "text-white" : "text-slate-900"
                   )}>
                     Base de Dados
                   </h1>
-                  <p className="text-slate-400 text-xs sm:text-sm">Gerencie os registros importados da planilha Excel.</p>
+                  <p className="text-slate-400 text-[10px] sm:text-sm">Exibindo {filteredRecords.length} de {dbRecords.length} veículos.</p>
                 </div>
-                <div className="flex gap-3 w-full sm:w-auto">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  {(filterSector !== 'ALL' || filterModel !== 'ALL' || filterController !== 'ALL' || filterDate !== 'ALL' || filterTime !== 'ALL' || filterExcelStatus !== 'ALL' || filterCarId) && (
+                    <button 
+                      onClick={() => {
+                        setFilterSector('ALL');
+                        setFilterModel('ALL');
+                        setFilterStatus('ALL');
+                        setFilterExcelStatus('ALL');
+                        setFilterController('ALL');
+                        setFilterDate('ALL');
+                        setFilterTime('ALL');
+                        setFilterCarId('');
+                      }}
+                      className="px-4 py-3 bg-rose-500/10 text-rose-500 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-500/20 transition-all border border-rose-500/20"
+                    >
+                      Limpar Filtros
+                    </button>
+                  )}
                   <button 
                     onClick={() => setShowImport(true)}
-                    className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20"
+                    className="flex-1 sm:flex-none px-6 py-3 bg-blue-600 text-white rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 hover:bg-blue-500 transition-all shadow-xl shadow-blue-900/40 active:scale-95 group border border-blue-400/20"
                   >
-                    <FileSpreadsheet className="w-4 h-4" />
-                    Importar Excel
+                    <FileSpreadsheet className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                    <span className="hidden xs:inline uppercase tracking-widest">Importar Excel</span>
                   </button>
                 </div>
               </div>
 
+              {/* Contextual Database Filters */}
               <div className={cn(
-                "rounded-3xl border overflow-x-auto transition-all duration-300 custom-scrollbar-none sm:custom-scrollbar",
-                theme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200 shadow-xl"
+                "p-4 rounded-[2rem] border backdrop-blur-3xl flex flex-wrap gap-4 items-center transition-all duration-300",
+                theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-xl"
               )}>
-                <table className="w-full text-left border-collapse">
+                <div className="flex items-center gap-2 px-3 border-r border-slate-500/20">
+                  <Filter className="w-4 h-4 text-slate-500" />
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Filtros</span>
+                </div>
+                <div className="flex-1 flex flex-wrap gap-3">
+                  {[
+                    { label: 'Controlador', value: filterController, setter: setFilterController, options: availableControllers },
+                    { label: 'Setor', value: filterSector, setter: setFilterSector, options: availableSectors },
+                    { label: 'Modelo', value: filterModel, setter: setFilterModel, options: availableModels },
+                    { label: 'Data', value: filterDate, setter: setFilterDate, options: availableDates },
+                  ].map(f => (
+                    <div key={f.label} className="relative group">
+                      <select 
+                        value={f.value}
+                        onChange={e => f.setter(e.target.value)}
+                        className={cn(
+                          "pl-3 pr-8 py-2 rounded-xl text-[10px] font-black bg-slate-500/5 border border-transparent focus:border-blue-500/50 focus:outline-none appearance-none cursor-pointer transition-all uppercase tracking-tighter",
+                          theme === 'dark' ? "text-slate-300" : "text-slate-600",
+                          f.value !== 'ALL' && "text-blue-500 bg-blue-500/5 border-blue-500/20"
+                        )}
+                      >
+                        <option value="ALL">{f.label.toUpperCase()}: TODOS</option>
+                        {f.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                      <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rotate-90 text-slate-500 pointer-events-none" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className={cn(
+                "rounded-[2.5rem] border overflow-x-auto transition-all duration-300 custom-scrollbar-none sm:custom-scrollbar backdrop-blur-3xl",
+                theme === 'dark' 
+                  ? "bg-slate-900/40 border-white/5 shadow-2xl shadow-black/40 ring-1 ring-white/5" 
+                  : "bg-white/60 border-slate-200 shadow-xl shadow-slate-200/50"
+              )}>
+                <table className="w-full text-left border-collapse min-w-[600px] sm:min-w-0">
                   <thead>
                     <tr className={cn(
                       "transition-colors duration-300",
-                      theme === 'dark' ? "bg-slate-800/50 border-b border-slate-800" : "bg-slate-100 border-b border-slate-200"
+                      theme === 'dark' ? "bg-white/5 border-b border-white/5" : "bg-slate-50 border-b border-slate-100"
                     )}>
-                      <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Carro</th>
-                      <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Modelo</th>
-                      <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Locação</th>
-                      <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Setor</th>
-                      <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>
-                      <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Embarque</th>
+                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Veículo</th>
+                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Modelo</th>
+                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Locação</th>
+                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Setor</th>
+                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Status</th>
+                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 text-right">Embarque</th>
                     </tr>
                   </thead>
                   <tbody className={cn(
                     "divide-y transition-colors duration-300",
                     theme === 'dark' ? "divide-slate-800" : "divide-slate-100"
                   )}>
-                    {dbRecords.map(record => (
+                    {filteredRecords.map(record => (
                       <tr key={record.carId} className={cn(
-                        "transition-colors duration-300",
-                        theme === 'dark' ? "hover:bg-slate-800/30" : "hover:bg-slate-50"
+                        "transition-colors duration-300 group",
+                        theme === 'dark' ? "hover:bg-white/5" : "hover:bg-slate-50/50"
                       )}>
                         <td className={cn(
-                          "px-6 py-4 text-sm font-bold transition-colors duration-300",
+                          "px-8 py-5 text-sm font-black transition-colors duration-300",
                           theme === 'dark' ? "text-white" : "text-slate-900"
                         )}>
                           {record.carId}
                         </td>
-                        <td className="px-6 py-4 text-sm text-slate-400">{record.model}</td>
-                        <td className={cn(
-                          "px-6 py-4 text-sm font-mono transition-colors duration-300",
-                          theme === 'dark' ? "text-emerald-400" : "text-emerald-600"
-                        )}>
-                          {record.location}
-                        </td>
-                        <td className="px-6 py-4 text-xs text-slate-500">{record.sectorName}</td>
-                        <td className="px-6 py-4">
+                        <td className="px-8 py-5 text-sm font-black text-slate-500/70">{record.model}</td>
+                        <td className="px-8 py-5">
                           <span className={cn(
-                            "px-2 py-1 rounded text-[10px] font-bold uppercase",
-                            record.status === 'EMBARCADO' ? (theme === 'dark' ? "bg-blue-500/10 text-blue-400" : "bg-blue-100 text-blue-700") : (theme === 'dark' ? "bg-amber-500/10 text-amber-400" : "bg-amber-100 text-amber-700")
+                            "px-3 py-1.5 rounded-xl text-[11px] font-black tabular-nums border transition-all duration-300",
+                            theme === 'dark' 
+                              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 group-hover:glow-emerald" 
+                              : "bg-emerald-50 border-emerald-100 text-emerald-700"
                           )}>
-                            {record.status}
+                            {record.location}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-xs text-slate-500">{record.embarkDate} {record.embarkTime}</td>
+                        <td className="px-8 py-5 text-[11px] font-black text-slate-500 uppercase tracking-wider">{record.sectorName}</td>
+                        <td className="px-8 py-5">
+                          <div className="flex items-center gap-2">
+                            <div className={cn(
+                              "w-1.5 h-1.5 rounded-full animate-pulse",
+                              record.status === 'EMBARCADO' ? "bg-blue-500" : "bg-amber-500"
+                            )} />
+                            <span className={cn(
+                              "text-[10px] font-black uppercase tracking-widest",
+                              record.status === 'EMBARCADO' ? "text-blue-500" : "text-amber-500"
+                            )}>
+                              {record.status}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-8 py-5 text-[11px] font-black text-slate-500/60 tabular-nums text-right">
+                          {record.embarkDate} <span className="opacity-40 mx-0.5">•</span> {record.embarkTime}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1199,228 +1815,237 @@ export default function App() {
           </div>
         ) : (
           <>
-            {/* Header Overlay */}
-            <div className="absolute top-6 left-6 right-6 z-10 flex justify-between items-center pointer-events-none">
-              {!sidebarOpen && (
-                <button 
-                  onClick={() => setSidebarOpen(true)}
-                  className={cn(
-                    "p-3 backdrop-blur-md border rounded-xl pointer-events-auto transition-all shadow-xl",
-                    theme === 'dark' ? "bg-slate-900/80 border-slate-700 hover:bg-slate-800" : "bg-white/80 border-slate-200 hover:bg-slate-50"
-                  )}
-                >
-                  <ChevronRight className={cn("w-5 h-5", theme === 'dark' ? "text-emerald-400" : "text-emerald-600")} />
-                </button>
-              )}
-              
-              <div className="flex gap-3 pointer-events-auto">
-                <div className={cn(
-                  "px-4 py-2 backdrop-blur-xl border rounded-xl flex items-center gap-3 shadow-2xl h-10 transition-all duration-300",
-                  theme === 'dark' 
-                    ? "bg-slate-900/80 border-slate-700 shadow-black/20" 
-                    : "bg-white/90 border-slate-200/60 shadow-slate-200/50"
-                )}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className={cn(
-                      "text-xs font-bold uppercase tracking-wider transition-colors duration-300",
-                      theme === 'dark' ? "text-slate-300" : "text-slate-700"
-                    )}>
-                      Monitoramento
-                    </span>
-                  </div>
-                  <div className={cn(
-                    "w-px h-4 transition-colors duration-300",
-                    theme === 'dark' ? "bg-slate-700" : "bg-slate-200"
-                  )} />
-                  <div className={cn(
-                    "text-xs font-medium transition-colors duration-300",
-                    theme === 'dark' ? "text-slate-400" : "text-slate-500"
-                  )}>
-                    {dbRecords.length}
+            {/* Command Center Overlay */}
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-7xl pointer-events-none">
+              <div className={cn(
+                "flex items-center gap-4 px-4 py-2.5 backdrop-blur-3xl border rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] pointer-events-auto transition-all duration-500",
+                theme === 'dark' 
+                  ? "bg-slate-900/40 border-slate-700/40 shadow-black/60 ring-1 ring-inset ring-white/5" 
+                  : "bg-white/40 border-white/60 shadow-slate-300/40 ring-1 ring-inset ring-black/5"
+              )}>
+                {/* Left Section: Sidebar & Basic Stats */}
+                <div className="flex items-center gap-3">
+                  <div className="hidden md:flex items-center gap-3 pl-2">
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className={cn("text-[10px] font-black tracking-[0.2em] transition-colors", theme === 'dark' ? "text-white" : "text-slate-900")}>LIVE</span>
+                      </div>
+                      <span className="text-[14px] font-black tabular-nums transition-colors">{dbRecords.length} <span className="text-[8px] font-bold text-slate-500 tracking-widest">TPS</span></span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Filters */}
-                <div className={cn(
-                  "px-3 py-1.5 backdrop-blur-xl border rounded-xl flex items-center gap-3 h-11 shadow-2xl transition-all duration-300",
-                  "max-w-[calc(100vw-40px)] overflow-x-auto lg:overflow-visible custom-scrollbar-none",
-                  theme === 'dark' 
-                    ? "bg-slate-900/80 border-slate-700 shadow-black/20" 
-                    : "bg-white/90 border-slate-200/60 shadow-slate-200/50"
-                )}>
-                  <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-slate-500/10 border border-slate-500/10">
-                    <Search className="w-3.5 h-3.5 text-slate-500" />
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest hidden sm:inline">Filtros</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-4 shrink-0 pr-4 lg:pr-0">
-                    {/* CarID Input */}
-                    <div className="relative group">
-                      <input 
-                        type="text"
-                        placeholder="Buscar..."
-                        value={filterCarId}
-                        onChange={e => setFilterCarId(e.target.value)}
-                        className={cn(
-                          "w-28 sm:w-48 text-[11px] font-bold bg-transparent border-b border-transparent focus:border-emerald-500 focus:outline-none transition-all placeholder:text-slate-500 placeholder:font-medium py-0.5",
-                          theme === 'dark' ? "text-slate-200" : "text-slate-700"
-                        )}
-                      />
+                <div className="w-px h-8 bg-slate-500/20 mx-1 hidden md:block" />
+
+                {/* Center Section: Global Search Command */}
+                <div className="flex-1 max-w-2xl relative group">
+                  <div className={cn(
+                    "flex items-center gap-3 px-6 py-2.5 rounded-2xl transition-all duration-300 border",
+                    theme === 'dark' 
+                      ? "bg-black/20 border-white/5 focus-within:border-emerald-500/50 focus-within:bg-black/40" 
+                      : "bg-white/20 border-black/5 focus-within:border-emerald-500/50 focus-within:bg-white/40"
+                  )}>
+                    <Search className={cn("w-4 h-4 transition-colors", filterCarId ? "text-emerald-500" : "text-slate-500")} />
+                    <input 
+                      ref={searchInputRef}
+                      type="text"
+                      placeholder="Comando de Busca (ID do Veículo)"
+                      value={filterCarId}
+                      onChange={e => setFilterCarId(e.target.value)}
+                      className={cn(
+                        "w-full text-sm font-bold bg-transparent focus:outline-none placeholder:text-slate-500/50",
+                        theme === 'dark' ? "text-white" : "text-slate-900"
+                      )}
+                    />
+                    <div className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded border border-slate-500/30 bg-slate-500/10">
+                      <span className="text-[10px] font-black text-slate-500">⌘</span>
+                      <span className="text-[10px] font-black text-slate-500">K</span>
                     </div>
-
-                    <div className="w-px h-4 bg-slate-500/20" />
-
-                    {/* Setor Filter */}
-                    <select 
-                      value={filterSector} 
-                      onChange={e => setFilterSector(e.target.value)}
-                      className={cn(
-                        "text-[11px] font-bold bg-transparent focus:outline-none appearance-none cursor-pointer hover:text-emerald-500 transition-colors whitespace-nowrap",
-                        theme === 'dark' ? "text-slate-300" : "text-slate-700"
-                      )}
-                    >
-                      <option value="ALL">Setores</option>
-                      {availableSectors.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-
-                    <div className="w-px h-4 bg-slate-500/20" />
-                    
-                    {/* Model Filter */}
-                    <select 
-                      value={filterModel} 
-                      onChange={e => setFilterModel(e.target.value)}
-                      className={cn(
-                        "text-[11px] font-bold bg-transparent focus:outline-none appearance-none cursor-pointer hover:text-emerald-500 transition-colors whitespace-nowrap",
-                        theme === 'dark' ? "text-slate-300" : "text-slate-700"
-                      )}
-                    >
-                      <option value="ALL">Modelos</option>
-                      {availableModels.map(m => <option key={m} value={m}>{m}</option>)}
-                    </select>
-
-                    <div className="w-px h-4 bg-slate-500/20" />
-                    
-                    {/* SLA Filter */}
-                    <select 
-                      value={filterStatus} 
-                      onChange={e => setFilterStatus(e.target.value)}
-                      className={cn(
-                        "text-[11px] font-bold bg-transparent focus:outline-none appearance-none cursor-pointer hover:text-emerald-500 transition-colors whitespace-nowrap",
-                        theme === 'dark' ? "text-slate-300" : "text-slate-700"
-                      )}
-                    >
-                      <option value="ALL">SLA</option>
-                      <option value="LATE">Atrasado</option>
-                      <option value="NEXT">Próx. Embarque</option>
-                      <option value="ONTIME">No Prazo</option>
-                    </select>
-
-                    <div className="w-px h-4 bg-slate-500/20" />
-
-                    {/* Excel Status Filter */}
-                    <select 
-                      value={filterExcelStatus} 
-                      onChange={e => setFilterExcelStatus(e.target.value)}
-                      className={cn(
-                        "text-[11px] font-bold bg-transparent focus:outline-none appearance-none cursor-pointer pr-1 hover:text-emerald-500 transition-colors whitespace-nowrap",
-                        theme === 'dark' ? "text-slate-300" : "text-slate-700"
-                      )}
-                    >
-                      <option value="ALL">Situação</option>
-                      {availableExcelStatuses.map(st => <option key={st} value={st}>{st}</option>)}
-                    </select>
                   </div>
+                </div>
 
-                  {/* Clear Filters Button */}
-                  {(filterSector !== 'ALL' || filterModel !== 'ALL' || filterStatus !== 'ALL' || filterExcelStatus !== 'ALL' || filterCarId !== '') && (
-                     <button
-                       onClick={() => {
-                         setFilterSector('ALL');
-                         setFilterModel('ALL');
-                         setFilterStatus('ALL');
-                         setFilterExcelStatus('ALL');
-                         setFilterCarId('');
-                       }}
-                       className="p-1 px-2 hover:bg-rose-500/10 text-rose-500 rounded-lg text-[10px] font-black uppercase transition-all flex items-center gap-1.5 whitespace-nowrap"
-                     >
-                       <X className="w-3 h-3" />
-                       Limpar
-                     </button>
-                  )}
+                {/* Right Section: Toggles & Actions */}
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setShowMobileFilters(!showMobileFilters)}
+                    className={cn(
+                      "p-3 rounded-2xl transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group relative overflow-hidden",
+                      showMobileFilters 
+                        ? "bg-emerald-600 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)]" 
+                        : (theme === 'dark' ? "bg-slate-800/80 text-slate-400" : "bg-white text-slate-500 shadow-md")
+                    )}
+                  >
+                    <Settings2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                    <span className="text-[10px] font-black tracking-widest hidden lg:block">FILTROS</span>
+                    { (filterSector !== 'ALL' || filterModel !== 'ALL' || filterStatus !== 'ALL' || filterExcelStatus !== 'ALL' || filterController !== 'ALL' || filterDate !== 'ALL' || filterTime !== 'ALL') && (
+                      <div className="absolute top-1 right-1 min-w-[1.25rem] h-5 px-1 bg-rose-500 rounded-full border-2 border-slate-950 flex items-center justify-center animate-bounce-subtle">
+                        <span className="text-[8px] font-black text-white">{filteredRecords.length}</span>
+                      </div>
+                    )}
+                  </button>
+
+                  <div className="w-px h-8 bg-slate-500/20 mx-1 hidden sm:block" />
+
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setAutoRefresh(!autoRefresh)}
+                      className={cn(
+                        "p-3 rounded-2xl transition-all hover:scale-105 active:scale-95 relative",
+                        autoRefresh 
+                          ? "bg-slate-800 text-emerald-400 border border-emerald-500/30" 
+                          : "bg-slate-800/40 text-slate-500 border border-white/5"
+                      )}
+                    >
+                      <RefreshCw className={cn("w-4 h-4", autoRefresh && "animate-spin-slow")} />
+                      {autoRefresh && (
+                        <div className="absolute -top-1 -right-1 flex h-3 w-3">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                        </div>
+                      )}
+                    </button>
+                    
+                    <button 
+                      onClick={() => fetchData()}
+                      className={cn(
+                        "hidden sm:flex p-3 rounded-2xl transition-all hover:scale-105 active:scale-95",
+                        theme === 'dark' ? "bg-slate-800/80 text-white" : "bg-white text-slate-900 shadow-md"
+                      )}
+                    >
+                      <Database className="w-4 h-4 mr-2" />
+                      <span className="text-[10px] font-black tracking-widest">SYNC</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex gap-2 pointer-events-auto">
-                <div className={cn(
-                  "px-4 py-2 backdrop-blur-md border rounded-xl flex items-center gap-3 shadow-xl transition-all duration-300",
-                  theme === 'dark' 
-                    ? (autoRefresh ? "bg-slate-900/80 border-emerald-500/50" : "bg-slate-900/80 border-slate-700") 
-                    : (autoRefresh ? "bg-white/80 border-emerald-500/50" : "bg-white/80 border-slate-200")
-                )}>
-                  <button 
-                    onClick={() => setAutoRefresh(!autoRefresh)}
-                    className="flex items-center gap-2"
+              {/* Advanced Filter Hub - Collapsible */}
+              <AnimatePresence>
+                {showMobileFilters && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                    className="mt-3 pointer-events-auto"
                   >
                     <div className={cn(
-                      "w-2 h-2 rounded-full",
-                      autoRefresh ? "bg-emerald-500 animate-pulse" : "bg-slate-600"
-                    )} />
-                    <span className={cn(
-                      "text-[10px] font-bold uppercase tracking-wider transition-colors duration-300",
-                      theme === 'dark' ? "text-slate-300" : "text-slate-700"
+                      "p-6 backdrop-blur-3xl border rounded-[2.5rem] shadow-2xl flex flex-wrap items-end gap-6",
+                      theme === 'dark' 
+                        ? "bg-slate-900/80 border-slate-700/50" 
+                        : "bg-white/80 border-white shadow-slate-200/50"
                     )}>
-                      Auto-Refresh {autoRefresh ? 'ON' : 'OFF'}
-                    </span>
-                  </button>
-                  {autoRefresh && (
-                    <div className="text-[9px] text-slate-500 font-mono">
-                      {lastUpdate.toLocaleTimeString()}
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {/* Custom Select Wrapper Component Logic */}
+                        {[
+                          { label: 'Setor', value: filterSector, setter: setFilterSector, options: availableSectors, all: 'ALL' },
+                          { label: 'Modelo', value: filterModel, setter: setFilterModel, options: availableModels, all: 'ALL' },
+                          { label: 'Controlador', value: filterController, setter: setFilterController, options: availableControllers, all: 'ALL' },
+                          { label: 'Data Emb.', value: filterDate, setter: setFilterDate, options: availableDates, all: 'ALL' },
+                          { label: 'Hora Emb.', value: filterTime, setter: setFilterTime, options: availableTimes, all: 'ALL' },
+                          { label: 'Situação', value: filterExcelStatus, setter: setFilterExcelStatus, options: availableExcelStatuses, all: 'ALL' }
+                        ].map((filter) => (
+                          <div key={filter.label} className="flex flex-col gap-2">
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">{filter.label}</span>
+                            <div className="relative group">
+                              <select 
+                                value={filter.value} 
+                                onChange={e => filter.setter(e.target.value)}
+                                className={cn(
+                                  "w-full px-4 py-2.5 rounded-xl text-xs font-black bg-slate-500/10 border border-transparent focus:border-emerald-500/50 focus:outline-none appearance-none cursor-pointer transition-all",
+                                  theme === 'dark' ? "text-white" : "text-slate-900"
+                                )}
+                              >
+                                <option value={filter.all}>TODOS</option>
+                                {filter.options.map(opt => {
+                                  let label = opt;
+                                  if (filter.label === 'Setor') {
+                                    const total = dbRecords.filter(r => r.sectorName === opt).length;
+                                    const embarked = dbRecords.filter(r => r.sectorName === opt && r.status === 'EMBARCADO').length;
+                                    const percent = Math.round((embarked / (total || 1)) * 100);
+                                    label = `${opt} (${percent}%)`;
+                                  }
+                                  return <option key={opt} value={opt}>{label}</option>;
+                                })}
+                              </select>
+                              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                                <ChevronRight className="w-3 h-3 rotate-90" />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Filter Stats Indicator */}
+                      <div className="flex flex-col items-center justify-center px-6 py-4 bg-emerald-500/10 rounded-[2rem] border border-emerald-500/20 min-w-[140px] shadow-inner">
+                        <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Encontrados</span>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-3xl font-black text-emerald-400 tabular-nums">
+                            {filteredRecords.length}
+                          </span>
+                          <span className="text-[10px] font-bold text-emerald-500/60 lowercase">veículos</span>
+                        </div>
+                      </div>
+
+                      {/* Clear Actions */}
+                      <button
+                        onClick={() => {
+                          setFilterSector('ALL');
+                          setFilterModel('ALL');
+                          setFilterStatus('ALL');
+                          setFilterExcelStatus('ALL');
+                          setFilterController('ALL');
+                          setFilterDate('ALL');
+                          setFilterTime('ALL');
+                          setFilterCarId('');
+                        }}
+                        className="p-4 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl transition-all shadow-lg shadow-rose-500/20 active:scale-95 flex items-center gap-2 group"
+                      >
+                        <X className="w-4 h-4 group-hover:rotate-90 transition-transform" />
+                        <span className="text-[10px] font-black tracking-widest">RESET</span>
+                      </button>
                     </div>
-                  )}
-                </div>
-                
-                <button 
-                  onClick={() => fetchData()}
-                  className="p-2 bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-xl hover:bg-slate-800 transition-all shadow-xl text-slate-400"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                </button>
-              </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Map Container */}
             <div 
               className={cn(
-                "flex-1 relative overflow-auto custom-scrollbar p-10 transition-colors duration-500",
+                "flex-1 relative overflow-auto custom-scrollbar p-12 lg:p-24 transition-colors duration-500",
                 theme === 'dark' 
-                  ? "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black" 
-                  : "bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-slate-50 to-slate-200",
+                  ? "bg-[#020617]" // Deeper dark for better contrast
+                  : "bg-slate-50",
                 mode === 'edit' ? "cursor-crosshair" : "cursor-default"
               )}
             >
               <div
                 className={cn(
-                  "inline-block relative shadow-2xl rounded-2xl overflow-hidden backdrop-blur-3xl transition-all duration-500",
+                  "inline-block relative rounded-[3rem] overflow-hidden transition-all duration-700",
                   theme === 'dark' 
-                    ? "border-slate-700/40 ring-1 ring-white/5" 
-                    : "border-slate-200/80 ring-1 ring-black/5 shadow-slate-300/40 border"
+                    ? "bg-[#0f172a] shadow-[0_0_100px_rgba(0,0,0,0.8)] ring-1 ring-white/10" 
+                    : "bg-white shadow-[0_0_50px_rgba(0,0,0,0.1)] ring-1 ring-black/5"
                 )}
-                style={{ minWidth: 'min-content' }}
+                style={{ 
+                  minWidth: 'min-content',
+                  padding: '2rem',
+                  boxShadow: theme === 'dark' ? '0 0 80px -20px rgba(0,0,0,0.8), inset 0 0 20px rgba(255,255,255,0.02)' : '0 10px 40px -10px rgba(0,0,0,0.1)'
+                }}
               >
                 <div 
                   ref={containerRef}
-                  className="relative origin-top-left"
+                  className="relative origin-top-left border border-white/5 rounded-2xl overflow-hidden"
                   onMouseDown={handleMouseDown}
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
                   onMouseLeave={handleMouseUp}
                   style={{ 
                     aspectRatio: '16/9', 
-                    width: '3200px', // Increased space for expansion
+                    width: '3200px', 
                     backgroundImage: mode === 'edit' 
-                      ? `linear-gradient(to right, ${theme === 'dark' ? '#1e293b' : '#e2e8f0'} 1px, transparent 1px), 
-                         linear-gradient(to bottom, ${theme === 'dark' ? '#1e293b' : '#e2e8f0'} 1px, transparent 1px), 
+                      ? `linear-gradient(to right, ${theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} 1px, transparent 1px), 
+                         linear-gradient(to bottom, ${theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} 1px, transparent 1px), 
                          url(${DEFAULT_IMAGE})`
                       : `url(${DEFAULT_IMAGE})`,
                     backgroundSize: mode === 'edit' ? '2% 3.55%, 100% 100%' : '100% 100%',
@@ -1705,7 +2330,9 @@ export default function App() {
                 </svg>
               </div>
             </div>
-
+          </div>
+        </>
+      )}
             {/* Hover Tooltip */}
             <AnimatePresence>
                 {hoveredCar && (
@@ -1767,9 +2394,6 @@ export default function App() {
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
-          </>
-        )}
 
         {/* Import Modal */}
         <AnimatePresence>
@@ -1787,8 +2411,10 @@ export default function App() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
                 className={cn(
-                  "relative w-full max-w-2xl border rounded-3xl shadow-2xl overflow-hidden transition-colors duration-300",
-                  theme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
+                  "relative w-full max-w-2xl border rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] overflow-hidden transition-colors duration-300 backdrop-blur-3xl",
+                  theme === 'dark' 
+                    ? "bg-slate-900/60 border-white/10 ring-1 ring-inset ring-white/5" 
+                    : "bg-white/80 border-white shadow-slate-300/40 ring-1 ring-inset ring-black/5"
                 )}
               >
                 <div className={cn(
@@ -1808,32 +2434,36 @@ export default function App() {
                     <Plus className="w-6 h-6 rotate-45" />
                   </button>
                 </div>
-                <div className="p-6 space-y-4">
-                  <p className="text-sm text-slate-400">
-                    Copie os dados da sua planilha (incluindo o cabeçalho) e cole abaixo. 
-                    O sistema espera colunas separadas por TAB (padrão do Excel).
-                  </p>
-                  <textarea 
-                    value={importText}
-                    onChange={(e) => setImportText(e.target.value)}
-                    className={cn(
-                      "w-full h-64 border rounded-2xl p-4 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none transition-colors duration-300",
-                      theme === 'dark' ? "bg-slate-950 border-slate-800 text-slate-300" : "bg-slate-50 border-slate-200 text-slate-700"
-                    )}
-                    placeholder="Cole aqui os dados da planilha..."
-                  />
-                  <div className="flex justify-end gap-3">
+                <div className="p-8 space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 pl-1">Conteúdo do Excel (ID | Modelo | Locação | Setor | Status | Embarque)</label>
+                    <textarea 
+                      value={importText}
+                      onChange={e => setImportText(e.target.value)}
+                      placeholder="Cole aqui as linhas copiadas do Excel..."
+                      className={cn(
+                        "w-full h-64 p-6 rounded-[2rem] text-sm font-medium focus:outline-none transition-all duration-300 border resize-none custom-scrollbar",
+                        theme === 'dark' 
+                          ? "bg-black/40 border-white/5 text-white placeholder:text-slate-600 focus:border-blue-500/50 focus:bg-black/60 shadow-inner" 
+                          : "bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-blue-500/50 focus:bg-white"
+                      )}
+                    />
+                  </div>
+                  <div className="flex gap-4 pt-2">
                     <button 
                       onClick={() => setShowImport(false)}
-                      className="px-4 py-2 text-sm font-bold text-slate-400 hover:text-rose-500 transition-colors"
+                      className={cn(
+                        "flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95",
+                        theme === 'dark' ? "bg-white/5 text-slate-400 hover:bg-white/10" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                      )}
                     >
                       Cancelar
                     </button>
                     <button 
                       onClick={handleImport}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-500 transition-all"
+                      className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-500 transition-all shadow-xl shadow-blue-900/40 active:scale-95 border border-blue-400/20"
                     >
-                      Processar Dados
+                      Processar Importação
                     </button>
                   </div>
                 </div>
@@ -1854,15 +2484,17 @@ export default function App() {
                 className="absolute inset-0 bg-slate-950/90 backdrop-blur-md"
               />
               <motion.div 
-                initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
                 className={cn(
-                  "relative w-full max-w-md border rounded-3xl shadow-2xl p-8 text-center space-y-6 transition-colors duration-300",
-                  theme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
+                  "relative w-full max-w-sm p-8 border rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] text-center space-y-6 backdrop-blur-3xl",
+                  theme === 'dark' 
+                    ? "bg-slate-900/60 border-white/10 ring-1 ring-inset ring-white/5" 
+                    : "bg-white/80 border-white shadow-slate-300/40 ring-1 ring-inset ring-black/5"
                 )}
               >
-                <div className="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto">
+                <div className="w-20 h-20 bg-rose-500/10 rounded-[2rem] flex items-center justify-center mx-auto border border-rose-500/20 glow-rose">
                   <Trash2 className="w-10 h-10 text-rose-500" />
                 </div>
                 <div className="space-y-2">
@@ -1872,8 +2504,8 @@ export default function App() {
                   )}>
                     Limpar Mapa?
                   </h2>
-                  <p className="text-slate-400 text-sm">
-                    Esta ação irá excluir permanentemente todas as baias desenhadas no mapa. Os dados da planilha não serão afetados.
+                  <p className="text-slate-400 text-sm font-medium leading-relaxed">
+                    Esta ação irá excluir permanentemente todas as baias. Os dados da planilha não serão afetados.
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 pt-4">
@@ -1883,15 +2515,15 @@ export default function App() {
                       setSelectedBayId(null);
                       setShowClearConfirm(false);
                     }}
-                    className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-sm hover:bg-rose-500 transition-all shadow-lg shadow-rose-900/20 uppercase tracking-widest"
+                    className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-xs hover:bg-rose-500 transition-all shadow-xl shadow-rose-900/40 uppercase tracking-widest active:scale-95 border border-rose-400/20"
                   >
                     Sim, Limpar Tudo
                   </button>
                   <button 
                     onClick={() => setShowClearConfirm(false)}
                     className={cn(
-                      "w-full py-4 rounded-2xl font-bold text-sm transition-all uppercase tracking-widest",
-                      theme === 'dark' ? "bg-slate-800 text-slate-300 hover:bg-slate-700" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                      "w-full py-4 rounded-2xl font-black text-xs transition-all uppercase tracking-widest active:scale-95",
+                      theme === 'dark' ? "bg-white/5 text-slate-400 hover:bg-white/10" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                     )}
                   >
                     Cancelar
