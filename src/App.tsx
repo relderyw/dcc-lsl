@@ -67,6 +67,7 @@ interface Bay {
   width: number; // percentage 0-100
   height: number; // percentage 0-100
   slotHeight?: number; // Custom height for each car slot in pixels
+  orientation?: 'vertical' | 'horizontal'; // Orientation of the car slots
 }
 
 type Mode = 'view' | 'edit' | 'database' | 'dashboard';
@@ -1066,6 +1067,21 @@ export default function App() {
                       </div>
                     </div>
 
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-slate-500">Direção do Fluxo</label>
+                      <select
+                        value={selectedBay.orientation || 'vertical'}
+                        onChange={(e) => updateBay(selectedBay.id, { orientation: e.target.value as 'vertical' | 'horizontal' })}
+                        className={cn(
+                          "w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/50",
+                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
+                        )}
+                      >
+                        <option value="vertical">Vertical (Lista)</option>
+                        <option value="horizontal">Horizontal (Lado a Lado)</option>
+                      </select>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-3 pt-2">
                       <div className="space-y-1">
                         <label className="text-[10px] font-medium text-slate-500 uppercase">Posição X (%)</label>
@@ -1346,6 +1362,7 @@ export default function App() {
                           Saúde Operacional
                         </h3>
                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Plano do Dia · Real · Retroativo · Atrasados</p>
+                        <p className="text-[10px] font-medium text-slate-400 mt-1 max-w-sm">Este gráfico mostra as previsões de embarques. As barras azuis refletem a quantidade de veículos embarcados por hora e a linha verde o avanço da meta.</p>
                       </div>
                     </div>
                     {/* Legenda do Gráfico */}
@@ -1421,51 +1438,74 @@ export default function App() {
                         cumulative += d;
                         return cumulative;
                       });
-                      const totalMax = filteredRecords.length || 1;
+                      const totalMax = cumulativeData[cumulativeData.length - 1] || 1;
 
-                      return hourlyData.map((count, h) => {
-                        const hPerc = (count / max) * 100;
-                        const cumPerc = (cumulativeData[h] / totalMax) * 100;
-                        
-                        return (
-                          <div key={h} className="flex-1 flex flex-col items-center gap-2 group/bar relative h-full">
-                            <div className="w-full relative flex-1 flex flex-col justify-end">
-                              {/* Hourly Count Label */}
-                               {count > 0 && (
-                                 <motion.span
-                                   initial={{ opacity: 0, y: 10 }}
-                                   animate={{ opacity: 1, y: 0 }}
-                                   className={cn(
-                                     "absolute bottom-[calc(hPerc*0.7%+4px)] left-1/2 -translate-x-1/2 text-[11px] sm:text-[12px] font-black tabular-nums z-20",
-                                     theme === 'dark' ? "text-blue-400" : "text-blue-600"
-                                   )}
-                                   style={{ bottom: `${hPerc * 0.7 + 2}%` }}
-                                 >
-                                   {count}
-                                 </motion.span>
-                               )}
+                      const points = cumulativeData.map((d, i) => {
+                        const x = (i / 23) * 100;
+                        const y = 100 - (d / totalMax) * 100;
+                        return `${x},${y}`;
+                      }).join(' ');
 
-                               {/* Hourly Bar */}
-                               <motion.div 
-                                 initial={{ height: 0 }}
-                                 animate={{ height: `${hPerc * 0.7}%` }}
-                                 className={cn(
-                                   "w-full rounded-t-sm transition-all duration-500",
-                                   count > 0 ? "bg-blue-500/20 group-hover/bar:bg-blue-500/40" : "bg-white/5"
-                                 )}
-                               />
-                               
-                               {/* Cumulative Point/Line segment (simplified as a dot) */}
-                               <motion.div 
-                                 initial={{ bottom: 0 }}
-                                 animate={{ bottom: `${cumPerc}%` }}
-                                 className="absolute left-1/2 -translate-x-1/2 w-1 h-1 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)] z-10"
-                               />
-                             </div>
-                             <span className={cn("text-[10px] sm:text-[11px] font-bold tabular-nums", theme === 'dark' ? "text-slate-500" : "text-slate-400")}>{h}h</span>
-                           </div>
-                        );
-                      });
+                      return (
+                        <>
+                          <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
+                            <motion.polyline
+                              points={points}
+                              fill="none"
+                              stroke="#10b981" // emerald-500
+                              strokeWidth="0.5"
+                              strokeDasharray="2 1"
+                              initial={{ pathLength: 0 }}
+                              animate={{ pathLength: 1 }}
+                              transition={{ duration: 2, ease: "easeInOut" }}
+                            />
+                          </svg>
+
+                          {hourlyData.map((count, h) => {
+                            const hPerc = (count / max) * 100;
+                            const cumPerc = (cumulativeData[h] / totalMax) * 100;
+                            
+                            return (
+                              <div key={h} className="flex-1 flex flex-col items-center gap-2 group/bar relative h-full">
+                                <div className="w-full relative flex-1 flex flex-col justify-end">
+                                  {/* Hourly Count Label */}
+                                  {count > 0 && (
+                                    <motion.span
+                                      initial={{ opacity: 0, y: 10 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      className={cn(
+                                        "absolute bottom-[calc(hPerc*0.7%+4px)] left-1/2 -translate-x-1/2 text-[11px] sm:text-[12px] font-black tabular-nums z-20",
+                                        theme === 'dark' ? "text-blue-400" : "text-blue-600"
+                                      )}
+                                      style={{ bottom: `${hPerc * 0.7 + 2}%` }}
+                                    >
+                                      {count}
+                                    </motion.span>
+                                  )}
+
+                                  {/* Hourly Bar */}
+                                  <motion.div 
+                                    initial={{ height: 0 }}
+                                    animate={{ height: `${hPerc * 0.7}%` }}
+                                    className={cn(
+                                      "w-full rounded-t-sm transition-all duration-500",
+                                      count > 0 ? "bg-blue-500/20 group-hover/bar:bg-blue-500/40" : "bg-white/5"
+                                    )}
+                                  />
+                                  
+                                  {/* Cumulative Point */}
+                                  <motion.div 
+                                    initial={{ bottom: 0 }}
+                                    animate={{ bottom: `${cumPerc}%` }}
+                                    className="absolute left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)] z-20 border border-emerald-900"
+                                  />
+                                </div>
+                                <span className={cn("text-[10px] sm:text-[11px] font-bold tabular-nums", theme === 'dark' ? "text-slate-500" : "text-slate-400")}>{h}h</span>
+                              </div>
+                            );
+                          })}
+                        </>
+                      );
                     })()}
                   </div>
                 </div>
@@ -1873,110 +1913,111 @@ export default function App() {
             </div>
           </div>
         ) : (
-          <>
-            {/* Command Center Overlay */}
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-7xl pointer-events-none">
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Command Center & Filters */}
+            <div className="p-4 lg:p-6 z-10 bg-slate-950/30 backdrop-blur-sm border-b border-white/5 shadow-md">
+              {/* Command Center Overlay */}
               <div className={cn(
-                "flex items-center gap-4 px-4 py-2.5 backdrop-blur-xl border rounded-[2rem] shadow-xl pointer-events-auto transition-all duration-500",
-                theme === 'dark' 
-                  ? "bg-slate-900/60 border-white/10 shadow-black/60 ring-1 ring-white/5" 
-                  : "bg-white/90 border-slate-200 shadow-slate-200/50"
-              )}>
-                {/* Left Section: Sidebar & Basic Stats */}
-                <div className="flex items-center gap-3">
-                  <div className="hidden md:flex items-center gap-3 pl-2">
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className={cn("text-[10px] font-black tracking-[0.2em] transition-colors", theme === 'dark' ? "text-white" : "text-slate-900")}>LIVE</span>
+                  "flex items-center gap-4 px-4 py-2.5 border rounded-[2rem] shadow-xl transition-all duration-500 w-full",
+                  theme === 'dark' 
+                    ? "bg-slate-900/60 border-white/10 shadow-black/60 ring-1 ring-white/5" 
+                    : "bg-white/90 border-slate-200 shadow-slate-200/50"
+                )}>
+                  {/* Left Section: Sidebar & Basic Stats */}
+                  <div className="flex items-center gap-3">
+                    <div className="hidden md:flex items-center gap-3 pl-2">
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className={cn("text-[10px] font-black tracking-[0.2em] transition-colors", theme === 'dark' ? "text-white" : "text-slate-900")}>LIVE</span>
+                        </div>
+                        <span className="text-[14px] font-black tabular-nums transition-colors">{dbRecords.length} <span className="text-[8px] font-bold text-slate-500 tracking-widest">TPS</span></span>
                       </div>
-                      <span className="text-[14px] font-black tabular-nums transition-colors">{dbRecords.length} <span className="text-[8px] font-bold text-slate-500 tracking-widest">TPS</span></span>
                     </div>
                   </div>
-                </div>
 
-                <div className="w-px h-8 bg-slate-500/20 mx-1 hidden md:block" />
+                  <div className="w-px h-8 bg-slate-500/20 mx-1 hidden md:block" />
 
-                {/* Center Section: Global Search Command */}
-                <div className="flex-1 max-w-2xl relative group">
-                  <div className={cn(
-                    "flex items-center gap-3 px-6 py-2.5 rounded-xl transition-all duration-300 border",
-                    theme === 'dark' 
-                      ? "bg-black/20 border-white/10 hover:border-indigo-500/50 focus-within:border-indigo-500" 
-                      : "bg-slate-100/50 border-slate-200 hover:border-slate-300 focus-within:border-emerald-500 focus-within:bg-white"
-                  )}>
-                    <Search className={cn("w-4 h-4 transition-colors", filterCarId ? "text-emerald-500" : "text-slate-500")} />
-                    <input 
-                      ref={searchInputRef}
-                      type="text"
-                      placeholder="Comando de Busca (ID do Veículo)"
-                      value={filterCarId}
-                      onChange={e => setFilterCarId(e.target.value)}
-                      className={cn(
-                        "w-full text-sm font-bold bg-transparent focus:outline-none placeholder:text-slate-500/50",
-                        theme === 'dark' ? "text-white" : "text-slate-900"
-                      )}
-                    />
-                    <div className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded border border-slate-500/30 bg-slate-500/10">
-                      <span className="text-[10px] font-black text-slate-500">⌘</span>
-                      <span className="text-[10px] font-black text-slate-500">K</span>
+                  {/* Center Section: Global Search Command */}
+                  <div className="flex-1 max-w-2xl relative group">
+                    <div className={cn(
+                      "flex items-center gap-3 px-6 py-2.5 rounded-xl transition-all duration-300 border",
+                      theme === 'dark' 
+                        ? "bg-black/20 border-white/10 hover:border-indigo-500/50 focus-within:border-indigo-500" 
+                        : "bg-slate-100/50 border-slate-200 hover:border-slate-300 focus-within:border-emerald-500 focus-within:bg-white"
+                    )}>
+                      <Search className={cn("w-4 h-4 transition-colors", filterCarId ? "text-emerald-500" : "text-slate-500")} />
+                      <input 
+                        ref={searchInputRef}
+                        type="text"
+                        placeholder="Comando de Busca (ID do Veículo)"
+                        value={filterCarId}
+                        onChange={e => setFilterCarId(e.target.value)}
+                        className={cn(
+                          "w-full text-sm font-bold bg-transparent focus:outline-none placeholder:text-slate-500/50",
+                          theme === 'dark' ? "text-white" : "text-slate-900"
+                        )}
+                      />
+                      <div className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded border border-slate-500/30 bg-slate-500/10">
+                        <span className="text-[10px] font-black text-slate-500">⌘</span>
+                        <span className="text-[10px] font-black text-slate-500">K</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Right Section: Toggles & Actions */}
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => setShowMobileFilters(!showMobileFilters)}
-                    className={cn(
-                      "p-3 rounded-xl transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group relative overflow-hidden",
-                      showMobileFilters 
-                        ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/30" 
-                        : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50")
-                    )}
-                  >
-                    <Settings2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-                    <span className="text-[10px] font-black tracking-widest hidden lg:block">FILTROS</span>
-                    { (filterSector !== 'ALL' || filterModel !== 'ALL' || filterStatus !== 'ALL' || filterExcelStatus !== 'ALL' || filterController !== 'ALL' || filterDate !== 'ALL' || filterTime !== 'ALL') && (
-                      <div className="absolute top-1 right-1 min-w-[1.25rem] h-5 px-1 bg-rose-500 rounded-full border-2 border-slate-950 flex items-center justify-center animate-bounce-subtle">
-                        <span className="text-[8px] font-black text-white">{filteredRecords.length}</span>
-                      </div>
-                    )}
-                  </button>
-
-                  <div className="w-px h-8 bg-slate-500/20 mx-1 hidden sm:block" />
-
-                  <div className="flex gap-2">
+                  {/* Right Section: Toggles & Actions */}
+                  <div className="flex items-center gap-2">
                     <button 
-                      onClick={() => setAutoRefresh(!autoRefresh)}
+                      onClick={() => setShowMobileFilters(!showMobileFilters)}
                       className={cn(
-                        "p-3 rounded-2xl transition-all hover:scale-105 active:scale-95 relative",
-                        autoRefresh 
-                          ? "bg-slate-800 text-emerald-400 border border-emerald-500/30" 
-                          : "bg-slate-800/40 text-slate-500 border border-white/5"
+                        "p-3 rounded-xl transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group relative overflow-hidden",
+                        showMobileFilters 
+                          ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/30" 
+                          : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50")
                       )}
                     >
-                      <RefreshCw className={cn("w-4 h-4", autoRefresh && "animate-spin-slow")} />
-                      {autoRefresh && (
-                        <div className="absolute -top-1 -right-1 flex h-3 w-3">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                      <Settings2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                      <span className="text-[10px] font-black tracking-widest hidden lg:block">FILTROS</span>
+                      { (filterSector !== 'ALL' || filterModel !== 'ALL' || filterStatus !== 'ALL' || filterExcelStatus !== 'ALL' || filterController !== 'ALL' || filterDate !== 'ALL' || filterTime !== 'ALL') && (
+                        <div className="absolute top-1 right-1 min-w-[1.25rem] h-5 px-1 bg-rose-500 rounded-full border-2 border-slate-950 flex items-center justify-center animate-bounce-subtle">
+                          <span className="text-[8px] font-black text-white">{filteredRecords.length}</span>
                         </div>
                       )}
                     </button>
-                    
-                    <button 
-                      onClick={() => fetchData()}
-                      className={cn(
-                        "hidden sm:flex p-3 rounded-xl transition-all hover:scale-105 active:scale-95 border",
-                        theme === 'dark' ? "bg-slate-800 border-white/10 text-white" : "bg-white border-slate-200 text-slate-900 shadow-sm hover:bg-slate-50"
-                      )}
-                    >
-                      <Database className="w-4 h-4 mr-2" />
-                      <span className="text-[10px] font-black tracking-widest">SYNC</span>
-                    </button>
+
+                    <div className="w-px h-8 bg-slate-500/20 mx-1 hidden sm:block" />
+
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setAutoRefresh(!autoRefresh)}
+                        className={cn(
+                          "p-3 rounded-2xl transition-all hover:scale-105 active:scale-95 relative",
+                          autoRefresh 
+                            ? "bg-slate-800 text-emerald-400 border border-emerald-500/30" 
+                            : "bg-slate-800/40 text-slate-500 border border-white/5"
+                        )}
+                      >
+                        <RefreshCw className={cn("w-4 h-4", autoRefresh && "animate-spin-slow")} />
+                        {autoRefresh && (
+                          <div className="absolute -top-1 -right-1 flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                          </div>
+                        )}
+                      </button>
+                      
+                      <button 
+                        onClick={() => fetchData()}
+                        className={cn(
+                          "hidden sm:flex p-3 rounded-xl transition-all hover:scale-105 active:scale-95 border",
+                          theme === 'dark' ? "bg-slate-800 border-white/10 text-white" : "bg-white border-slate-200 text-slate-900 shadow-sm hover:bg-slate-50"
+                        )}
+                      >
+                        <Database className="w-4 h-4 mr-2" />
+                        <span className="text-[10px] font-black tracking-widest">SYNC</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
               </div>
 
               {/* Advanced Filter Hub - Collapsible */}
@@ -1986,7 +2027,7 @@ export default function App() {
                     initial={{ opacity: 0, y: -20, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                    className="mt-3 pointer-events-auto"
+                    className="mt-3"
                   >
                     <div className={cn(
                       "p-6 backdrop-blur-3xl border rounded-[2.5rem] shadow-2xl flex flex-wrap items-end gap-6",
@@ -2068,53 +2109,33 @@ export default function App() {
                 )}
               </AnimatePresence>
             </div>
+            
+            {/* Map Area */}
+            <div className="flex-1 relative w-full h-full overflow-hidden flex flex-col">
+              {/* Map Header */}
+              <div className="flex-none p-4 pb-0 z-20 pointer-events-none">
+                <h2 className={cn("text-xl font-black tracking-tight drop-shadow-md", theme === 'dark' ? "text-white" : "text-slate-900")}>
+                  Locações Principais
+                </h2>
+                <p className={cn("text-xs font-medium drop-shadow-md", theme === 'dark' ? "text-slate-400" : "text-slate-500")}>
+                  Mapeamento de baias de picking.
+                </p>
+              </div>
 
-            {/* Map Container */}
-            <div 
-              className={cn(
-                "flex-1 relative overflow-auto custom-scrollbar p-4 lg:p-8 transition-colors duration-500",
-                theme === 'dark' 
-                  ? "bg-[#020617]" 
-                  : "bg-slate-100",
-                mode === 'edit' ? "cursor-crosshair" : "cursor-default"
-              )}
-            >
-              <div
-                className="inline-block relative transition-all duration-700"
-                style={{ 
-                  minWidth: 'min-content',
-                  padding: '0.5rem',
-                }}
-              >
-                <div 
-                  ref={containerRef}
-                  className={cn(
-                    "relative origin-top-left rounded-xl overflow-hidden",
-                    theme === 'dark' ? "ring-1 ring-white/5" : "ring-1 ring-slate-200/80"
-                  )}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseUp}
-                  style={{ 
-                    aspectRatio: '16/9', 
-                    width: '3200px', 
-                    backgroundImage: mode === 'edit' 
-                      ? `linear-gradient(to right, ${theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} 1px, transparent 1px), 
-                         linear-gradient(to bottom, ${theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} 1px, transparent 1px), 
-                         url(${DEFAULT_IMAGE})`
-                      : `url(${DEFAULT_IMAGE})`,
-                    backgroundSize: mode === 'edit' ? '2% 3.55%, 100% 100%' : '100% 100%',
-                    backgroundRepeat: 'repeat, no-repeat',
-                    backgroundPosition: 'center',
-                    backgroundColor: theme === 'dark' ? '#0f172a' : '#e7e5e4'
-                  }}
-                >
-                {/* Interactive Overlay */}
-                <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible" style={{ zIndex: 10 }}>
-                  {/* Visual Scale Ruler */}
-                  {(isDrawing || isResizing) && (
-                    <g className="opacity-50">
+              {/* Scrollable Map Container */}
+              <div className="flex-1 overflow-auto custom-scrollbar relative w-full h-full">
+                <div className="min-w-[2500px] min-h-[1200px] w-full h-full relative" 
+                     ref={containerRef}
+                     onMouseDown={handleMouseDown}
+                     onMouseMove={handleMouseMove}
+                     onMouseUp={handleMouseUp}
+                     onMouseLeave={handleMouseUp}>
+                  
+                  {/* Interactive Overlay */}
+                  <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible" style={{ zIndex: 10 }}>
+                    {/* Visual Scale Ruler */}
+                    {(isDrawing || isResizing) && (
+                      <g className="opacity-50">
                       {/* Horizontal Ruler (Top) */}
                       {Array.from({ length: 21 }).map((_, i) => {
                         const x = i * 5;
@@ -2230,7 +2251,8 @@ export default function App() {
 
                             {/* Ruler / Capacity Indicator (Vertical Slots) */}
                             <div className={cn(
-                              "flex-1 w-full flex flex-col mt-0.5 rounded-sm overflow-y-auto custom-scrollbar mb-1 relative transition-colors duration-300",
+                              "flex-1 w-full flex mt-0.5 rounded-sm custom-scrollbar mb-1 relative transition-colors duration-300",
+                              displayBay.orientation === 'horizontal' ? "flex-row overflow-x-auto overflow-y-hidden" : "flex-col overflow-y-auto overflow-x-hidden",
                               theme === 'dark' 
                                 ? "bg-transparent" 
                                 : "bg-transparent"
@@ -2262,24 +2284,30 @@ export default function App() {
                                 return (
                                   <div 
                                     key={i}
-                                    style={{ 
+                                    style={displayBay.orientation === 'horizontal' ? {
+                                      width: displayBay.slotHeight ? `${displayBay.slotHeight * 3}px` : `84px`, // roughly aspect ratio
+                                      minWidth: displayBay.slotHeight ? `${displayBay.slotHeight * 3}px` : `84px`
+                                    } : { 
                                       height: displayBay.slotHeight ? `${displayBay.slotHeight}px` : `28px`,
                                       minHeight: displayBay.slotHeight ? `${displayBay.slotHeight}px` : `28px` 
                                     }}
                                     className={cn(
-                                      "w-full flex items-center px-1.5 gap-1.5 mb-[3px] shrink-0",
+                                      "flex items-center shrink-0",
+                                      displayBay.orientation === 'horizontal' ? "h-full flex-col px-1.5 py-1.5 gap-1.5 mr-[3px] justify-center" : "w-full flex-row px-1.5 gap-1.5 mb-[3px]",
                                       isOverflow && "bg-rose-950/40 border border-rose-500/40 border-dashed rounded-sm",
                                       !isVisible && "opacity-20 saturate-0" 
                                     )}
                                   >
                                     <span className={cn(
-                                      "text-[8px] font-bold w-4 text-right shrink-0 drop-shadow-md",
+                                      "text-[8px] font-bold shrink-0 drop-shadow-md",
+                                      displayBay.orientation === 'horizontal' ? "w-full text-center" : "w-4 text-right",
                                       isOverflow ? "text-rose-400" : "text-slate-500"
                                     )}>
                                       {i + 1}
                                     </span>
                                     <div className={cn(
-                                      "flex-1 h-full rounded-[4px] transition-all duration-300 overflow-hidden shadow-sm border",
+                                      "rounded-[4px] transition-all duration-300 overflow-hidden shadow-sm border flex items-center justify-center",
+                                      displayBay.orientation === 'horizontal' ? "w-full flex-1" : "flex-1 h-full",
                                       car 
                                         ? (theme === 'dark'
                                             ? (isWrongSector ? "bg-gradient-to-r from-fuchsia-600/90 to-purple-600/90 border-fuchsia-500/50" : color === 'rose' ? "bg-gradient-to-r from-rose-600/90 to-red-600/90 border-rose-500/50" : color === 'amber' ? "bg-gradient-to-r from-amber-600/90 to-orange-500/90 border-amber-500/50" : "bg-gradient-to-r from-emerald-600/90 to-teal-500/90 border-emerald-500/50")
@@ -2303,30 +2331,33 @@ export default function App() {
                                     onMouseLeave={() => setHoveredCar(null)}
                                     >
                                       {car && (
-                                        <div className="w-full h-full flex flex-row items-center justify-between px-1.5 gap-1">
-                                          <div className="flex items-center gap-1.5 min-w-0">
+                                        <div className={cn("w-full h-full flex px-1.5 gap-1", displayBay.orientation === 'horizontal' ? "flex-col items-center justify-center py-1" : "flex-row items-center justify-between")}>
+                                          <div className={cn("flex items-center min-w-0 max-w-full gap-1.5", displayBay.orientation === 'horizontal' && "justify-center mb-0.5")}>
                                             {isWrongSector ? (
-                                              <AlertTriangle className={cn("w-3 h-3 shrink-0 animate-pulse", theme === 'dark' ? "text-white" : "text-amber-500")} />
+                                              <AlertTriangle className={cn("shrink-0 animate-pulse", displayBay.orientation === 'horizontal' ? "w-4 h-4" : "w-3 h-3", theme === 'dark' ? "text-white" : "text-amber-500")} />
                                             ) : slaInfo?.isLate ? (
-                                              <Clock className={cn("w-3 h-3 shrink-0", theme === 'dark' ? "text-white/80" : "text-rose-400")} />
+                                              <Clock className={cn("shrink-0", displayBay.orientation === 'horizontal' ? "w-4 h-4" : "w-3 h-3", theme === 'dark' ? "text-white/80" : "text-rose-400")} />
                                             ) : (
-                                              <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", theme === 'dark' ? "bg-white/40" : "bg-emerald-400/60")} />
+                                              <div className={cn("rounded-full shrink-0", displayBay.orientation === 'horizontal' ? "w-2.5 h-2.5" : "w-1.5 h-1.5", theme === 'dark' ? "bg-white/40" : "bg-emerald-400/60")} />
                                             )}
-                                            <span className={cn("font-bold leading-none truncate text-[11px]", theme === 'dark' ? "text-white drop-shadow-sm" : "text-slate-900")}>
-                                              {car.carId}
-                                            </span>
+                                            {(!displayBay.orientation || displayBay.orientation === 'vertical') && (
+                                              <span className={cn("font-bold leading-none truncate text-[11px]", theme === 'dark' ? "text-white drop-shadow-sm" : "text-slate-900")}>
+                                                {car.carId}
+                                              </span>
+                                            )}
                                           </div>
                                           
                                           {/* SLA & Time Indicator */}
-                                          {(!displayBay.slotHeight || displayBay.slotHeight >= 20) && (
-                                            <div className="flex items-center gap-1.5 shrink-0">
+                                          {(!displayBay.slotHeight || displayBay.slotHeight >= 20 || displayBay.orientation === 'horizontal') && (
+                                            <div className={cn("flex shrink-0 w-full overflow-hidden", displayBay.orientation === 'horizontal' ? "flex-col items-center gap-0.5 mt-auto" : "items-center gap-1.5 ")}>
                                               <span className={cn("text-[8px] font-medium tracking-tight truncate", theme === 'dark' ? "text-white/90 drop-shadow-sm" : "text-slate-500")}>
-                                                {car.embarkTime}
+                                                {displayBay.orientation === 'horizontal' ? car.carId : car.embarkTime}
                                               </span>
                                               {(() => {
                                                 const sla = slaInfo || getSlaStatus(car);
                                                 return (
-                                                  <div className={cn("px-1.5 py-[2px] rounded-full text-[7px] font-bold uppercase whitespace-nowrap border",
+                                                  <div className={cn("rounded-full text-[7px] font-bold uppercase whitespace-nowrap border text-center w-full",
+                                                    displayBay.orientation === 'horizontal' ? "px-1 py-[1px] leading-tight text-[6px]" : "px-1.5 py-[2px]",
                                                     theme === 'dark' 
                                                       ? (sla.text === 'ATRASADO' ? "bg-rose-500 text-white border-rose-400/50 shadow-[0_0_8px_rgba(244,63,94,0.6)]" : sla.text === 'PRÓX. EMB.' ? "bg-amber-500 text-white border-amber-400/50 shadow-[0_0_8px_rgba(245,158,11,0.6)]" : "bg-emerald-500 text-white border-emerald-400/50 shadow-[0_0_8px_rgba(16,185,129,0.6)]")
                                                       : (sla.text === 'ATRASADO' ? "bg-rose-50 text-rose-600 border-rose-100" : sla.text === 'PRÓX. EMB.' ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-emerald-50 text-emerald-600 border-emerald-100")
@@ -2393,7 +2424,7 @@ export default function App() {
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
             {/* Hover Tooltip */}
             <AnimatePresence>
