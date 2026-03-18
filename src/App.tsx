@@ -92,7 +92,7 @@ function parseExcelDate(dateStr?: string, timeStr?: string): Date | null {
 
 function getSlaStatus(car: CarRecord): { text: string, color: string, isLate: boolean } {
   const targetDate = parseExcelDate(car.embarkDate, car.embarkTime);
-  if (!targetDate) return { text: 'S/ DATA', color: 'bg-slate-500', isLate: false };
+  if (!targetDate) return { text: 'S/ DATA', color: 'bg-[#d9ecff]0', isLate: false };
 
   const now = new Date();
   const diffMs = targetDate.getTime() - now.getTime();
@@ -693,7 +693,7 @@ export default function App() {
       "flex h-screen w-screen font-sans overflow-hidden transition-colors duration-500 relative",
       theme === 'dark' 
         ? "bg-[#030712] text-slate-200" 
-        : "bg-[#f0f9ff] text-slate-900"
+        : "bg-[#d9ecff] text-slate-900"
     )}>
       {/* Mobile Backdrop */}
       <AnimatePresence>
@@ -720,7 +720,7 @@ export default function App() {
               "fixed lg:relative inset-y-0 left-0",
               theme === 'dark' 
                 ? "bg-slate-900/60 backdrop-blur-3xl border-r border-white/5" 
-                : "bg-[#f0f9ff]/60 backdrop-blur-md border-r border-blue-100/50 shadow-xl"
+                : "bg-[#d9ecff]/60 backdrop-blur-md border-r border-blue-100/50 shadow-xl"
             )}
           >
             <div className={cn(
@@ -734,9 +734,9 @@ export default function App() {
                 <div className="flex items-center gap-4">
                   <div className={cn(
                     "w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center border transition-all duration-300",
-                    "bg-white border-[#00f2ff] shadow-[0_0_15px_rgba(0,242,255,0.4)]"
+                    "bg-slate-950 border-[#00f2ff] shadow-[0_0_20px_rgba(0,242,255,0.6)]"
                   )}>
-                    <img src={LOGO_URL} alt="Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
+                    <img src={LOGO_URL} alt="Logo" className="w-8 h-8 object-contain brightness-200" referrerPolicy="no-referrer" />
                   </div>
                   <div className="flex flex-col justify-center">
                     <h1 className={cn(
@@ -757,7 +757,7 @@ export default function App() {
                       "p-2.5 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95",
                       theme === 'dark' 
                         ? "bg-white/5 hover:bg-white/10 text-amber-400 border border-white/10" 
-                        : "bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200"
+                        : "bg-[#d1e5ff] hover:bg-slate-200 text-slate-600 border border-slate-200"
                     )}
                   >
                     {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -766,7 +766,7 @@ export default function App() {
                     onClick={() => setSidebarOpen(false)}
                     className={cn(
                       "p-2.5 rounded-xl transition-all hover:scale-110 active:scale-95 group/collapse",
-                      theme === 'dark' ? "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/10" : "bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 border border-slate-200"
+                      theme === 'dark' ? "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/10" : "bg-[#d1e5ff] hover:bg-slate-200 text-slate-500 hover:text-slate-900 border border-slate-200"
                     )}
                     title="Retrair Painel"
                   >
@@ -789,13 +789,13 @@ export default function App() {
                     className={cn(
                       "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-black transition-all",
                       mode === 'dashboard' 
-                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-white text-slate-900 shadow-md") 
+                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-[#d9ecff] text-slate-900 shadow-md") 
                         : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-white/50")
                     )}
                   >
                     <div className={cn(
                       "p-2 rounded-xl transition-colors",
-                      mode === 'dashboard' ? "bg-indigo-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500")
+                      mode === 'dashboard' ? "bg-indigo-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-[#d1e5ff] text-slate-500")
                     )}>
                       <LayoutDashboard className="w-4 h-4" />
                     </div>
@@ -807,13 +807,13 @@ export default function App() {
                     className={cn(
                       "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-black transition-all",
                       mode === 'view' 
-                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-white text-slate-900 shadow-md") 
+                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-[#d9ecff] text-slate-900 shadow-md") 
                         : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-white/50")
                     )}
                   >
                     <div className={cn(
                       "p-2 rounded-xl transition-colors",
-                      mode === 'view' ? "bg-emerald-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500")
+                      mode === 'view' ? "bg-emerald-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-[#d1e5ff] text-slate-500")
                     )}>
                       <MousePointer2 className="w-4 h-4" />
                     </div>
@@ -825,13 +825,13 @@ export default function App() {
                     className={cn(
                       "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-black transition-all",
                       mode === 'database' 
-                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-white text-slate-900 shadow-md") 
+                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-[#d9ecff] text-slate-900 shadow-md") 
                         : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-white/50")
                     )}
                   >
                     <div className={cn(
                       "p-2 rounded-xl transition-colors",
-                      mode === 'database' ? "bg-blue-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500")
+                      mode === 'database' ? "bg-blue-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-[#d1e5ff] text-slate-500")
                     )}>
                       <Database className="w-4 h-4" />
                     </div>
@@ -843,13 +843,13 @@ export default function App() {
                     className={cn(
                       "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-black transition-all",
                       mode === 'edit' 
-                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-white text-slate-900 shadow-md") 
+                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-[#d9ecff] text-slate-900 shadow-md") 
                         : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-white/50")
                     )}
                   >
                     <div className={cn(
                       "p-2 rounded-xl transition-colors",
-                      mode === 'edit' ? "bg-amber-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500")
+                      mode === 'edit' ? "bg-amber-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-[#d1e5ff] text-slate-500")
                     )}>
                       <Settings2 className="w-4 h-4" />
                     </div>
@@ -906,7 +906,7 @@ export default function App() {
                 </h2>
                 <div className={cn(
                   "p-4 rounded-2xl border transition-all duration-300 grid grid-cols-1 gap-2",
-                  theme === 'dark' ? "bg-slate-800/30 border-slate-800/50" : "bg-slate-100 border-slate-200"
+                  theme === 'dark' ? "bg-slate-800/30 border-slate-800/50" : "bg-[#d1e5ff] border-slate-200"
                 )}>
                   {[
                     { id: 'carId', label: 'ID do Carro' },
@@ -931,7 +931,7 @@ export default function App() {
                           hoverConfig[field.id] ? "bg-emerald-500" : (theme === 'dark' ? "bg-slate-700" : "bg-slate-300")
                         )} />
                         <div className={cn(
-                          "absolute left-1 w-2 h-2 bg-white rounded-full transition-transform duration-200",
+                          "absolute left-1 w-2 h-2 bg-[#d9ecff] rounded-full transition-transform duration-200",
                           hoverConfig[field.id] ? "translate-x-4" : "translate-x-0"
                         )} />
                       </div>
@@ -987,7 +987,7 @@ export default function App() {
                         placeholder="https://..."
                         className={cn(
                           "w-full px-3 py-2 border rounded-lg text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500/50",
-                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-slate-300" : "bg-white border-slate-300 text-slate-700"
+                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-slate-300" : "bg-[#d9ecff] border-slate-300 text-slate-700"
                         )}
                       />
                       <p className="text-[9px] text-slate-500 italic">Funciona no Vercel mesmo com Zscaler.</p>
@@ -1000,7 +1000,7 @@ export default function App() {
                         key={record.carId} 
                         className={cn(
                           "p-3 rounded-xl border transition-all duration-300 space-y-1",
-                          theme === 'dark' ? "bg-slate-800/30 border-slate-800/50" : "bg-slate-100 border-slate-200"
+                          theme === 'dark' ? "bg-slate-800/30 border-slate-800/50" : "bg-[#d1e5ff] border-slate-200"
                         )}
                       >
                         <div className="flex justify-between items-center">
@@ -1069,7 +1069,7 @@ export default function App() {
                     "space-y-4 p-4 rounded-2xl border transition-all duration-300 shadow-sm",
                     theme === 'dark' 
                       ? "bg-slate-800/30 border-slate-800/50" 
-                      : "bg-slate-50/50 border-slate-200/60"
+                      : "bg-[#d9ecff]/50 border-slate-200/60"
                   )}>
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-slate-500">ID da Locação (Excel)</label>
@@ -1082,7 +1082,7 @@ export default function App() {
                           "w-full border rounded-lg px-3 py-2 text-base font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all",
                           theme === 'dark' 
                             ? "bg-slate-900 border-slate-700 text-white" 
-                            : "bg-white border-slate-200 text-slate-900 shadow-inner shadow-slate-100"
+                            : "bg-[#d9ecff] border-slate-200 text-slate-900 shadow-inner shadow-slate-100"
                         )}
                         placeholder="Selecione ou digite..."
                       />
@@ -1102,7 +1102,7 @@ export default function App() {
                         onChange={(e) => updateBay(selectedBay.id, { sector: e.target.value })}
                         className={cn(
                           "w-full border rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all",
-                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
+                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-[#d9ecff] border-slate-300 text-slate-900"
                         )}
                         placeholder="Selecione ou digite o Setor..."
                       />
@@ -1123,7 +1123,7 @@ export default function App() {
                           onChange={(e) => updateBay(selectedBay.id, { capacity: parseInt(e.target.value) || 1 })}
                           className={cn(
                             "w-full border rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all",
-                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
+                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-[#d9ecff] border-slate-300 text-slate-900"
                           )}
                         />
                       </div>
@@ -1137,7 +1137,7 @@ export default function App() {
                           onChange={(e) => updateBay(selectedBay.id, { slotHeight: parseInt(e.target.value) || 25 })}
                           className={cn(
                             "w-full border rounded-lg px-1 py-2 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all",
-                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
+                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-[#d9ecff] border-slate-300 text-slate-900"
                           )}
                         />
                       </div>
@@ -1150,7 +1150,7 @@ export default function App() {
                         onChange={(e) => updateBay(selectedBay.id, { orientation: e.target.value as 'vertical' | 'horizontal' })}
                         className={cn(
                           "w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/50",
-                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
+                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-[#d9ecff] border-slate-300 text-slate-900"
                         )}
                       >
                         <option value="vertical">Vertical (Lista)</option>
@@ -1165,7 +1165,7 @@ export default function App() {
                         onChange={(e) => updateBay(selectedBay.id, { tabGroup: e.target.value as 'geral' | 'format' })}
                         className={cn(
                           "w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/50",
-                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
+                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-[#d9ecff] border-slate-300 text-slate-900"
                         )}
                       >
                         <option value="geral">Picking Geral</option>
@@ -1182,7 +1182,7 @@ export default function App() {
                           onChange={(e) => updateBay(selectedBay.id, { x: parseFloat(e.target.value) || 0 })}
                           className={cn(
                             "w-full border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500/50",
-                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
+                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-[#d9ecff] border-slate-300 text-slate-900"
                           )}
                         />
                       </div>
@@ -1194,7 +1194,7 @@ export default function App() {
                           onChange={(e) => updateBay(selectedBay.id, { y: parseFloat(e.target.value) || 0 })}
                           className={cn(
                             "w-full border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500/50",
-                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
+                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-[#d9ecff] border-slate-300 text-slate-900"
                           )}
                         />
                       </div>
@@ -1206,7 +1206,7 @@ export default function App() {
                           onChange={(e) => updateBay(selectedBay.id, { width: parseFloat(e.target.value) || 0 })}
                           className={cn(
                             "w-full border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500/50",
-                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
+                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-[#d9ecff] border-slate-300 text-slate-900"
                           )}
                         />
                       </div>
@@ -1218,7 +1218,7 @@ export default function App() {
                           onChange={(e) => updateBay(selectedBay.id, { height: parseFloat(e.target.value) || 0 })}
                           className={cn(
                             "w-full border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500/50",
-                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
+                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-[#d9ecff] border-slate-300 text-slate-900"
                           )}
                         />
                       </div>
@@ -1251,7 +1251,7 @@ export default function App() {
                             key={car.carId} 
                             className={cn(
                               "p-4 rounded-xl border flex items-center justify-between group transition-all duration-300",
-                              theme === 'dark' ? "bg-slate-800/50 border-slate-700/50 hover:bg-slate-800" : "bg-white border-slate-200 hover:bg-slate-50 shadow-sm",
+                              theme === 'dark' ? "bg-slate-800/50 border-slate-700/50 hover:bg-slate-800" : "bg-[#d9ecff] border-slate-200 hover:bg-[#d9ecff] shadow-sm",
                               isWrongSector && (theme === 'dark' ? "border-fuchsia-500/50 bg-fuchsia-500/10" : "border-fuchsia-500 border bg-fuchsia-50")
                             )}
                           >
@@ -1264,7 +1264,7 @@ export default function App() {
                                 {car.carId}
                                 <span className={cn(
                                   "text-xs font-medium px-2 py-0.5 rounded transition-colors duration-300",
-                                  theme === 'dark' ? "text-slate-500 bg-slate-900" : "text-slate-500 bg-slate-100"
+                                  theme === 'dark' ? "text-slate-500 bg-slate-900" : "text-slate-500 bg-[#d1e5ff]"
                                 )}>
                                   {car.model}
                                 </span>
@@ -1293,7 +1293,7 @@ export default function App() {
                       ) : (
                         <div className={cn(
                           "py-8 text-center rounded-2xl border border-dashed transition-colors duration-300",
-                          theme === 'dark' ? "bg-slate-800/20 border-slate-800" : "bg-slate-50 border-slate-200"
+                          theme === 'dark' ? "bg-slate-800/20 border-slate-800" : "bg-[#d9ecff] border-slate-200"
                         )}>
                           <Car className="w-6 h-6 text-slate-700 mx-auto mb-2" />
                           <p className="text-[10px] text-slate-600">Nenhum carro vinculado nesta locação</p>
@@ -1309,7 +1309,7 @@ export default function App() {
                 )}>
                   <div className={cn(
                     "p-4 rounded-full transition-colors duration-300",
-                    theme === 'dark' ? "bg-slate-800" : "bg-slate-100"
+                    theme === 'dark' ? "bg-slate-800" : "bg-[#d1e5ff]"
                   )}>
                     <Box className="w-8 h-8" />
                   </div>
@@ -1375,7 +1375,7 @@ export default function App() {
         {mode === 'dashboard' ? (
           <div className={cn(
             "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-[#030712]" : "bg-[#f0f7ff]"
+            theme === 'dark' ? "bg-[#030712]" : "bg-[#d9ecff]"
           )}>
             {/* Background Glows */}
             <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-indigo-500/5 blur-[120px] rounded-full -ml-64 -mt-64 pointer-events-none" />
@@ -1412,7 +1412,7 @@ export default function App() {
                     transition={{ delay: idx * 0.1 }}
                     className={cn(
                       "p-6 rounded-[2rem] border backdrop-blur-3xl transition-all duration-300",
-                      theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5 backdrop-blur-xl" : "bg-[#f0f9ff]/40 backdrop-blur-md border-blue-100/50 shadow-xl shadow-blue-900/5"
+                      theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5 backdrop-blur-xl" : "bg-[#d9ecff]/40 backdrop-blur-md border-blue-100/50 shadow-xl shadow-blue-900/5"
                     )}
                   >
                     <div className="flex items-center justify-between mb-4">
@@ -1621,7 +1621,7 @@ export default function App() {
                 {/* Late by Model & Sector */}
                 <div className={cn(
                   "lg:col-span-2 p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5 backdrop-blur-xl" : "bg-[#f0f9ff]/40 backdrop-blur-md border-blue-100/50 shadow-xl shadow-blue-900/5"
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5 backdrop-blur-xl" : "bg-[#d9ecff]/40 backdrop-blur-md border-blue-100/50 shadow-xl shadow-blue-900/5"
                 )}>
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-rose-500/10 text-rose-400 rounded-xl">
@@ -1675,7 +1675,7 @@ export default function App() {
                 {/* Location Classification Breakdown */}
                 <div className={cn(
                   "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5 backdrop-blur-xl" : "bg-white border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5 backdrop-blur-xl" : "bg-[#d9ecff] border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
                 )}>
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl">
@@ -1790,7 +1790,7 @@ export default function App() {
                               </div>
                               <div className={cn(
                                 "h-2.5 w-full rounded-full relative bg-white/5 overflow-hidden ring-1 ring-white/5",
-                                theme === 'light' && "bg-slate-100 ring-slate-200"
+                                theme === 'light' && "bg-[#d1e5ff] ring-slate-200"
                               )}>
                                 <motion.div 
                                   initial={{ width: 0 }}
@@ -1869,7 +1869,7 @@ export default function App() {
         ) : mode === 'database' ? (
           <div className={cn(
             "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-[#030712]" : "bg-[#f0f7ff]"
+            theme === 'dark' ? "bg-[#030712]" : "bg-[#d9ecff]"
           )}>
             {/* Decorative background glows for Database View */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 blur-[120px] rounded-full -mr-64 -mt-64 pointer-events-none" />
@@ -1917,7 +1917,7 @@ export default function App() {
               {/* Contextual Database Filters */}
               <div className={cn(
                 "p-4 rounded-[2rem] border backdrop-blur-3xl flex flex-wrap gap-4 items-center transition-all duration-300",
-                theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5 backdrop-blur-xl" : "bg-white border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+                theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5 backdrop-blur-xl" : "bg-[#d9ecff] border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
               )}>
                 <div className="flex items-center gap-2 px-3 border-r border-slate-500/20">
                   <Filter className="w-4 h-4 text-slate-500" />
@@ -1935,7 +1935,7 @@ export default function App() {
                         value={f.value}
                         onChange={e => f.setter(e.target.value)}
                         className={cn(
-                          "pl-3 pr-8 py-2 rounded-xl text-[10px] font-black bg-slate-500/5 border border-transparent focus:border-blue-500/50 focus:outline-none appearance-none cursor-pointer transition-all uppercase tracking-tighter",
+                          "pl-3 pr-8 py-2 rounded-xl text-[10px] font-black bg-[#d9ecff]0/5 border border-transparent focus:border-blue-500/50 focus:outline-none appearance-none cursor-pointer transition-all uppercase tracking-tighter",
                           theme === 'dark' ? "text-slate-300" : "text-slate-600",
                           f.value !== 'ALL' && "text-blue-500 bg-blue-500/5 border-blue-500/20"
                         )}
@@ -2044,7 +2044,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="w-px h-8 bg-slate-500/20 mx-1 hidden md:block" />
+                  <div className="w-px h-8 bg-[#d9ecff]0/20 mx-1 hidden md:block" />
 
                   {/* Center Section: Global Search Command */}
                   <div className="flex-1 max-w-2xl relative group">
@@ -2052,7 +2052,7 @@ export default function App() {
                       "flex items-center gap-3 px-6 py-2.5 rounded-xl transition-all duration-300 border",
                       theme === 'dark' 
                         ? "bg-black/40 border-white/10 hover:border-indigo-500/50 focus-within:border-indigo-500" 
-                        : "bg-slate-100/50 border-slate-200 hover:border-slate-300 focus-within:border-blue-500 focus-within:bg-white"
+                        : "bg-[#d1e5ff]/50 border-slate-200 hover:border-slate-300 focus-within:border-blue-500 focus-within:bg-white"
                     )}>
                       <Search className={cn("w-4 h-4 transition-colors", filterCarId ? "text-emerald-500" : "text-slate-500")} />
                       <input 
@@ -2066,7 +2066,7 @@ export default function App() {
                           theme === 'dark' ? "text-white" : "text-slate-900"
                         )}
                       />
-                      <div className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded border border-slate-500/30 bg-slate-500/10">
+                      <div className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded border border-slate-500/30 bg-[#d9ecff]0/10">
                         <span className="text-[10px] font-black text-slate-500">⌘</span>
                         <span className="text-[10px] font-black text-slate-500">K</span>
                       </div>
@@ -2093,7 +2093,7 @@ export default function App() {
                       )}
                     </button>
 
-                    <div className="w-px h-8 bg-slate-500/20 mx-1 hidden sm:block" />
+                    <div className="w-px h-8 bg-[#d9ecff]0/20 mx-1 hidden sm:block" />
 
                     <div className="flex gap-2">
                       <button 
@@ -2160,7 +2160,7 @@ export default function App() {
                                 value={filter.value} 
                                 onChange={e => filter.setter(e.target.value)}
                                 className={cn(
-                                  "w-full px-4 py-2.5 rounded-xl text-xs font-black bg-slate-500/10 border border-transparent focus:border-emerald-500/50 focus:outline-none appearance-none cursor-pointer transition-all",
+                                  "w-full px-4 py-2.5 rounded-xl text-xs font-black bg-[#d9ecff]0/10 border border-transparent focus:border-emerald-500/50 focus:outline-none appearance-none cursor-pointer transition-all",
                                   theme === 'dark' ? "text-white" : "text-slate-900"
                                 )}
                               >
@@ -2239,7 +2239,7 @@ export default function App() {
                       className={cn(
                         "px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all",
                         activeTabGroup === 'geral' 
-                          ? (theme === 'dark' ? "bg-white text-slate-900 shadow-md" : "bg-white text-slate-900 shadow-md") 
+                          ? (theme === 'dark' ? "bg-[#d9ecff] text-slate-900 shadow-md" : "bg-[#d9ecff] text-slate-900 shadow-md") 
                           : (theme === 'dark' ? "text-slate-400 hover:text-white hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-slate-900/5")
                       )}
                     >
@@ -2250,7 +2250,7 @@ export default function App() {
                       className={cn(
                         "px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all",
                         activeTabGroup === 'format' 
-                          ? (theme === 'dark' ? "bg-white text-slate-900 shadow-md" : "bg-white text-slate-900 shadow-md") 
+                          ? (theme === 'dark' ? "bg-[#d9ecff] text-slate-900 shadow-md" : "bg-[#d9ecff] text-slate-900 shadow-md") 
                           : (theme === 'dark' ? "text-slate-400 hover:text-white hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-slate-900/5")
                       )}
                     >
@@ -2516,7 +2516,7 @@ export default function App() {
                                                   ? "bg-rose-50 border-rose-200 shadow-sm"
                                                   : color === 'amber'
                                                     ? "bg-amber-50 border-amber-200 shadow-sm"
-                                                    : "bg-white border-slate-200 shadow-sm")
+                                                    : "bg-[#d9ecff] border-slate-200 shadow-sm")
                                           )
                                         : "bg-transparent border-transparent",
                                       car && "hover:brightness-110 hover:z-10 cursor-help transition-all duration-150"
@@ -2546,7 +2546,7 @@ export default function App() {
                                             ) : slaInfo?.isLate ? (
                                               <Clock className={cn("shrink-0", displayBay.orientation === 'horizontal' ? "w-4 h-4" : "w-3 h-3", theme === 'dark' ? "text-white" : "text-rose-600")} />
                                             ) : (
-                                              <div className={cn("rounded-full shrink-0", displayBay.orientation === 'horizontal' ? "w-2.5 h-2.5" : "w-1.5 h-1.5", theme === 'dark' ? "bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)]" : "bg-emerald-500")} />
+                                              <div className={cn("rounded-full shrink-0", displayBay.orientation === 'horizontal' ? "w-2.5 h-2.5" : "w-1.5 h-1.5", theme === 'dark' ? "bg-[#d9ecff] shadow-[0_0_8px_rgba(255,255,255,0.6)]" : "bg-emerald-500")} />
                                             )}
                                             {(!displayBay.orientation || displayBay.orientation === 'vertical') && (
                                               <span className={cn("font-bold leading-none truncate text-[11px]", theme === 'dark' ? "text-white drop-shadow-sm" : "text-slate-900")}>
@@ -2747,7 +2747,7 @@ export default function App() {
                         "w-full h-64 p-6 rounded-[2rem] text-sm font-medium focus:outline-none transition-all duration-300 border resize-none custom-scrollbar",
                         theme === 'dark' 
                           ? "bg-black/40 border-white/5 text-white placeholder:text-slate-600 focus:border-blue-500/50 focus:bg-black/60 shadow-inner" 
-                          : "bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-blue-500/50 focus:bg-white"
+                          : "bg-[#d9ecff] border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-blue-500/50 focus:bg-white"
                       )}
                     />
                   </div>
@@ -2756,7 +2756,7 @@ export default function App() {
                       onClick={() => setShowImport(false)}
                       className={cn(
                         "flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95",
-                        theme === 'dark' ? "bg-white/5 text-slate-400 hover:bg-white/10" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                        theme === 'dark' ? "bg-white/5 text-slate-400 hover:bg-white/10" : "bg-[#d1e5ff] text-slate-500 hover:bg-slate-200"
                       )}
                     >
                       Cancelar
@@ -2825,7 +2825,7 @@ export default function App() {
                     onClick={() => setShowClearConfirm(false)}
                     className={cn(
                       "w-full py-4 rounded-2xl font-black text-xs transition-all uppercase tracking-widest active:scale-95",
-                      theme === 'dark' ? "bg-white/5 text-slate-400 hover:bg-white/10" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                      theme === 'dark' ? "bg-white/5 text-slate-400 hover:bg-white/10" : "bg-[#d1e5ff] text-slate-500 hover:bg-slate-200"
                     )}
                   >
                     Cancelar
