@@ -693,7 +693,7 @@ export default function App() {
       "flex h-screen w-screen font-sans overflow-hidden transition-colors duration-500 relative",
       theme === 'dark' 
         ? "bg-[#030712] text-slate-200" 
-        : "bg-white text-slate-900"
+        : "bg-slate-50 text-slate-900"
     )}>
       {/* Mobile Backdrop */}
       <AnimatePresence>
@@ -733,12 +733,12 @@ export default function App() {
               <div className="flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-4">
                   <div className={cn(
-                    "w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center border shadow-xl transition-all duration-300",
+                    "w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center border transition-all duration-300",
                     theme === 'dark' 
-                      ? "bg-white/10 border-white/20 backdrop-blur-md glow-indigo" 
-                      : "bg-white border-slate-100 shadow-slate-200/50"
+                      ? "bg-white/95 border-[#00f2ff] shadow-[0_0_15px_rgba(0,242,255,0.4)]" 
+                      : "bg-white border-blue-200 shadow-xl shadow-blue-500/10"
                   )}>
-                    <img src={LOGO_URL} alt="Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
+                    <img src={LOGO_URL} alt="Logo" className="w-8 h-8 object-contain brightness-0 invert" referrerPolicy="no-referrer" />
                   </div>
                   <div className="flex flex-col justify-center">
                     <h1 className={cn(
@@ -1377,7 +1377,7 @@ export default function App() {
         {mode === 'dashboard' ? (
           <div className={cn(
             "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-[#030712]" : "bg-white"
+            theme === 'dark' ? "bg-[#030712]" : "bg-slate-50"
           )}>
             {/* Background Glows */}
             <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-indigo-500/5 blur-[120px] rounded-full -ml-64 -mt-64 pointer-events-none" />
@@ -1414,7 +1414,7 @@ export default function App() {
                     transition={{ delay: idx * 0.1 }}
                     className={cn(
                       "p-6 rounded-[2rem] border backdrop-blur-3xl transition-all duration-300",
-                      theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5 backdrop-blur-xl" : "bg-white border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+                      theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5 backdrop-blur-xl" : "bg-white border-slate-200 shadow-xl shadow-slate-900/5"
                     )}
                   >
                     <div className="flex items-center justify-between mb-4">
@@ -1871,7 +1871,7 @@ export default function App() {
         ) : mode === 'database' ? (
           <div className={cn(
             "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-[#030712]" : "bg-white"
+            theme === 'dark' ? "bg-[#030712]" : "bg-slate-50"
           )}>
             {/* Decorative background glows for Database View */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 blur-[120px] rounded-full -mr-64 -mt-64 pointer-events-none" />
@@ -2400,10 +2400,10 @@ export default function App() {
                           className={cn(
                             "transition-all duration-300",
                             theme === 'dark'
-                              ? (isSelected ? "fill-indigo-500/10 stroke-indigo-500" : "fill-slate-900/40 stroke-white/10")
-                              : (isSelected ? "fill-blue-50/50 stroke-blue-500" : "fill-slate-50/50 stroke-slate-200")
+                              ? (isSelected ? "fill-indigo-500/5 stroke-indigo-500" : "fill-transparent stroke-white/5")
+                              : (isSelected ? "fill-blue-50/50 stroke-blue-500" : "fill-transparent stroke-slate-200")
                           )}
-                          style={{ backdropFilter: 'blur(12px)', strokeWidth: isSelected ? 2 : 1 }}
+                          style={{ strokeWidth: isSelected ? 2 : 1 }}
                         />
                         <foreignObject
                           x={`${displayBay.x}%`}
