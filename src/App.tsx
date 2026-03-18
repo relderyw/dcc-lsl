@@ -693,7 +693,7 @@ export default function App() {
       "flex h-screen w-screen font-sans overflow-hidden transition-colors duration-500 relative",
       theme === 'dark' 
         ? "bg-[#030712] text-slate-200" 
-        : "bg-slate-50 text-slate-900"
+        : "bg-[#f0f7ff] text-slate-900"
     )}>
       {/* Mobile Backdrop */}
       <AnimatePresence>
@@ -736,9 +736,9 @@ export default function App() {
                     "w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center border transition-all duration-300",
                     theme === 'dark' 
                       ? "bg-white/95 border-[#00f2ff] shadow-[0_0_15px_rgba(0,242,255,0.4)]" 
-                      : "bg-white border-blue-200 shadow-xl shadow-blue-500/10"
+                      : "bg-white border-blue-200 shadow-lg shadow-blue-500/5"
                   )}>
-                    <img src={LOGO_URL} alt="Logo" className="w-8 h-8 object-contain brightness-0 invert" referrerPolicy="no-referrer" />
+                    <img src={LOGO_URL} alt="Logo" className={cn("w-8 h-8 object-contain", theme === 'dark' && "brightness-0 invert")} referrerPolicy="no-referrer" />
                   </div>
                   <div className="flex flex-col justify-center">
                     <h1 className={cn(
@@ -1377,7 +1377,7 @@ export default function App() {
         {mode === 'dashboard' ? (
           <div className={cn(
             "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-[#030712]" : "bg-slate-50"
+            theme === 'dark' ? "bg-[#030712]" : "bg-[#f0f7ff]"
           )}>
             {/* Background Glows */}
             <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-indigo-500/5 blur-[120px] rounded-full -ml-64 -mt-64 pointer-events-none" />
@@ -1623,7 +1623,7 @@ export default function App() {
                 {/* Late by Model & Sector */}
                 <div className={cn(
                   "lg:col-span-2 p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5 backdrop-blur-xl" : "bg-white border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5 backdrop-blur-xl" : "bg-white/80 backdrop-blur-md border-blue-100 shadow-xl shadow-blue-900/5"
                 )}>
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-rose-500/10 text-rose-400 rounded-xl">
@@ -1871,7 +1871,7 @@ export default function App() {
         ) : mode === 'database' ? (
           <div className={cn(
             "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-[#030712]" : "bg-slate-50"
+            theme === 'dark' ? "bg-[#030712]" : "bg-[#f0f7ff]"
           )}>
             {/* Decorative background glows for Database View */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 blur-[120px] rounded-full -mr-64 -mt-64 pointer-events-none" />
