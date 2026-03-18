@@ -614,7 +614,7 @@ export default function App() {
       "flex h-screen w-screen font-sans overflow-hidden transition-colors duration-500 relative",
       theme === 'dark' 
         ? "bg-slate-950 text-slate-200" 
-        : "bg-slate-50 text-slate-900"
+        : "bg-slate-100 text-slate-900"
     )}>
       {/* Mobile Backdrop */}
       <AnimatePresence>
@@ -641,7 +641,7 @@ export default function App() {
               "fixed lg:relative inset-y-0 left-0",
               theme === 'dark' 
                 ? "bg-slate-900 border-slate-800" 
-                : "bg-white/95 border-slate-200/60 backdrop-blur-xl shadow-slate-200/50"
+                : "bg-white border-r border-slate-200 shadow-xl shadow-slate-200/50"
             )}
           >
             <div className={cn(
@@ -1254,7 +1254,7 @@ export default function App() {
                   "p-4 rounded-[1.5rem] transition-all hover:scale-110 active:scale-95 group relative border shadow-2xl backdrop-blur-3xl",
                   theme === 'dark' 
                     ? "bg-slate-900/90 text-white border-white/10 glow-indigo" 
-                    : "bg-white/95 text-slate-900 border-slate-200 shadow-slate-200/50"
+                    : "bg-stone-100/95 border-stone-200 shadow-stone-200/50"
                 )}
                 title="Abrir Painel"
               >
@@ -1268,7 +1268,7 @@ export default function App() {
         {mode === 'dashboard' ? (
           <div className={cn(
             "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-slate-950" : "bg-slate-50"
+            theme === 'dark' ? "bg-slate-950" : "bg-slate-100"
           )}>
             {/* Background Glows */}
             <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-indigo-500/5 blur-[120px] rounded-full -ml-64 -mt-64 pointer-events-none" />
@@ -1345,23 +1345,52 @@ export default function App() {
                         <h3 className={cn("text-lg font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
                           Saúde Operacional
                         </h3>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Plano vs Real vs Diferente vs Acumulado</p>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Plano do Dia · Real · Retroativo · Atrasados</p>
                       </div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4">
-                    {[
-                      { label: 'Plano (Total)', value: filteredRecords.length, color: 'text-slate-400' },
-                      { label: 'Real (Emb.)', value: filteredRecords.filter(r => r.status === 'EMBARCADO').length, color: 'text-blue-500' },
-                      { label: 'Diferença', value: filteredRecords.length - filteredRecords.filter(r => r.status === 'EMBARCADO').length, color: 'text-amber-500' },
-                      { label: 'Aproveitamento', value: `${Math.round((filteredRecords.filter(r => r.status === 'EMBARCADO').length / (filteredRecords.length || 1)) * 100)}%`, color: 'text-emerald-500' }
-                    ].map((stat, i) => (
-                      <div key={i} className="space-y-1">
-                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em]">{stat.label}</span>
-                        <p className={cn("text-xl font-black tabular-nums", stat.color)}>{stat.value}</p>
-                      </div>
-                    ))}
+                    {(() => {
+                      const today = new Date();
+                      const todayStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
+                      const now = new Date();
+
+                      // Plano do Dia: carros com DT_EMB == hoje
+                      const planoDia = filteredRecords.filter(r => r.embarkDate === todayStr);
+
+                      // Real: carros já embarcados (status EMBARCADO) com data de hoje
+                      const real = filteredRecords.filter(r => r.status === 'EMBARCADO' && r.embarkDate === todayStr);
+
+                      // Retroativo: carros NÃO embarcados de dias anteriores
+                      const retroativo = filteredRecords.filter(r => {
+                        if (r.status === 'EMBARCADO') return false;
+                        if (r.embarkDate === todayStr) return false;
+                        const t = parseExcelDate(r.embarkDate, r.embarkTime);
+                        return t && t < now;
+                      });
+
+                      // Atrasados: carros de HOJE que já venceram a previsão de embarque
+                      const atrasados = filteredRecords.filter(r => {
+                        if (r.embarkDate !== todayStr) return false;
+                        if (r.status === 'EMBARCADO') return false;
+                        const t = parseExcelDate(r.embarkDate, r.embarkTime);
+                        return t && t < now;
+                      });
+
+                      return [
+                        { label: 'Plano do Dia', value: planoDia.length, color: 'text-slate-500', desc: 'Embarques previstos hoje' },
+                        { label: 'Real', value: real.length, color: 'text-blue-500', desc: 'Já embarcados hoje' },
+                        { label: 'Retroativo', value: retroativo.length, color: 'text-amber-500', desc: 'Pendentes de dias anteriores' },
+                        { label: 'Atrasados', value: atrasados.length, color: 'text-rose-500', desc: 'Hoje — previsão vencida' },
+                      ].map((stat, i) => (
+                        <div key={i} className="space-y-1">
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em]">{stat.label}</span>
+                          <p className={cn("text-2xl font-black tabular-nums", stat.color)}>{stat.value}</p>
+                          <span className="text-[8px] text-slate-400 font-medium">{stat.desc}</span>
+                        </div>
+                      ));
+                    })()}
                   </div>
 
                   <div className="h-48 w-full relative flex items-end gap-1 overflow-hidden group px-2">
@@ -1407,7 +1436,7 @@ export default function App() {
                                 className="absolute left-1/2 -translate-x-1/2 w-1 h-1 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)] z-10"
                               />
                             </div>
-                            <span className="text-[7px] font-black text-slate-600 tabular-nums">{h}h</span>
+                            <span className={cn("text-[9px] font-bold tabular-nums", theme === 'dark' ? "text-slate-500" : "text-slate-400")}>{h}h</span>
                           </div>
                         );
                       });
@@ -1619,7 +1648,7 @@ export default function App() {
                       <Clock className="w-5 h-5" />
                     </div>
                     <h3 className={cn("text-lg font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
-                      Veículos Parados
+                      Carros não locados
                     </h3>
                   </div>
 
@@ -1662,7 +1691,7 @@ export default function App() {
         ) : mode === 'database' ? (
           <div className={cn(
             "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-slate-950" : "bg-slate-50"
+            theme === 'dark' ? "bg-slate-950" : "bg-slate-100"
           )}>
             {/* Decorative background glows for Database View */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 blur-[120px] rounded-full -mr-64 -mt-64 pointer-events-none" />
@@ -1818,10 +1847,10 @@ export default function App() {
             {/* Command Center Overlay */}
             <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-7xl pointer-events-none">
               <div className={cn(
-                "flex items-center gap-4 px-4 py-2.5 backdrop-blur-3xl border rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] pointer-events-auto transition-all duration-500",
+                "flex items-center gap-4 px-4 py-2.5 backdrop-blur-xl border rounded-[2rem] shadow-xl pointer-events-auto transition-all duration-500",
                 theme === 'dark' 
-                  ? "bg-slate-900/40 border-slate-700/40 shadow-black/60 ring-1 ring-inset ring-white/5" 
-                  : "bg-white/40 border-white/60 shadow-slate-300/40 ring-1 ring-inset ring-black/5"
+                  ? "bg-slate-900/60 border-white/10 shadow-black/60 ring-1 ring-white/5" 
+                  : "bg-white/90 border-slate-200 shadow-slate-200/50"
               )}>
                 {/* Left Section: Sidebar & Basic Stats */}
                 <div className="flex items-center gap-3">
@@ -1841,10 +1870,10 @@ export default function App() {
                 {/* Center Section: Global Search Command */}
                 <div className="flex-1 max-w-2xl relative group">
                   <div className={cn(
-                    "flex items-center gap-3 px-6 py-2.5 rounded-2xl transition-all duration-300 border",
+                    "flex items-center gap-3 px-6 py-2.5 rounded-xl transition-all duration-300 border",
                     theme === 'dark' 
-                      ? "bg-black/20 border-white/5 focus-within:border-emerald-500/50 focus-within:bg-black/40" 
-                      : "bg-white/20 border-black/5 focus-within:border-emerald-500/50 focus-within:bg-white/40"
+                      ? "bg-black/20 border-white/10 hover:border-indigo-500/50 focus-within:border-indigo-500" 
+                      : "bg-slate-100/50 border-slate-200 hover:border-slate-300 focus-within:border-emerald-500 focus-within:bg-white"
                   )}>
                     <Search className={cn("w-4 h-4 transition-colors", filterCarId ? "text-emerald-500" : "text-slate-500")} />
                     <input 
@@ -1870,10 +1899,10 @@ export default function App() {
                   <button 
                     onClick={() => setShowMobileFilters(!showMobileFilters)}
                     className={cn(
-                      "p-3 rounded-2xl transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group relative overflow-hidden",
+                      "p-3 rounded-xl transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group relative overflow-hidden",
                       showMobileFilters 
-                        ? "bg-emerald-600 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)]" 
-                        : (theme === 'dark' ? "bg-slate-800/80 text-slate-400" : "bg-white text-slate-500 shadow-md")
+                        ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/30" 
+                        : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50")
                     )}
                   >
                     <Settings2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
@@ -1909,8 +1938,8 @@ export default function App() {
                     <button 
                       onClick={() => fetchData()}
                       className={cn(
-                        "hidden sm:flex p-3 rounded-2xl transition-all hover:scale-105 active:scale-95",
-                        theme === 'dark' ? "bg-slate-800/80 text-white" : "bg-white text-slate-900 shadow-md"
+                        "hidden sm:flex p-3 rounded-xl transition-all hover:scale-105 active:scale-95 border",
+                        theme === 'dark' ? "bg-slate-800 border-white/10 text-white" : "bg-white border-slate-200 text-slate-900 shadow-sm hover:bg-slate-50"
                       )}
                     >
                       <Database className="w-4 h-4 mr-2" />
@@ -2013,29 +2042,26 @@ export default function App() {
             {/* Map Container */}
             <div 
               className={cn(
-                "flex-1 relative overflow-auto custom-scrollbar p-12 lg:p-24 transition-colors duration-500",
+                "flex-1 relative overflow-auto custom-scrollbar p-4 lg:p-8 transition-colors duration-500",
                 theme === 'dark' 
-                  ? "bg-[#020617]" // Deeper dark for better contrast
-                  : "bg-slate-50",
+                  ? "bg-[#020617]" 
+                  : "bg-slate-100",
                 mode === 'edit' ? "cursor-crosshair" : "cursor-default"
               )}
             >
               <div
-                className={cn(
-                  "inline-block relative rounded-[3rem] overflow-hidden transition-all duration-700",
-                  theme === 'dark' 
-                    ? "bg-[#0f172a] shadow-[0_0_100px_rgba(0,0,0,0.8)] ring-1 ring-white/10" 
-                    : "bg-white shadow-[0_0_50px_rgba(0,0,0,0.1)] ring-1 ring-black/5"
-                )}
+                className="inline-block relative transition-all duration-700"
                 style={{ 
                   minWidth: 'min-content',
-                  padding: '2rem',
-                  boxShadow: theme === 'dark' ? '0 0 80px -20px rgba(0,0,0,0.8), inset 0 0 20px rgba(255,255,255,0.02)' : '0 10px 40px -10px rgba(0,0,0,0.1)'
+                  padding: '0.5rem',
                 }}
               >
                 <div 
                   ref={containerRef}
-                  className="relative origin-top-left border border-white/5 rounded-2xl overflow-hidden"
+                  className={cn(
+                    "relative origin-top-left rounded-xl overflow-hidden",
+                    theme === 'dark' ? "ring-1 ring-white/5" : "ring-1 ring-slate-200/80"
+                  )}
                   onMouseDown={handleMouseDown}
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
@@ -2051,7 +2077,7 @@ export default function App() {
                     backgroundSize: mode === 'edit' ? '2% 3.55%, 100% 100%' : '100% 100%',
                     backgroundRepeat: 'repeat, no-repeat',
                     backgroundPosition: 'center',
-                    backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc'
+                    backgroundColor: theme === 'dark' ? '#0f172a' : '#e7e5e4'
                   }}
                 >
                 {/* Interactive Overlay */}
@@ -2227,7 +2253,9 @@ export default function App() {
                                       car 
                                         ? (theme === 'dark'
                                             ? (isWrongSector ? "bg-gradient-to-r from-fuchsia-600/90 to-purple-600/90 border-fuchsia-500/50" : color === 'rose' ? "bg-gradient-to-r from-rose-600/90 to-red-600/90 border-rose-500/50" : color === 'amber' ? "bg-gradient-to-r from-amber-600/90 to-orange-500/90 border-amber-500/50" : "bg-gradient-to-r from-emerald-600/90 to-teal-500/90 border-emerald-500/50")
-                                            : (isWrongSector ? "bg-gradient-to-r from-fuchsia-500 to-purple-500 border-fuchsia-400" : color === 'rose' ? "bg-gradient-to-r from-rose-500 to-red-500 border-rose-400" : color === 'amber' ? "bg-gradient-to-r from-amber-400 to-orange-400 border-amber-300" : "bg-gradient-to-r from-emerald-500 to-teal-500 border-emerald-400")
+                                            : (isWrongSector 
+                                                ? "bg-amber-50/40 border-amber-200 shadow-sm" 
+                                                : "bg-white border-slate-200 shadow-sm")
                                           )
                                         : "bg-transparent border-transparent", // Clean empty slots
                                       car && "hover:scale-[1.03] hover:shadow-lg hover:z-10 hover:brightness-110 cursor-help"
@@ -2248,13 +2276,13 @@ export default function App() {
                                         <div className="w-full h-full flex flex-row items-center justify-between px-1.5 gap-1">
                                           <div className="flex items-center gap-1.5 min-w-0">
                                             {isWrongSector ? (
-                                              <AlertTriangle className="w-3 h-3 text-white animate-pulse shrink-0" />
+                                              <AlertTriangle className={cn("w-3 h-3 shrink-0 animate-pulse", theme === 'dark' ? "text-white" : "text-amber-500")} />
                                             ) : slaInfo?.isLate ? (
-                                              <Clock className="w-3 h-3 text-white/80 shrink-0" />
+                                              <Clock className={cn("w-3 h-3 shrink-0", theme === 'dark' ? "text-white/80" : "text-rose-400")} />
                                             ) : (
-                                              <div className="w-1.5 h-1.5 rounded-full bg-white/40 shrink-0" />
+                                              <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", theme === 'dark' ? "bg-white/40" : "bg-emerald-400/60")} />
                                             )}
-                                            <span className={cn("font-black text-white leading-none truncate drop-shadow-sm text-[10px]")}>
+                                            <span className={cn("font-bold leading-none truncate text-[11px]", theme === 'dark' ? "text-white drop-shadow-sm" : "text-slate-900")}>
                                               {car.carId}
                                             </span>
                                           </div>
@@ -2262,13 +2290,17 @@ export default function App() {
                                           {/* SLA & Time Indicator */}
                                           {(!displayBay.slotHeight || displayBay.slotHeight >= 20) && (
                                             <div className="flex items-center gap-1.5 shrink-0">
-                                              <span className="text-[9px] text-white/90 font-bold tracking-tight truncate drop-shadow-sm">
+                                              <span className={cn("text-[8px] font-medium tracking-tight truncate", theme === 'dark' ? "text-white/90 drop-shadow-sm" : "text-slate-500")}>
                                                 {car.embarkTime}
                                               </span>
                                               {(() => {
                                                 const sla = slaInfo || getSlaStatus(car);
                                                 return (
-                                                  <div className={cn("px-1.5 py-[2px] rounded-[3px] text-[7px] font-black text-white uppercase whitespace-nowrap shadow-sm border border-white/20 backdrop-blur-sm", sla.color)}>
+                                                  <div className={cn("px-1.5 py-[2px] rounded-full text-[7px] font-bold uppercase whitespace-nowrap border",
+                                                    theme === 'dark' 
+                                                      ? (sla.text === 'ATRASADO' ? "bg-rose-500 text-white border-rose-400/50 shadow-[0_0_8px_rgba(244,63,94,0.6)]" : sla.text === 'PRÓX. EMB.' ? "bg-amber-500 text-white border-amber-400/50 shadow-[0_0_8px_rgba(245,158,11,0.6)]" : "bg-emerald-500 text-white border-emerald-400/50 shadow-[0_0_8px_rgba(16,185,129,0.6)]")
+                                                      : (sla.text === 'ATRASADO' ? "bg-rose-50 text-rose-600 border-rose-100" : sla.text === 'PRÓX. EMB.' ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-emerald-50 text-emerald-600 border-emerald-100")
+                                                  )}>
                                                     {sla.text}
                                                   </div>
                                                 );
