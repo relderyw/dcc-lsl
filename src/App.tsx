@@ -693,7 +693,7 @@ export default function App() {
       "flex h-screen w-screen font-sans overflow-hidden transition-colors duration-500 relative",
       theme === 'dark' 
         ? "bg-slate-950 text-slate-200" 
-        : "bg-stone-200 text-slate-900"
+        : "bg-sky-50 text-slate-900"
     )}>
       {/* Mobile Backdrop */}
       <AnimatePresence>
@@ -720,7 +720,7 @@ export default function App() {
               "fixed lg:relative inset-y-0 left-0",
               theme === 'dark' 
                 ? "bg-slate-900 border-slate-800" 
-                : "bg-stone-100 border-r border-stone-300 shadow-xl shadow-stone-300/50"
+                : "bg-white/80 backdrop-blur-md border-r border-blue-100 shadow-xl shadow-blue-900/5"
             )}
           >
             <div className={cn(
@@ -1377,7 +1377,7 @@ export default function App() {
         {mode === 'dashboard' ? (
           <div className={cn(
             "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-slate-950" : "bg-stone-200"
+            theme === 'dark' ? "bg-slate-950" : "bg-sky-50"
           )}>
             {/* Background Glows */}
             <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-indigo-500/5 blur-[120px] rounded-full -ml-64 -mt-64 pointer-events-none" />
@@ -1414,7 +1414,7 @@ export default function App() {
                     transition={{ delay: idx * 0.1 }}
                     className={cn(
                       "p-6 rounded-[2rem] border backdrop-blur-3xl transition-all duration-300",
-                      theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-stone-100 border-stone-300 shadow-xl"
+                      theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-blue-100 shadow-xl shadow-blue-900/5"
                     )}
                   >
                     <div className="flex items-center justify-between mb-4">
@@ -1623,7 +1623,7 @@ export default function App() {
                 {/* Late by Model & Sector */}
                 <div className={cn(
                   "lg:col-span-2 p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-stone-100 border-stone-300 shadow-xl"
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-blue-100 shadow-xl shadow-blue-900/5"
                 )}>
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-rose-500/10 text-rose-400 rounded-xl">
@@ -1677,7 +1677,7 @@ export default function App() {
                 {/* Location Classification Breakdown */}
                 <div className={cn(
                   "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-stone-100 border-stone-300 shadow-xl"
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-blue-100 shadow-xl shadow-blue-900/5"
                 )}>
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl">
@@ -1792,7 +1792,7 @@ export default function App() {
                               </div>
                               <div className={cn(
                                 "h-2.5 w-full rounded-full relative bg-white/5 overflow-hidden ring-1 ring-white/5",
-                                theme === 'light' && "bg-stone-200 ring-stone-300"
+                                theme === 'light' && "bg-blue-50 ring-blue-100"
                               )}>
                                 <motion.div 
                                   initial={{ width: 0 }}
@@ -1871,7 +1871,7 @@ export default function App() {
         ) : mode === 'database' ? (
           <div className={cn(
             "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-slate-950" : "bg-stone-200"
+            theme === 'dark' ? "bg-slate-950" : "bg-sky-50"
           )}>
             {/* Decorative background glows for Database View */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 blur-[120px] rounded-full -mr-64 -mt-64 pointer-events-none" />
@@ -1919,7 +1919,7 @@ export default function App() {
               {/* Contextual Database Filters */}
               <div className={cn(
                 "p-4 rounded-[2rem] border backdrop-blur-3xl flex flex-wrap gap-4 items-center transition-all duration-300",
-                theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-stone-100 border-stone-300 shadow-xl"
+                theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-blue-100 shadow-xl shadow-blue-900/5"
               )}>
                 <div className="flex items-center gap-2 px-3 border-r border-slate-500/20">
                   <Filter className="w-4 h-4 text-slate-500" />
@@ -2031,7 +2031,7 @@ export default function App() {
                   "flex items-center gap-4 px-4 py-2.5 border rounded-[2rem] shadow-xl transition-all duration-500 w-full",
                   theme === 'dark' 
                     ? "bg-slate-900/60 border-white/10 shadow-black/60 ring-1 ring-white/5" 
-                    : "bg-stone-100 border-stone-300 shadow-stone-300/50"
+                    : "bg-white/80 backdrop-blur-md border-blue-100 shadow-xl shadow-blue-900/5"
                 )}>
                   {/* Left Section: Sidebar & Basic Stats */}
                   <div className="flex items-center gap-3">
@@ -2054,7 +2054,7 @@ export default function App() {
                       "flex items-center gap-3 px-6 py-2.5 rounded-xl transition-all duration-300 border",
                       theme === 'dark' 
                         ? "bg-black/20 border-white/10 hover:border-indigo-500/50 focus-within:border-indigo-500" 
-                        : "bg-stone-200 border-stone-300 hover:border-stone-400 focus-within:border-emerald-500 focus-within:bg-stone-100"
+                        : "bg-blue-50/50 border-blue-100 hover:border-blue-200 focus-within:border-blue-500 focus-within:bg-white"
                     )}>
                       <Search className={cn("w-4 h-4 transition-colors", filterCarId ? "text-emerald-500" : "text-slate-500")} />
                       <input 
@@ -2143,7 +2143,7 @@ export default function App() {
                       "p-6 backdrop-blur-3xl border rounded-[2.5rem] shadow-2xl flex flex-wrap items-end gap-6",
                       theme === 'dark' 
                         ? "bg-slate-900/80 border-slate-700/50" 
-                        : "bg-stone-100 border-stone-300 shadow-stone-300/50"
+                        : "bg-white/95 border-blue-100 shadow-xl shadow-blue-900/5"
                     )}>
                       <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         {/* Custom Select Wrapper Component Logic */}
@@ -2400,8 +2400,8 @@ export default function App() {
                           className={cn(
                             "transition-all duration-200",
                             theme === 'dark'
-                              ? (isSelected ? "fill-slate-800 stroke-emerald-500" : "fill-slate-900/80 stroke-slate-700")
-                              : (isSelected ? "fill-stone-50 stroke-emerald-500" : "fill-stone-100/90 stroke-stone-300")
+                              ? (isSelected ? "fill-slate-900/90 stroke-emerald-500 shadow-lg" : "fill-slate-900/60 stroke-slate-800")
+                              : (isSelected ? "fill-white stroke-blue-500" : "fill-white/40 stroke-blue-100")
                           )}
                           style={{ strokeWidth: isSelected ? 1.5 : 1 }}
                         />
@@ -2503,22 +2503,20 @@ export default function App() {
                                       displayBay.orientation === 'horizontal' ? "w-full flex-1" : "flex-1 h-full",
                                       car 
                                         ? (theme === 'dark'
-                                            // Dark: dark slate base with colored left border accent
                                             ? (isWrongSector 
-                                                ? "bg-slate-800 border-l-fuchsia-400 border border-slate-700/50" 
+                                                ? "bg-slate-900/80 border-l-fuchsia-500 border border-fuchsia-500/20 shadow-[0_0_10px_rgba(217,70,239,0.1)]" 
                                                 : color === 'rose' 
-                                                  ? "bg-slate-800 border-l-rose-400 border border-slate-700/50" 
+                                                  ? "bg-slate-900/80 border-l-rose-500 border border-rose-500/20 shadow-[0_0_10px_rgba(244,63,94,0.1)]" 
                                                   : color === 'amber' 
-                                                    ? "bg-slate-800 border-l-amber-400 border border-slate-700/50" 
-                                                    : "bg-slate-800 border-l-emerald-400 border border-slate-700/50")
-                                            // Light: clean white with colored left border
+                                                    ? "bg-slate-900/80 border-l-amber-500 border border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.1)]" 
+                                                    : "bg-slate-900/80 border-l-emerald-500 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]")
                                             : (isWrongSector 
-                                                ? "bg-amber-50 border-l-amber-400 border border-amber-100" 
+                                                ? "bg-amber-50 border-l-amber-400 border border-amber-200" 
                                                 : color === 'rose'
-                                                  ? "bg-rose-50 border-l-rose-400 border border-rose-100"
+                                                  ? "bg-rose-50 border-l-rose-500 border border-rose-200"
                                                   : color === 'amber'
-                                                    ? "bg-amber-50/60 border-l-amber-400 border border-amber-100"
-                                                    : "bg-white border-l-emerald-400 border border-stone-200")
+                                                    ? "bg-amber-50 border-l-amber-500 border border-amber-200"
+                                                    : "bg-white border-l-blue-500 border border-blue-100")
                                           )
                                         : "bg-transparent border-l-transparent border-transparent",
                                       car && "hover:brightness-110 hover:z-10 cursor-help transition-all duration-150"
