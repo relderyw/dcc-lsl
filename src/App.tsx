@@ -693,7 +693,7 @@ export default function App() {
       "flex h-screen w-screen font-sans overflow-hidden transition-colors duration-500 relative",
       theme === 'dark' 
         ? "bg-[#030712] text-slate-200" 
-        : "bg-[#f0f7ff] text-slate-900"
+        : "bg-[#f0f9ff] text-slate-900"
     )}>
       {/* Mobile Backdrop */}
       <AnimatePresence>
@@ -720,7 +720,7 @@ export default function App() {
               "fixed lg:relative inset-y-0 left-0",
               theme === 'dark' 
                 ? "bg-slate-900/60 backdrop-blur-3xl border-r border-white/5" 
-                : "bg-slate-50 border-r border-slate-200 shadow-xl shadow-slate-200/50"
+                : "bg-[#f0f9ff]/60 backdrop-blur-md border-r border-blue-100/50 shadow-xl"
             )}
           >
             <div className={cn(
@@ -734,11 +734,9 @@ export default function App() {
                 <div className="flex items-center gap-4">
                   <div className={cn(
                     "w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center border transition-all duration-300",
-                    theme === 'dark' 
-                      ? "bg-white/95 border-[#00f2ff] shadow-[0_0_15px_rgba(0,242,255,0.4)]" 
-                      : "bg-white border-blue-200 shadow-lg shadow-blue-500/5"
+                    "bg-white border-[#00f2ff] shadow-[0_0_15px_rgba(0,242,255,0.4)]"
                   )}>
-                    <img src={LOGO_URL} alt="Logo" className={cn("w-8 h-8 object-contain", theme === 'dark' && "brightness-0 invert")} referrerPolicy="no-referrer" />
+                    <img src={LOGO_URL} alt="Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
                   </div>
                   <div className="flex flex-col justify-center">
                     <h1 className={cn(
@@ -1414,7 +1412,7 @@ export default function App() {
                     transition={{ delay: idx * 0.1 }}
                     className={cn(
                       "p-6 rounded-[2rem] border backdrop-blur-3xl transition-all duration-300",
-                      theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5 backdrop-blur-xl" : "bg-white border-slate-200 shadow-xl shadow-slate-900/5"
+                      theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5 backdrop-blur-xl" : "bg-[#f0f9ff]/40 backdrop-blur-md border-blue-100/50 shadow-xl shadow-blue-900/5"
                     )}
                   >
                     <div className="flex items-center justify-between mb-4">
@@ -1623,7 +1621,7 @@ export default function App() {
                 {/* Late by Model & Sector */}
                 <div className={cn(
                   "lg:col-span-2 p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5 backdrop-blur-xl" : "bg-white/80 backdrop-blur-md border-blue-100 shadow-xl shadow-blue-900/5"
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5 backdrop-blur-xl" : "bg-[#f0f9ff]/40 backdrop-blur-md border-blue-100/50 shadow-xl shadow-blue-900/5"
                 )}>
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-rose-500/10 text-rose-400 rounded-xl">
@@ -2401,7 +2399,7 @@ export default function App() {
                             "transition-all duration-300",
                             theme === 'dark'
                               ? (isSelected ? "fill-indigo-500/5 stroke-indigo-500" : "fill-transparent stroke-white/5")
-                              : (isSelected ? "fill-blue-50/50 stroke-blue-500" : "fill-transparent stroke-slate-200")
+                              : (isSelected ? "fill-blue-100/20 stroke-blue-500" : "fill-transparent stroke-slate-300/40")
                           )}
                           style={{ strokeWidth: isSelected ? 2 : 1 }}
                         />
