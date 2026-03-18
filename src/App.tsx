@@ -1348,6 +1348,17 @@ export default function App() {
                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Plano do Dia · Real · Retroativo · Atrasados</p>
                       </div>
                     </div>
+                    {/* Legenda do Gráfico */}
+                    <div className="flex items-center gap-6 px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-blue-500/40 rounded-sm border border-blue-500/50" />
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Embarques/Hora</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Progresso Acumulado</span>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4">
@@ -1420,39 +1431,39 @@ export default function App() {
                           <div key={h} className="flex-1 flex flex-col items-center gap-2 group/bar relative h-full">
                             <div className="w-full relative flex-1 flex flex-col justify-end">
                               {/* Hourly Count Label */}
-                              {count > 0 && (
-                                <motion.span
-                                  initial={{ opacity: 0, y: 10 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  className={cn(
-                                    "absolute bottom-[calc(hPerc*0.7%+4px)] left-1/2 -translate-x-1/2 text-[9px] font-black tabular-nums z-20",
-                                    theme === 'dark' ? "text-blue-400" : "text-blue-600"
-                                  )}
-                                  style={{ bottom: `${hPerc * 0.7 + 2}%` }}
-                                >
-                                  {count}
-                                </motion.span>
-                              )}
+                               {count > 0 && (
+                                 <motion.span
+                                   initial={{ opacity: 0, y: 10 }}
+                                   animate={{ opacity: 1, y: 0 }}
+                                   className={cn(
+                                     "absolute bottom-[calc(hPerc*0.7%+4px)] left-1/2 -translate-x-1/2 text-[11px] sm:text-[12px] font-black tabular-nums z-20",
+                                     theme === 'dark' ? "text-blue-400" : "text-blue-600"
+                                   )}
+                                   style={{ bottom: `${hPerc * 0.7 + 2}%` }}
+                                 >
+                                   {count}
+                                 </motion.span>
+                               )}
 
-                              {/* Hourly Bar */}
-                              <motion.div 
-                                initial={{ height: 0 }}
-                                animate={{ height: `${hPerc * 0.7}%` }}
-                                className={cn(
-                                  "w-full rounded-t-sm transition-all duration-500",
-                                  count > 0 ? "bg-blue-500/20 group-hover/bar:bg-blue-500/40" : "bg-white/5"
-                                )}
-                              />
-                              
-                              {/* Cumulative Point/Line segment (simplified as a dot) */}
-                              <motion.div 
-                                initial={{ bottom: 0 }}
-                                animate={{ bottom: `${cumPerc}%` }}
-                                className="absolute left-1/2 -translate-x-1/2 w-1 h-1 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)] z-10"
-                              />
-                            </div>
-                            <span className={cn("text-[9px] font-bold tabular-nums", theme === 'dark' ? "text-slate-500" : "text-slate-400")}>{h}h</span>
-                          </div>
+                               {/* Hourly Bar */}
+                               <motion.div 
+                                 initial={{ height: 0 }}
+                                 animate={{ height: `${hPerc * 0.7}%` }}
+                                 className={cn(
+                                   "w-full rounded-t-sm transition-all duration-500",
+                                   count > 0 ? "bg-blue-500/20 group-hover/bar:bg-blue-500/40" : "bg-white/5"
+                                 )}
+                               />
+                               
+                               {/* Cumulative Point/Line segment (simplified as a dot) */}
+                               <motion.div 
+                                 initial={{ bottom: 0 }}
+                                 animate={{ bottom: `${cumPerc}%` }}
+                                 className="absolute left-1/2 -translate-x-1/2 w-1 h-1 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)] z-10"
+                               />
+                             </div>
+                             <span className={cn("text-[10px] sm:text-[11px] font-bold tabular-nums", theme === 'dark' ? "text-slate-500" : "text-slate-400")}>{h}h</span>
+                           </div>
                         );
                       });
                     })()}
@@ -1599,7 +1610,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="relative h-48 w-full mt-4">
+                  <div className="relative h-72 w-full mt-4">
                     {(() => {
                       const controllerStats = filteredRecords
                         .filter(r => getLocationCategory(r.location) === 'Controlador')
@@ -1612,7 +1623,7 @@ export default function App() {
                       const sortedControllers = (Object.entries(controllerStats) as [string, number][])
                         .sort((a, b) => b[1] - a[1]);
 
-                      const displayControllers = sortedControllers.slice(controllerPageIndex * 4, (controllerPageIndex * 4) + 4);
+                      const displayControllers = sortedControllers.slice(controllerPageIndex * 8, (controllerPageIndex * 8) + 8);
 
                       if (displayControllers.length === 0 && controllerPageIndex > 0) {
                         setControllerPageIndex(0);
@@ -1622,15 +1633,15 @@ export default function App() {
                       const max = Math.max(...(Object.values(controllerStats) as number[]), 1);
 
                       return (
-                        <div className="flex flex-col gap-6 h-full justify-center py-2">
+                        <div className="flex flex-col gap-4 h-full overflow-y-auto custom-scrollbar pr-1 py-2">
                           {displayControllers.map(([ctrl, count]) => (
-                            <div key={ctrl} className="flex flex-col gap-2 group">
+                            <div key={ctrl} className="flex flex-col gap-1.5 group">
                               <div className="flex justify-between items-end px-1">
-                                <span className="text-[10px] font-black text-slate-500 uppercase truncate max-w-[120px]">{ctrl}</span>
-                                <span className="text-[11px] font-black text-rose-500 tabular-nums">{count}</span>
+                                <span className="text-[11px] font-black text-slate-400 group-hover:text-slate-200 uppercase truncate max-w-[150px] transition-colors">{ctrl}</span>
+                                <span className="text-[12px] font-black text-rose-500 tabular-nums">{count}</span>
                               </div>
                               <div className={cn(
-                                "h-3 w-full rounded-full relative bg-white/5 overflow-hidden ring-1 ring-white/5",
+                                "h-2.5 w-full rounded-full relative bg-white/5 overflow-hidden ring-1 ring-white/5",
                                 theme === 'light' && "bg-slate-100 ring-slate-200"
                               )}>
                                 <motion.div 
