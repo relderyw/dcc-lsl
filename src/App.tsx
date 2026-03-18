@@ -1477,9 +1477,9 @@ export default function App() {
                     })()}
                   </div>
 
-                  <div className="h-56 w-full relative flex items-end gap-1 group px-2 pt-8">
+                  <div className="h-56 w-full relative group pt-8 flex flex-col">
                     {/* Background Grid Lines */}
-                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-5">
+                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-5 pb-6">
                       {[1, 2, 3, 4].map(i => <div key={i} className="w-full h-px bg-white" />)}
                     </div>
 
@@ -1496,71 +1496,87 @@ export default function App() {
                       });
                       const totalMax = cumulativeData[cumulativeData.length - 1] || 1;
 
+                      // Exact mathematical center for each of the 24 columns
                       const points = cumulativeData.map((d, i) => {
-                        const x = (i / 23) * 100;
+                        const x = ((i + 0.5) / 24) * 100;
                         const y = 100 - (d / totalMax) * 100;
                         return `${x},${y}`;
                       }).join(' ');
 
                       return (
                         <>
-                          <svg className="absolute inset-0 w-full h-full pointer-events-none z-10 overflow-visible drop-shadow-[0_0_6px_rgba(16,185,129,0.5)]" viewBox="0 0 100 100" preserveAspectRatio="none">
-                            <motion.polyline
-                              points={points}
-                              fill="none"
-                              stroke="#10b981" // emerald-500
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              initial={{ pathLength: 0 }}
-                              animate={{ pathLength: 1 }}
-                              transition={{ duration: 2, ease: "easeInOut" }}
-                            />
-                          </svg>
+                          <div className="flex-1 relative w-full flex items-end px-2">
+                            <svg className="absolute inset-x-2 inset-y-0 w-[calc(100%-16px)] h-full pointer-events-none z-10 overflow-visible drop-shadow-[0_0_6px_rgba(16,185,129,0.5)]" viewBox="0 0 100 100" preserveAspectRatio="none">
+                              <motion.polyline
+                                points={points}
+                                fill="none"
+                                stroke="#10b981" // emerald-500
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                initial={{ pathLength: 0 }}
+                                animate={{ pathLength: 1 }}
+                                transition={{ duration: 2, ease: "easeInOut" }}
+                              />
+                            </svg>
 
-                          {hourlyData.map((count, h) => {
-                            const hPerc = (count / max) * 100;
-                            const cumPerc = (cumulativeData[h] / totalMax) * 100;
-                            
-                            return (
-                              <div key={h} className="flex-1 flex flex-col items-center gap-2 group/bar relative h-full">
-                                <div className="w-full relative flex-1 flex flex-col justify-end">
-                                  {/* Hourly Count Label */}
-                                  {count > 0 && (
-                                    <motion.span
-                                      initial={{ opacity: 0, y: 10 }}
-                                      animate={{ opacity: 1, y: 0 }}
-                                      className={cn(
-                                        "absolute bottom-[calc(hPerc*0.7%+4px)] left-1/2 -translate-x-1/2 text-[11px] sm:text-[12px] font-black tabular-nums z-20",
-                                        theme === 'dark' ? "text-blue-400" : "text-blue-600"
-                                      )}
-                                      style={{ bottom: `${hPerc * 0.7 + 2}%` }}
-                                    >
-                                      {count}
-                                    </motion.span>
-                                  )}
-
-                                  {/* Hourly Bar */}
-                                  <motion.div 
-                                    initial={{ height: 0 }}
-                                    animate={{ height: `${hPerc * 0.7}%` }}
-                                    className={cn(
-                                      "w-full rounded-t-sm transition-all duration-500",
-                                      count > 0 ? "bg-blue-500/20 group-hover/bar:bg-blue-500/40" : "bg-white/5"
+                            {hourlyData.map((count, h) => {
+                              const hPerc = (count / max) * 100;
+                              const cumPerc = (cumulativeData[h] / totalMax) * 100;
+                              
+                              return (
+                                <div key={h} className="flex-1 flex flex-col items-center group/bar relative h-full px-[1px] sm:px-0.5">
+                                  <div className="w-full relative flex-1 flex flex-col justify-end">
+                                    {/* Hourly Count Label */}
+                                    {count > 0 && (
+                                      <motion.span
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className={cn(
+                                          "absolute left-1/2 -translate-x-1/2 text-[10px] sm:text-[11px] font-black tabular-nums z-20",
+                                          theme === 'dark' ? "text-blue-400" : "text-blue-600"
+                                        )}
+                                        style={{ bottom: `${hPerc * 0.7 + 2}%` }}
+                                      >
+                                        {count}
+                                      </motion.span>
                                     )}
-                                  />
-                                  
-                                  {/* Cumulative Point */}
-                                  <motion.div 
-                                    initial={{ bottom: 0 }}
-                                    animate={{ bottom: `${cumPerc}%` }}
-                                    className="absolute left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)] z-20 border border-emerald-900"
-                                  />
+
+                                    {/* Hourly Bar */}
+                                    <motion.div 
+                                      initial={{ height: 0 }}
+                                      animate={{ height: `${hPerc * 0.7}%` }}
+                                      className={cn(
+                                        "w-full rounded-t-sm transition-all duration-500",
+                                        count > 0 ? "bg-blue-500/20 group-hover/bar:bg-blue-500/40" : "bg-white/5"
+                                      )}
+                                    />
+                                    
+                                    {/* Cumulative Point & Label */}
+                                    <motion.div 
+                                      initial={{ bottom: 0 }}
+                                      animate={{ bottom: `${cumPerc}%` }}
+                                      className="absolute left-1/2 -translate-x-1/2 w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)] z-20 border border-emerald-900 flex items-center justify-center"
+                                    >
+                                      {/* Cumulative Text Label floating above the point when data changes */}
+                                      {count > 0 && cumulativeData[h] > 0 && (
+                                        <span className="absolute bottom-2.5 text-[10px] font-black text-emerald-400 whitespace-nowrap z-30 drop-shadow-md">
+                                          {cumulativeData[h]}
+                                        </span>
+                                      )}
+                                    </motion.div>
+                                  </div>
                                 </div>
-                                <span className={cn("text-[10px] sm:text-[11px] font-bold tabular-nums", theme === 'dark' ? "text-slate-500" : "text-slate-400")}>{h}h</span>
+                              );
+                            })}
+                          </div>
+                          <div className="flex w-full px-2 mt-2 h-4 items-center">
+                            {hourlyData.map((_, h) => (
+                              <div key={`label-${h}`} className="flex-1 flex justify-center">
+                                <span className={cn("text-[8px] sm:text-[9px] font-bold tabular-nums", theme === 'dark' ? "text-slate-500" : "text-slate-400")}>{h}h</span>
                               </div>
-                            );
-                          })}
+                            ))}
+                          </div>
                         </>
                       );
                     })()}
