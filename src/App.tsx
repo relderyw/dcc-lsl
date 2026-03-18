@@ -167,6 +167,7 @@ export default function App() {
   const [controllerPageIndex, setControllerPageIndex] = useState(0);
   const [activeTabGroup, setActiveTabGroup] = useState<'geral' | 'format'>('geral');
   const [isPresentationMode, setIsPresentationMode] = useState(false);
+  const [presentationSpeed, setPresentationSpeed] = useState(0.05);
   const scrollDirection = useRef<1 | -1>(1);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -211,7 +212,6 @@ export default function App() {
   useEffect(() => {
     let animationFrameId: number;
     let lastTime = performance.now();
-    const speed = 0.05; // pixels per ms
 
     const scrollStep = (currentTime: number) => {
       const dt = currentTime - lastTime;
@@ -229,7 +229,7 @@ export default function App() {
           scrollDirection.current = 1;
         }
 
-        scrollContainerRef.current.scrollLeft += speed * dt * scrollDirection.current;
+        scrollContainerRef.current.scrollLeft += presentationSpeed * dt * scrollDirection.current;
       }
       animationFrameId = requestAnimationFrame(scrollStep);
     };
@@ -239,7 +239,7 @@ export default function App() {
     }
     
     return () => cancelAnimationFrame(animationFrameId);
-  }, [isPresentationMode, isDragging]);
+  }, [isPresentationMode, isDragging, presentationSpeed]);
 
   const fetchData = async () => {
     try {
@@ -2209,7 +2209,7 @@ export default function App() {
                     <button
                       onClick={() => setIsPresentationMode(!isPresentationMode)}
                       className={cn(
-                        "px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all flex items-center gap-1.5",
+                        "px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 h-[32px]",
                         isPresentationMode 
                           ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20" 
                           : (theme === 'dark' ? "text-slate-400 hover:text-white hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-slate-900/5")
@@ -2219,6 +2219,32 @@ export default function App() {
                       {isPresentationMode ? <MonitorPause className="w-4 h-4" /> : <MonitorPlay className="w-4 h-4" />}
                       <span className="hidden sm:inline">Apresentação</span>
                     </button>
+
+                    {/* Speed Control Slider */}
+                    <AnimatePresence>
+                      {isPresentationMode && (
+                        <motion.div 
+                          initial={{ opacity: 0, width: 0, marginLeft: 0 }}
+                          animate={{ opacity: 1, width: 'auto', marginLeft: 8 }}
+                          exit={{ opacity: 0, width: 0, marginLeft: 0 }}
+                          className="flex items-center gap-2 border-l border-slate-300 dark:border-slate-700 pl-3 overflow-hidden h-full"
+                        >
+                          <span className={cn("text-[10px] font-bold uppercase tracking-widest whitespace-nowrap", theme === 'dark' ? "text-slate-400" : "text-slate-500")}>
+                            Velocidade
+                          </span>
+                          <input
+                            type="range"
+                            min="0.01"
+                            max="0.25"
+                            step="0.01"
+                            value={presentationSpeed}
+                            onChange={(e) => setPresentationSpeed(parseFloat(e.target.value))}
+                            className="w-24 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                            title="Ajustar velocidade do autoscroll"
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
               </div>
