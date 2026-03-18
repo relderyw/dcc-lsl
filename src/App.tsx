@@ -39,7 +39,9 @@ import {
   TrendingUp,
   LayoutDashboard,
   Users,
-  Filter
+  Filter,
+  MonitorPlay,
+  MonitorPause
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'motion/react';
@@ -164,6 +166,8 @@ export default function App() {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [controllerPageIndex, setControllerPageIndex] = useState(0);
   const [activeTabGroup, setActiveTabGroup] = useState<'geral' | 'format'>('geral');
+  const [isPresentationMode, setIsPresentationMode] = useState(false);
+  const scrollDirection = useRef<1 | -1>(1);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -201,6 +205,40 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Presentation Mode Auto-scroll
+  useEffect(() => {
+    let animationFrameId: number;
+    let lastTime = performance.now();
+    const speed = 0.05; // pixels per ms
+
+    const scrollStep = (currentTime: number) => {
+      const dt = currentTime - lastTime;
+      lastTime = currentTime;
+
+      if (isPresentationMode && containerRef.current && !isDragging) {
+        const { scrollLeft, scrollWidth, clientWidth } = containerRef.current;
+        
+        // At right edge
+        if (scrollLeft + clientWidth >= scrollWidth - 1) {
+          scrollDirection.current = -1;
+        }
+        // At left edge
+        else if (scrollLeft <= 0) {
+          scrollDirection.current = 1;
+        }
+
+        containerRef.current.scrollLeft += speed * dt * scrollDirection.current;
+      }
+      animationFrameId = requestAnimationFrame(scrollStep);
+    };
+
+    if (isPresentationMode) {
+      animationFrameId = requestAnimationFrame(scrollStep);
+    }
+    
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [isPresentationMode, isDragging]);
 
   const fetchData = async () => {
     try {
@@ -2165,13 +2203,27 @@ export default function App() {
                     >
                       Picking Formt. Carro
                     </button>
+                    <div className="w-px h-6 bg-slate-300 dark:bg-slate-700 mx-1" />
+                    <button
+                      onClick={() => setIsPresentationMode(!isPresentationMode)}
+                      className={cn(
+                        "px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all flex items-center gap-1.5",
+                        isPresentationMode 
+                          ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20" 
+                          : (theme === 'dark' ? "text-slate-400 hover:text-white hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-slate-900/5")
+                      )}
+                      title="Modo Apresentação (Auto-scroll)"
+                    >
+                      {isPresentationMode ? <MonitorPause className="w-4 h-4" /> : <MonitorPlay className="w-4 h-4" />}
+                      <span className="hidden sm:inline">Apresentação</span>
+                    </button>
                   </div>
                 </div>
               </div>
 
               {/* Scrollable Map Container */}
               <div className="flex-1 overflow-auto custom-scrollbar relative w-full h-full mt-2">
-                <div className="min-w-[6000px] min-h-[1200px] w-full h-full relative" 
+                <div className="min-w-[10000px] min-h-[1200px] w-full h-full relative" 
                      ref={containerRef}
                      onMouseDown={handleMouseDown}
                      onMouseMove={handleMouseMove}
