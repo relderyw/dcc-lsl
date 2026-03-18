@@ -457,6 +457,43 @@ export default function App() {
     return dbRecords.filter(r => r.location === selectedBay.name);
   }, [selectedBay, dbRecords]);
 
+  // --- PERFORMANCE: Pre-group all cars by location (O(n) once, instead of O(bays×n) per render) ---
+  const carsByLocation = useMemo(() => {
+    const map: Record<string, CarRecord[]> = {};
+    dbRecords.forEach(r => {
+      const loc = r.location;
+      if (!loc) return;
+      if (!map[loc]) map[loc] = [];
+      map[loc].push(r);
+    });
+    return map;
+  }, [dbRecords]);
+
+  // --- PERFORMANCE: Pre-calculate SLA status for every car (O(n) once) ---
+  const slaByCarId = useMemo(() => {
+    const map: Record<string, ReturnType<typeof getSlaStatus>> = {};
+    dbRecords.forEach(r => {
+      map[r.carId] = getSlaStatus(r);
+    });
+    return map;
+  }, [dbRecords]);
+
+  // --- PERFORMANCE: Pre-sort cars per location by embark time (O(n log n) once per dbRecords change) ---
+  const sortedCarsByLocation = useMemo(() => {
+    const map: Record<string, CarRecord[]> = {};
+    Object.keys(carsByLocation).forEach(loc => {
+      map[loc] = carsByLocation[loc].slice().sort((a, b) => {
+        const dateA = parseExcelDate(a.embarkDate, a.embarkTime);
+        const dateB = parseExcelDate(b.embarkDate, b.embarkTime);
+        if (!dateA && !dateB) return 0;
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        return dateA.getTime() - dateB.getTime();
+      });
+    });
+    return map;
+  }, [carsByLocation]);
+
   // --- Map Interactions ---
   const getCoords = (e: React.MouseEvent | MouseEvent) => {
     if (!containerRef.current) return { x: 0, y: 0 };
@@ -656,7 +693,7 @@ export default function App() {
       "flex h-screen w-screen font-sans overflow-hidden transition-colors duration-500 relative",
       theme === 'dark' 
         ? "bg-slate-950 text-slate-200" 
-        : "bg-slate-100 text-slate-900"
+        : "bg-stone-200 text-slate-900"
     )}>
       {/* Mobile Backdrop */}
       <AnimatePresence>
@@ -683,7 +720,7 @@ export default function App() {
               "fixed lg:relative inset-y-0 left-0",
               theme === 'dark' 
                 ? "bg-slate-900 border-slate-800" 
-                : "bg-white border-r border-slate-200 shadow-xl shadow-slate-200/50"
+                : "bg-stone-100 border-r border-stone-300 shadow-xl shadow-stone-300/50"
             )}
           >
             <div className={cn(
@@ -1340,7 +1377,7 @@ export default function App() {
         {mode === 'dashboard' ? (
           <div className={cn(
             "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-slate-950" : "bg-slate-100"
+            theme === 'dark' ? "bg-slate-950" : "bg-stone-200"
           )}>
             {/* Background Glows */}
             <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-indigo-500/5 blur-[120px] rounded-full -ml-64 -mt-64 pointer-events-none" />
@@ -1377,7 +1414,7 @@ export default function App() {
                     transition={{ delay: idx * 0.1 }}
                     className={cn(
                       "p-6 rounded-[2rem] border backdrop-blur-3xl transition-all duration-300",
-                      theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-xl"
+                      theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-stone-100 border-stone-300 shadow-xl"
                     )}
                   >
                     <div className="flex items-center justify-between mb-4">
@@ -1406,7 +1443,7 @@ export default function App() {
                 {/* Advanced Operational Health Chart */}
                 <div className={cn(
                   "lg:col-span-3 p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-8 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-xl"
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-stone-100 border-stone-300 shadow-xl"
                 )}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -1586,7 +1623,7 @@ export default function App() {
                 {/* Late by Model & Sector */}
                 <div className={cn(
                   "lg:col-span-2 p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-xl"
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-stone-100 border-stone-300 shadow-xl"
                 )}>
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-rose-500/10 text-rose-400 rounded-xl">
@@ -1640,7 +1677,7 @@ export default function App() {
                 {/* Location Classification Breakdown */}
                 <div className={cn(
                   "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-xl"
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-stone-100 border-stone-300 shadow-xl"
                 )}>
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl">
@@ -1675,7 +1712,7 @@ export default function App() {
                               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{cat}</span>
                               <span className="text-[11px] font-black text-slate-400 tabular-nums">{count}</span>
                             </div>
-                            <div className={cn("h-1.5 w-full rounded-full overflow-hidden", theme === 'dark' ? "bg-white/5" : "bg-slate-100")}>
+                            <div className={cn("h-1.5 w-full rounded-full overflow-hidden", theme === 'dark' ? "bg-white/5" : "bg-stone-300")}>
                               <motion.div 
                                 initial={{ width: 0 }}
                                 animate={{ width: `${percent}%` }}
@@ -1695,7 +1732,7 @@ export default function App() {
                 {/* Controller Activity - Line Chart Style */}
                 <div className={cn(
                   "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-xl"
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-stone-100 border-stone-300 shadow-xl"
                 )}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -1755,7 +1792,7 @@ export default function App() {
                               </div>
                               <div className={cn(
                                 "h-2.5 w-full rounded-full relative bg-white/5 overflow-hidden ring-1 ring-white/5",
-                                theme === 'light' && "bg-slate-100 ring-slate-200"
+                                theme === 'light' && "bg-stone-200 ring-stone-300"
                               )}>
                                 <motion.div 
                                   initial={{ width: 0 }}
@@ -1780,7 +1817,7 @@ export default function App() {
                 {/* Stagnant Vehicles */}
                 <div className={cn(
                   "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-xl"
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-stone-100 border-stone-300 shadow-xl"
                 )}>
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-amber-500/10 text-amber-400 rounded-xl">
@@ -1834,7 +1871,7 @@ export default function App() {
         ) : mode === 'database' ? (
           <div className={cn(
             "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-slate-950" : "bg-slate-100"
+            theme === 'dark' ? "bg-slate-950" : "bg-stone-200"
           )}>
             {/* Decorative background glows for Database View */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 blur-[120px] rounded-full -mr-64 -mt-64 pointer-events-none" />
@@ -1882,7 +1919,7 @@ export default function App() {
               {/* Contextual Database Filters */}
               <div className={cn(
                 "p-4 rounded-[2rem] border backdrop-blur-3xl flex flex-wrap gap-4 items-center transition-all duration-300",
-                theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-xl"
+                theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-stone-100 border-stone-300 shadow-xl"
               )}>
                 <div className="flex items-center gap-2 px-3 border-r border-slate-500/20">
                   <Filter className="w-4 h-4 text-slate-500" />
@@ -1924,7 +1961,7 @@ export default function App() {
                   <thead>
                     <tr className={cn(
                       "transition-colors duration-300",
-                      theme === 'dark' ? "bg-white/5 border-b border-white/5" : "bg-slate-50 border-b border-slate-100"
+                      theme === 'dark' ? "bg-white/5 border-b border-white/5" : "bg-stone-200 border-b border-stone-300"
                     )}>
                       <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Veículo</th>
                       <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Modelo</th>
@@ -1936,12 +1973,12 @@ export default function App() {
                   </thead>
                   <tbody className={cn(
                     "divide-y transition-colors duration-300",
-                    theme === 'dark' ? "divide-slate-800" : "divide-slate-100"
+                    theme === 'dark' ? "divide-slate-800" : "divide-stone-300"
                   )}>
                     {filteredRecords.map(record => (
                       <tr key={record.carId} className={cn(
                         "transition-colors duration-300 group",
-                        theme === 'dark' ? "hover:bg-white/5" : "hover:bg-slate-50/50"
+                        theme === 'dark' ? "hover:bg-white/5" : "hover:bg-stone-200/50"
                       )}>
                         <td className={cn(
                           "px-8 py-5 text-sm font-black transition-colors duration-300",
@@ -1994,7 +2031,7 @@ export default function App() {
                   "flex items-center gap-4 px-4 py-2.5 border rounded-[2rem] shadow-xl transition-all duration-500 w-full",
                   theme === 'dark' 
                     ? "bg-slate-900/60 border-white/10 shadow-black/60 ring-1 ring-white/5" 
-                    : "bg-white/90 border-slate-200 shadow-slate-200/50"
+                    : "bg-stone-100 border-stone-300 shadow-stone-300/50"
                 )}>
                   {/* Left Section: Sidebar & Basic Stats */}
                   <div className="flex items-center gap-3">
@@ -2017,7 +2054,7 @@ export default function App() {
                       "flex items-center gap-3 px-6 py-2.5 rounded-xl transition-all duration-300 border",
                       theme === 'dark' 
                         ? "bg-black/20 border-white/10 hover:border-indigo-500/50 focus-within:border-indigo-500" 
-                        : "bg-slate-100/50 border-slate-200 hover:border-slate-300 focus-within:border-emerald-500 focus-within:bg-white"
+                        : "bg-stone-200 border-stone-300 hover:border-stone-400 focus-within:border-emerald-500 focus-within:bg-stone-100"
                     )}>
                       <Search className={cn("w-4 h-4 transition-colors", filterCarId ? "text-emerald-500" : "text-slate-500")} />
                       <input 
@@ -2046,7 +2083,7 @@ export default function App() {
                         "p-3 rounded-xl transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group relative overflow-hidden",
                         showMobileFilters 
                           ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/30" 
-                          : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50")
+                          : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-stone-200 text-slate-600 border border-stone-300 shadow-sm hover:bg-stone-300")
                       )}
                     >
                       <Settings2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
@@ -2083,7 +2120,7 @@ export default function App() {
                         onClick={() => fetchData()}
                         className={cn(
                           "hidden sm:flex p-3 rounded-xl transition-all hover:scale-105 active:scale-95 border",
-                          theme === 'dark' ? "bg-slate-800 border-white/10 text-white" : "bg-white border-slate-200 text-slate-900 shadow-sm hover:bg-slate-50"
+                          theme === 'dark' ? "bg-slate-800 border-white/10 text-white" : "bg-stone-200 border-stone-300 text-slate-900 shadow-sm hover:bg-stone-300"
                         )}
                       >
                         <Database className="w-4 h-4 mr-2" />
@@ -2106,7 +2143,7 @@ export default function App() {
                       "p-6 backdrop-blur-3xl border rounded-[2.5rem] shadow-2xl flex flex-wrap items-end gap-6",
                       theme === 'dark' 
                         ? "bg-slate-900/80 border-slate-700/50" 
-                        : "bg-white/80 border-white shadow-slate-200/50"
+                        : "bg-stone-100 border-stone-300 shadow-stone-300/50"
                     )}>
                       <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         {/* Custom Select Wrapper Component Logic */}
@@ -2329,16 +2366,8 @@ export default function App() {
 
                   {bays.filter(bay => (bay.tabGroup || 'geral') === activeTabGroup).map(bay => {
                     const isSelected = selectedBayId === bay.id;
-                    const carsInBay = dbRecords
-                      .filter(r => r.location === bay.name)
-                      .sort((a, b) => {
-                        const dateA = parseExcelDate(a.embarkDate, a.embarkTime);
-                        const dateB = parseExcelDate(b.embarkDate, b.embarkTime);
-                        if (!dateA && !dateB) return 0;
-                        if (!dateA) return 1;
-                        if (!dateB) return -1;
-                        return dateA.getTime() - dateB.getTime();
-                      });
+                    // PERFORMANCE: use pre-sorted map (computed once per dbRecords change)
+                    const carsInBay = sortedCarsByLocation[bay.name] || [];
 
                     const occupancyRatio = carsInBay.length / bay.capacity;
                     const displayBay = (isSelected && tempBay) ? tempBay : bay;
@@ -2411,7 +2440,8 @@ export default function App() {
                                 
                                 // Checking Filters
                                 let isVisible = true;
-                                let slaInfo = car ? getSlaStatus(car) : null;
+                                // PERFORMANCE: use pre-calculated SLA map instead of calling getSlaStatus per slot
+                                let slaInfo = car ? (slaByCarId[car.carId] ?? getSlaStatus(car)) : null;
                                 
                                 if (car) {
                                   if (filterModel !== 'ALL' && car.model !== filterModel) isVisible = false;
@@ -2470,8 +2500,13 @@ export default function App() {
                                       }
                                     }}
                                     onMouseMove={(e) => {
+                                      // PERFORMANCE: only update position if it's the same car (avoid re-renders on every pixel)
                                       if (car) {
-                                        setHoveredCar({ car, x: e.clientX, y: e.clientY });
+                                        setHoveredCar(prev =>
+                                          prev?.car.carId === car.carId
+                                            ? { car, x: e.clientX, y: e.clientY }
+                                            : { car, x: e.clientX, y: e.clientY }
+                                        );
                                       }
                                     }}
                                     onMouseLeave={() => setHoveredCar(null)}
@@ -2500,7 +2535,8 @@ export default function App() {
                                                 {displayBay.orientation === 'horizontal' ? car.carId : car.embarkTime}
                                               </span>
                                               {(() => {
-                                                const sla = slaInfo || getSlaStatus(car);
+                                                // PERFORMANCE: use pre-calculated slaInfo, never call getSlaStatus again here
+                                                const sla = slaInfo || slaByCarId[car.carId] || getSlaStatus(car);
                                                 return (
                                                   <div className={cn("rounded-full text-[7px] font-bold uppercase whitespace-nowrap border text-center",
                                                     displayBay.orientation === 'horizontal' ? "w-full px-1 py-[1px] leading-tight text-[6px]" : "px-1.5 py-[2px]",
