@@ -1393,7 +1393,7 @@ export default function App() {
                     })()}
                   </div>
 
-                  <div className="h-48 w-full relative flex items-end gap-1 overflow-hidden group px-2">
+                  <div className="h-56 w-full relative flex items-end gap-1 group px-2 pt-8">
                     {/* Background Grid Lines */}
                     <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-5">
                       {[1, 2, 3, 4].map(i => <div key={i} className="w-full h-px bg-white" />)}
@@ -1419,6 +1419,21 @@ export default function App() {
                         return (
                           <div key={h} className="flex-1 flex flex-col items-center gap-2 group/bar relative h-full">
                             <div className="w-full relative flex-1 flex flex-col justify-end">
+                              {/* Hourly Count Label */}
+                              {count > 0 && (
+                                <motion.span
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  className={cn(
+                                    "absolute bottom-[calc(hPerc*0.7%+4px)] left-1/2 -translate-x-1/2 text-[9px] font-black tabular-nums z-20",
+                                    theme === 'dark' ? "text-blue-400" : "text-blue-600"
+                                  )}
+                                  style={{ bottom: `${hPerc * 0.7 + 2}%` }}
+                                >
+                                  {count}
+                                </motion.span>
+                              )}
+
                               {/* Hourly Bar */}
                               <motion.div 
                                 initial={{ height: 0 }}
@@ -1652,7 +1667,7 @@ export default function App() {
                     </h3>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 -mr-1 space-y-3 max-h-[400px]">
                     {dbRecords
                       .filter(r => r.status !== 'EMBARCADO')
                       .map(r => {
@@ -1664,7 +1679,7 @@ export default function App() {
                       })
                       .filter(r => r.daysLate > 0)
                       .sort((a, b) => b.daysLate - a.daysLate)
-                      .slice(0, 5)
+                      .slice(0, 20)
                       .map(r => (
                         <div key={r.carId} className="flex items-center gap-3 p-4 rounded-[1.5rem] bg-white/5 border border-white/5 group hover:border-amber-500/30 transition-all">
                           <div className="flex flex-col items-center justify-center w-12 h-12 bg-amber-500/10 rounded-2xl group-hover:bg-amber-500/20 transition-colors border border-amber-500/20">
@@ -1673,7 +1688,11 @@ export default function App() {
                           </div>
                           <div className="flex flex-col flex-1 overflow-hidden">
                             <span className={cn("text-xs font-black truncate transition-colors", theme === 'dark' ? "text-white" : "text-slate-900")}>{r.carId}</span>
-                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{r.location}</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{r.location}</span>
+                              <span className="text-[8px] text-slate-600 font-bold">•</span>
+                              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{r.model}</span>
+                            </div>
                           </div>
                         </div>
                       ))}
