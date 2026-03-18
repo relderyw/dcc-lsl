@@ -1504,13 +1504,14 @@ export default function App() {
 
                       return (
                         <>
-                          <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
+                          <svg className="absolute inset-0 w-full h-full pointer-events-none z-10 overflow-visible drop-shadow-[0_0_6px_rgba(16,185,129,0.5)]" viewBox="0 0 100 100" preserveAspectRatio="none">
                             <motion.polyline
                               points={points}
                               fill="none"
                               stroke="#10b981" // emerald-500
-                              strokeWidth="0.5"
-                              strokeDasharray="2 1"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
                               initial={{ pathLength: 0 }}
                               animate={{ pathLength: 1 }}
                               transition={{ duration: 2, ease: "easeInOut" }}
