@@ -210,34 +210,34 @@ export default function App() {
 
   // Presentation Mode Auto-scroll
   useEffect(() => {
+    if (!isPresentationMode) return;
     let animationFrameId: number;
     let lastTime = performance.now();
+    let currentScroll = scrollContainerRef.current?.scrollLeft ?? 0;
 
     const scrollStep = (currentTime: number) => {
-      const dt = currentTime - lastTime;
+      const dt = Math.min(currentTime - lastTime, 32); // cap at 32ms to avoid huge jumps on tab focus
       lastTime = currentTime;
 
-      if (isPresentationMode && scrollContainerRef.current && !isDragging) {
-        const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-        
-        // At right edge
-        if (scrollLeft + clientWidth >= scrollWidth - 1) {
+      const el = scrollContainerRef.current;
+      if (el && !isDragging) {
+        const { scrollWidth, clientWidth } = el;
+        const maxScroll = scrollWidth - clientWidth;
+
+        if (scrollDirection.current === 1 && currentScroll >= maxScroll - 1) {
           scrollDirection.current = -1;
-        }
-        // At left edge
-        else if (scrollLeft <= 0) {
+        } else if (scrollDirection.current === -1 && currentScroll <= 1) {
           scrollDirection.current = 1;
         }
 
-        scrollContainerRef.current.scrollLeft += presentationSpeed * dt * scrollDirection.current;
+        currentScroll = Math.max(0, Math.min(maxScroll, currentScroll + presentationSpeed * dt * scrollDirection.current));
+        el.scrollLeft = currentScroll;
       }
+      // Only schedule next frame if still in presentation mode
       animationFrameId = requestAnimationFrame(scrollStep);
     };
 
-    if (isPresentationMode) {
-      animationFrameId = requestAnimationFrame(scrollStep);
-    }
-    
+    animationFrameId = requestAnimationFrame(scrollStep);
     return () => cancelAnimationFrame(animationFrameId);
   }, [isPresentationMode, isDragging, presentationSpeed]);
 
@@ -2302,12 +2302,14 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Scrollable Map Container */}
+              {/* Scrollable Map Container — will-change enables GPU-composited scroll */}
               <div 
                 className="flex-1 overflow-auto custom-scrollbar relative w-full h-full mt-2"
+                style={{ willChange: isPresentationMode ? 'scroll-position' : 'auto' }}
                 ref={scrollContainerRef}
               >
-                <div className="min-w-[10000px] min-h-[1200px] w-full h-full relative" 
+                <div className="min-w-[10000px] min-h-[1200px] w-full h-full relative"
+                     style={{ transform: 'translateZ(0)' }}
                      ref={containerRef}
                      onMouseDown={handleMouseDown}
                      onMouseMove={handleMouseMove}
@@ -2388,17 +2390,20 @@ export default function App() {
                           setSelectedBayId(bay.id);
                         }}
                       >
+                        {/* Bay Card Background */}
                         <rect
                           x={`${displayBay.x}%`}
                           y={`${displayBay.y}%`}
                           width={`${displayBay.width}%`}
                           height={`${displayBay.height}%`}
+                          rx="6"
                           className={cn(
-                            "transition-all duration-300",
-                            isSelected ? "stroke-2" : "stroke-0", // No stroke by default
-                            "fill-transparent",
-                            isSelected && (theme === 'dark' ? "fill-white/5 stroke-white" : "fill-emerald-500/5 stroke-emerald-500")
+                            "transition-all duration-200",
+                            theme === 'dark'
+                              ? (isSelected ? "fill-slate-800 stroke-emerald-500" : "fill-slate-900/80 stroke-slate-700")
+                              : (isSelected ? "fill-stone-50 stroke-emerald-500" : "fill-stone-100/90 stroke-stone-300")
                           )}
+                          style={{ strokeWidth: isSelected ? 1.5 : 1 }}
                         />
                         <foreignObject
                           x={`${displayBay.x}%`}
@@ -2407,20 +2412,32 @@ export default function App() {
                           height={`${displayBay.height}%`}
                         >
                           <div className="w-full h-full flex flex-col items-center justify-start p-1 overflow-hidden">
-                            <div className="flex flex-col items-center justify-center py-1.5 w-full">
+                            {/* Bay Header */}
+                            <div className={cn(
+                              "flex flex-col items-center justify-center py-1 w-full border-b mb-0.5",
+                              theme === 'dark' ? "border-white/5" : "border-stone-300/60"
+                            )}>
                               <div className={cn(
-                                "text-[12px] font-black uppercase tracking-tight truncate w-full text-center transition-colors duration-300",
+                                "text-[11px] font-black uppercase tracking-tight truncate w-full text-center",
                                 isSelected 
-                                  ? (theme === 'dark' ? "text-white" : "text-emerald-700") 
-                                  : (theme === 'dark' ? "text-slate-300" : "text-slate-600")
+                                  ? "text-emerald-400" 
+                                  : (theme === 'dark' ? "text-slate-300" : "text-slate-700")
                               )}>
                                 {displayBay.name}
                               </div>
                               <div className={cn(
-                                "text-[9px] font-bold uppercase tracking-widest truncate w-full text-center leading-none opacity-60",
-                                isSelected ? "text-emerald-400" : (theme === 'dark' ? "text-slate-500" : "text-slate-400")
+                                "flex items-center gap-1 mt-0.5"
                               )}>
-                                {displayBay.sector || 'Sem Setor'}
+                                <span className={cn(
+                                  "text-[8px] font-bold uppercase tracking-widest leading-none",
+                                  theme === 'dark' ? "text-slate-500" : "text-slate-400"
+                                )}>
+                                  {carsInBay.length}/{displayBay.capacity}
+                                </span>
+                                <div className={cn(
+                                  "w-1 h-1 rounded-full",
+                                  color === 'rose' ? "bg-rose-500" : color === 'amber' ? "bg-amber-500" : "bg-emerald-500"
+                                )} />
                               </div>
                             </div>
 
@@ -2482,17 +2499,29 @@ export default function App() {
                                       {i + 1}
                                     </span>
                                     <div className={cn(
-                                      "rounded-[4px] transition-all duration-300 overflow-hidden shadow-sm border flex items-center justify-center",
+                                      "rounded-[3px] overflow-hidden flex items-center justify-center border-l-2",
                                       displayBay.orientation === 'horizontal' ? "w-full flex-1" : "flex-1 h-full",
                                       car 
                                         ? (theme === 'dark'
-                                            ? (isWrongSector ? "bg-gradient-to-r from-fuchsia-600/90 to-purple-600/90 border-fuchsia-500/50" : color === 'rose' ? "bg-gradient-to-r from-rose-600/90 to-red-600/90 border-rose-500/50" : color === 'amber' ? "bg-gradient-to-r from-amber-600/90 to-orange-500/90 border-amber-500/50" : "bg-gradient-to-r from-emerald-600/90 to-teal-500/90 border-emerald-500/50")
+                                            // Dark: dark slate base with colored left border accent
+                                            ? (isWrongSector 
+                                                ? "bg-slate-800 border-l-fuchsia-400 border border-slate-700/50" 
+                                                : color === 'rose' 
+                                                  ? "bg-slate-800 border-l-rose-400 border border-slate-700/50" 
+                                                  : color === 'amber' 
+                                                    ? "bg-slate-800 border-l-amber-400 border border-slate-700/50" 
+                                                    : "bg-slate-800 border-l-emerald-400 border border-slate-700/50")
+                                            // Light: clean white with colored left border
                                             : (isWrongSector 
-                                                ? "bg-amber-50/40 border-amber-200 shadow-sm" 
-                                                : "bg-white border-slate-200 shadow-sm")
+                                                ? "bg-amber-50 border-l-amber-400 border border-amber-100" 
+                                                : color === 'rose'
+                                                  ? "bg-rose-50 border-l-rose-400 border border-rose-100"
+                                                  : color === 'amber'
+                                                    ? "bg-amber-50/60 border-l-amber-400 border border-amber-100"
+                                                    : "bg-white border-l-emerald-400 border border-stone-200")
                                           )
-                                        : "bg-transparent border-transparent", // Clean empty slots
-                                      car && "hover:scale-[1.03] hover:shadow-lg hover:z-10 hover:brightness-110 cursor-help"
+                                        : "bg-transparent border-l-transparent border-transparent",
+                                      car && "hover:brightness-110 hover:z-10 cursor-help transition-all duration-150"
                                     )}
                                     onMouseEnter={(e) => {
                                       if (car) {
@@ -2538,10 +2567,10 @@ export default function App() {
                                                 // PERFORMANCE: use pre-calculated slaInfo, never call getSlaStatus again here
                                                 const sla = slaInfo || slaByCarId[car.carId] || getSlaStatus(car);
                                                 return (
-                                                  <div className={cn("rounded-full text-[7px] font-bold uppercase whitespace-nowrap border text-center",
+                                                  <div className={cn("rounded-sm text-[7px] font-bold uppercase whitespace-nowrap border text-center",
                                                     displayBay.orientation === 'horizontal' ? "w-full px-1 py-[1px] leading-tight text-[6px]" : "px-1.5 py-[2px]",
                                                     theme === 'dark' 
-                                                      ? (sla.text === 'ATRASADO' ? "bg-rose-500 text-white border-rose-400/50 shadow-[0_0_8px_rgba(244,63,94,0.6)]" : sla.text === 'PRÓX. EMB.' ? "bg-amber-500 text-white border-amber-400/50 shadow-[0_0_8px_rgba(245,158,11,0.6)]" : "bg-emerald-500 text-white border-emerald-400/50 shadow-[0_0_8px_rgba(16,185,129,0.6)]")
+                                                      ? (sla.text === 'ATRASADO' ? "bg-rose-500/20 text-rose-300 border-rose-500/30" : sla.text === 'PRÓX. EMB.' ? "bg-amber-500/20 text-amber-300 border-amber-500/30" : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30")
                                                       : (sla.text === 'ATRASADO' ? "bg-rose-50 text-rose-600 border-rose-100" : sla.text === 'PRÓX. EMB.' ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-emerald-50 text-emerald-600 border-emerald-100")
                                                   )}>
                                                     {sla.text}
