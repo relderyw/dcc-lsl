@@ -68,6 +68,7 @@ interface Bay {
   height: number; // percentage 0-100
   slotHeight?: number; // Custom height for each car slot in pixels
   orientation?: 'vertical' | 'horizontal'; // Orientation of the car slots
+  tabGroup?: 'geral' | 'format'; // Tab group for separation
 }
 
 type Mode = 'view' | 'edit' | 'database' | 'dashboard';
@@ -162,6 +163,7 @@ export default function App() {
   const [filterCarId, setFilterCarId] = useState<string>('');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [controllerPageIndex, setControllerPageIndex] = useState(0);
+  const [activeTabGroup, setActiveTabGroup] = useState<'geral' | 'format'>('geral');
 
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -1079,6 +1081,21 @@ export default function App() {
                       >
                         <option value="vertical">Vertical (Lista)</option>
                         <option value="horizontal">Horizontal (Lado a Lado)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5 pt-1">
+                      <label className="text-sm font-medium text-slate-500">Grupo de Picking (Aba)</label>
+                      <select
+                        value={selectedBay.tabGroup || 'geral'}
+                        onChange={(e) => updateBay(selectedBay.id, { tabGroup: e.target.value as 'geral' | 'format' })}
+                        className={cn(
+                          "w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/50",
+                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
+                        )}
+                      >
+                        <option value="geral">Picking Geral</option>
+                        <option value="format">Picking Format. Carro</option>
                       </select>
                     </div>
 
@@ -2112,19 +2129,49 @@ export default function App() {
             
             {/* Map Area */}
             <div className="flex-1 relative w-full h-full overflow-hidden flex flex-col">
-              {/* Map Header */}
-              <div className="flex-none p-4 pb-0 z-20 pointer-events-none">
-                <h2 className={cn("text-xl font-black tracking-tight drop-shadow-md", theme === 'dark' ? "text-white" : "text-slate-900")}>
-                  Locações Principais
-                </h2>
-                <p className={cn("text-xs font-medium drop-shadow-md", theme === 'dark' ? "text-slate-400" : "text-slate-500")}>
-                  Mapeamento de baias de picking.
-                </p>
+              {/* Map Header & Tabs */}
+              <div className="flex-none p-4 pb-0 z-20">
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <h2 className={cn("text-xl font-black tracking-tight drop-shadow-md", theme === 'dark' ? "text-white" : "text-slate-900")}>
+                      Locações Principais
+                    </h2>
+                    <p className={cn("text-xs font-medium drop-shadow-md", theme === 'dark' ? "text-slate-400" : "text-slate-500")}>
+                      Mapeamento de baias de picking.
+                    </p>
+                  </div>
+                  
+                  {/* Tabs */}
+                  <div className="flex items-center gap-2 p-1 rounded-xl bg-slate-900/10 border border-slate-900/10 dark:bg-white/5 dark:border-white/5 w-fit backdrop-blur-md">
+                    <button
+                      onClick={() => setActiveTabGroup('geral')}
+                      className={cn(
+                        "px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all",
+                        activeTabGroup === 'geral' 
+                          ? (theme === 'dark' ? "bg-white text-slate-900 shadow-md" : "bg-white text-slate-900 shadow-md") 
+                          : (theme === 'dark' ? "text-slate-400 hover:text-white hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-slate-900/5")
+                      )}
+                    >
+                      Picking Geral
+                    </button>
+                    <button
+                      onClick={() => setActiveTabGroup('format')}
+                      className={cn(
+                        "px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all",
+                        activeTabGroup === 'format' 
+                          ? (theme === 'dark' ? "bg-white text-slate-900 shadow-md" : "bg-white text-slate-900 shadow-md") 
+                          : (theme === 'dark' ? "text-slate-400 hover:text-white hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-slate-900/5")
+                      )}
+                    >
+                      Picking Formt. Carro
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Scrollable Map Container */}
-              <div className="flex-1 overflow-auto custom-scrollbar relative w-full h-full">
-                <div className="min-w-[2500px] min-h-[1200px] w-full h-full relative" 
+              <div className="flex-1 overflow-auto custom-scrollbar relative w-full h-full mt-2">
+                <div className="min-w-[6000px] min-h-[1200px] w-full h-full relative" 
                      ref={containerRef}
                      onMouseDown={handleMouseDown}
                      onMouseMove={handleMouseMove}
@@ -2181,7 +2228,7 @@ export default function App() {
                     </g>
                   )}
 
-                  {bays.map(bay => {
+                  {bays.filter(bay => (bay.tabGroup || 'geral') === activeTabGroup).map(bay => {
                     const isSelected = selectedBayId === bay.id;
                     const carsInBay = dbRecords
                       .filter(r => r.location === bay.name)
@@ -2332,7 +2379,7 @@ export default function App() {
                                     >
                                       {car && (
                                         <div className={cn("w-full h-full flex px-1.5 gap-1", displayBay.orientation === 'horizontal' ? "flex-col items-center justify-center py-1" : "flex-row items-center justify-between")}>
-                                          <div className={cn("flex items-center min-w-0 max-w-full gap-1.5", displayBay.orientation === 'horizontal' && "justify-center mb-0.5")}>
+                                          <div className={cn("flex items-center min-w-0 flex-1 gap-1.5", displayBay.orientation === 'horizontal' && "justify-center mb-0.5 w-full")}>
                                             {isWrongSector ? (
                                               <AlertTriangle className={cn("shrink-0 animate-pulse", displayBay.orientation === 'horizontal' ? "w-4 h-4" : "w-3 h-3", theme === 'dark' ? "text-white" : "text-amber-500")} />
                                             ) : slaInfo?.isLate ? (
@@ -2349,15 +2396,15 @@ export default function App() {
                                           
                                           {/* SLA & Time Indicator */}
                                           {(!displayBay.slotHeight || displayBay.slotHeight >= 20 || displayBay.orientation === 'horizontal') && (
-                                            <div className={cn("flex shrink-0 w-full overflow-hidden", displayBay.orientation === 'horizontal' ? "flex-col items-center gap-0.5 mt-auto" : "items-center gap-1.5 ")}>
+                                            <div className={cn("flex shrink-0 overflow-hidden", displayBay.orientation === 'horizontal' ? "w-full flex-col items-center gap-0.5 mt-auto" : "items-center justify-end ml-auto gap-1.5")}>
                                               <span className={cn("text-[8px] font-medium tracking-tight truncate", theme === 'dark' ? "text-white/90 drop-shadow-sm" : "text-slate-500")}>
                                                 {displayBay.orientation === 'horizontal' ? car.carId : car.embarkTime}
                                               </span>
                                               {(() => {
                                                 const sla = slaInfo || getSlaStatus(car);
                                                 return (
-                                                  <div className={cn("rounded-full text-[7px] font-bold uppercase whitespace-nowrap border text-center w-full",
-                                                    displayBay.orientation === 'horizontal' ? "px-1 py-[1px] leading-tight text-[6px]" : "px-1.5 py-[2px]",
+                                                  <div className={cn("rounded-full text-[7px] font-bold uppercase whitespace-nowrap border text-center",
+                                                    displayBay.orientation === 'horizontal' ? "w-full px-1 py-[1px] leading-tight text-[6px]" : "px-1.5 py-[2px]",
                                                     theme === 'dark' 
                                                       ? (sla.text === 'ATRASADO' ? "bg-rose-500 text-white border-rose-400/50 shadow-[0_0_8px_rgba(244,63,94,0.6)]" : sla.text === 'PRÓX. EMB.' ? "bg-amber-500 text-white border-amber-400/50 shadow-[0_0_8px_rgba(245,158,11,0.6)]" : "bg-emerald-500 text-white border-emerald-400/50 shadow-[0_0_8px_rgba(16,185,129,0.6)]")
                                                       : (sla.text === 'ATRASADO' ? "bg-rose-50 text-rose-600 border-rose-100" : sla.text === 'PRÓX. EMB.' ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-emerald-50 text-emerald-600 border-emerald-100")
