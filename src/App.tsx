@@ -170,6 +170,7 @@ export default function App() {
   const scrollDirection = useRef<1 | -1>(1);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // --- Filtered Data ---
@@ -216,8 +217,8 @@ export default function App() {
       const dt = currentTime - lastTime;
       lastTime = currentTime;
 
-      if (isPresentationMode && containerRef.current && !isDragging) {
-        const { scrollLeft, scrollWidth, clientWidth } = containerRef.current;
+      if (isPresentationMode && scrollContainerRef.current && !isDragging) {
+        const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
         
         // At right edge
         if (scrollLeft + clientWidth >= scrollWidth - 1) {
@@ -228,7 +229,7 @@ export default function App() {
           scrollDirection.current = 1;
         }
 
-        containerRef.current.scrollLeft += speed * dt * scrollDirection.current;
+        scrollContainerRef.current.scrollLeft += speed * dt * scrollDirection.current;
       }
       animationFrameId = requestAnimationFrame(scrollStep);
     };
@@ -2222,7 +2223,10 @@ export default function App() {
               </div>
 
               {/* Scrollable Map Container */}
-              <div className="flex-1 overflow-auto custom-scrollbar relative w-full h-full mt-2">
+              <div 
+                className="flex-1 overflow-auto custom-scrollbar relative w-full h-full mt-2"
+                ref={scrollContainerRef}
+              >
                 <div className="min-w-[10000px] min-h-[1200px] w-full h-full relative" 
                      ref={containerRef}
                      onMouseDown={handleMouseDown}
