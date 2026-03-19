@@ -460,23 +460,23 @@ export default function App() {
   // --- PERFORMANCE: Pre-group all cars by location (O(n) once, instead of O(bays×n) per render) ---
   const carsByLocation = useMemo(() => {
     const map: Record<string, CarRecord[]> = {};
-    dbRecords.forEach(r => {
+    filteredRecords.forEach(r => {
       const loc = r.location;
       if (!loc) return;
       if (!map[loc]) map[loc] = [];
       map[loc].push(r);
     });
     return map;
-  }, [dbRecords]);
+  }, [filteredRecords]);
 
   // --- PERFORMANCE: Pre-calculate SLA status for every car (O(n) once) ---
   const slaByCarId = useMemo(() => {
     const map: Record<string, ReturnType<typeof getSlaStatus>> = {};
-    dbRecords.forEach(r => {
+    filteredRecords.forEach(r => {
       map[r.carId] = getSlaStatus(r);
     });
     return map;
-  }, [dbRecords]);
+  }, [filteredRecords]);
 
   // --- PERFORMANCE: Pre-sort cars per location by embark time (O(n log n) once per dbRecords change) ---
   const sortedCarsByLocation = useMemo(() => {
@@ -693,7 +693,7 @@ export default function App() {
       "flex h-screen w-screen font-sans overflow-hidden transition-colors duration-500 relative",
       theme === 'dark' 
         ? "bg-[#030712] text-slate-200" 
-        : "bg-[#f0f9ff] text-slate-900"
+        : "bg-[#f8fafc] text-slate-900"
     )}>
       {/* Mobile Backdrop */}
       <AnimatePresence>
@@ -720,7 +720,7 @@ export default function App() {
               "fixed lg:relative inset-y-0 left-0",
               theme === 'dark' 
                 ? "bg-slate-900/60 backdrop-blur-3xl border-r border-white/5" 
-                : "bg-[#f0f9ff]/60 backdrop-blur-md border-r border-blue-100/50 shadow-xl"
+                : "bg-white/60 backdrop-blur-md border-r border-slate-200 shadow-xl"
             )}
           >
             <div className={cn(
@@ -757,7 +757,7 @@ export default function App() {
                       "p-2.5 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95",
                       theme === 'dark' 
                         ? "bg-white/5 hover:bg-white/10 text-amber-400 border border-white/10" 
-                        : "bg-[#d1e5ff] hover:bg-slate-200 text-slate-600 border border-slate-200"
+                        : "bg-slate-200 hover:bg-slate-300 text-slate-600 border border-slate-200"
                     )}
                   >
                     {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -766,7 +766,7 @@ export default function App() {
                     onClick={() => setSidebarOpen(false)}
                     className={cn(
                       "p-2.5 rounded-xl transition-all hover:scale-110 active:scale-95 group/collapse",
-                      theme === 'dark' ? "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/10" : "bg-[#d1e5ff] hover:bg-slate-200 text-slate-500 hover:text-slate-900 border border-slate-200"
+                      theme === 'dark' ? "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/10" : "bg-slate-200 hover:bg-slate-300 text-slate-500 hover:text-slate-900 border border-slate-200"
                     )}
                     title="Retrair Painel"
                   >
@@ -789,13 +789,13 @@ export default function App() {
                     className={cn(
                       "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-black transition-all",
                       mode === 'dashboard' 
-                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-[#f0f9ff] text-slate-900 shadow-md") 
-                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-white/50")
+                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-white text-slate-900 shadow-md border border-slate-200") 
+                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50")
                     )}
                   >
                     <div className={cn(
                       "p-2 rounded-xl transition-colors",
-                      mode === 'dashboard' ? "bg-indigo-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-[#d1e5ff] text-slate-500")
+                      mode === 'dashboard' ? "bg-indigo-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-slate-200 text-slate-500")
                     )}>
                       <LayoutDashboard className="w-4 h-4" />
                     </div>
@@ -807,8 +807,8 @@ export default function App() {
                     className={cn(
                       "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-black transition-all",
                       mode === 'view' 
-                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-[#f0f9ff] text-slate-900 shadow-md") 
-                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-white/50")
+                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-white text-slate-900 shadow-md border border-slate-200") 
+                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50")
                     )}
                   >
                     <div className={cn(
@@ -825,8 +825,8 @@ export default function App() {
                     className={cn(
                       "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-black transition-all",
                       mode === 'database' 
-                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-[#f0f9ff] text-slate-900 shadow-md") 
-                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-white/50")
+                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-white text-slate-900 shadow-md border border-slate-200") 
+                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50")
                     )}
                   >
                     <div className={cn(
@@ -843,8 +843,8 @@ export default function App() {
                     className={cn(
                       "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-black transition-all",
                       mode === 'edit' 
-                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-[#f0f9ff] text-slate-900 shadow-md") 
-                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-white/50")
+                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-white text-slate-900 shadow-md border border-slate-200") 
+                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50")
                     )}
                   >
                     <div className={cn(
@@ -1375,7 +1375,7 @@ export default function App() {
         {mode === 'dashboard' ? (
           <div className={cn(
             "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-[#030712]" : "bg-[#f0f9ff]"
+            theme === 'dark' ? "bg-[#030712]" : "bg-[#f8fafc]"
           )}>
             {/* Background Glows */}
             <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-indigo-500/5 blur-[120px] rounded-full -ml-64 -mt-64 pointer-events-none" />
@@ -1869,7 +1869,7 @@ export default function App() {
         ) : mode === 'database' ? (
           <div className={cn(
             "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-[#030712]" : "bg-[#f0f9ff]"
+            theme === 'dark' ? "bg-[#030712]" : "bg-[#f8fafc]"
           )}>
             {/* Decorative background glows for Database View */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 blur-[120px] rounded-full -mr-64 -mt-64 pointer-events-none" />
@@ -2160,8 +2160,10 @@ export default function App() {
                                 value={filter.value} 
                                 onChange={e => filter.setter(e.target.value)}
                                 className={cn(
-                                  "w-full px-4 py-2.5 rounded-xl text-xs font-black bg-[#f0f9ff]0/10 border border-transparent focus:border-emerald-500/50 focus:outline-none appearance-none cursor-pointer transition-all",
-                                  theme === 'dark' ? "text-white" : "text-slate-900"
+                                  "w-full px-4 py-2.5 rounded-xl text-xs font-black border appearance-none cursor-pointer transition-all",
+                                  theme === 'dark' 
+                                    ? "bg-slate-900 text-white border-white/10" 
+                                    : "bg-white text-slate-900 border-slate-200 shadow-sm"
                                 )}
                               >
                                 <option value={filter.all}>TODOS</option>
