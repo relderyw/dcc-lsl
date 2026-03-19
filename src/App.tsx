@@ -1411,8 +1411,8 @@ export default function App() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.1 }}
                     className={cn(
-                      "p-6 rounded-[2rem] border backdrop-blur-3xl transition-all duration-300",
-                      theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5 backdrop-blur-xl" : "bg-white/40 backdrop-blur-md border-blue-100/50 shadow-xl shadow-blue-900/5"
+                      "p-6 rounded-[2rem] transition-all duration-300",
+                      "bg-black shadow-2xl"
                     )}
                   >
                     <div className="flex items-center justify-between mb-4">
@@ -1440,8 +1440,8 @@ export default function App() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Advanced Operational Health Chart */}
                 <div className={cn(
-                  "lg:col-span-3 p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-8 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-stone-100 border-stone-300 shadow-xl"
+                  "lg:col-span-3 p-8 rounded-[2.5rem] flex flex-col gap-8 transition-all duration-300",
+                  "bg-black shadow-2xl"
                 )}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -1620,8 +1620,8 @@ export default function App() {
 
                 {/* Late by Model & Sector */}
                 <div className={cn(
-                  "lg:col-span-2 p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5 backdrop-blur-xl" : "bg-[#f0f9ff]/40 backdrop-blur-md border-blue-100/50 shadow-xl shadow-blue-900/5"
+                  "lg:col-span-2 p-8 rounded-[2.5rem] flex flex-col gap-6 transition-all duration-300",
+                  "bg-black shadow-2xl"
                 )}>
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-rose-500/10 text-rose-400 rounded-xl">
@@ -1643,7 +1643,7 @@ export default function App() {
                           const late = filteredRecords.filter(r => r.model === model && getSlaStatus(r).isLate).length;
                           if (late === 0) return null;
                           return (
-                            <div key={model} className="flex items-center justify-between text-[11px] font-black p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-rose-500/20 transition-colors group">
+                            <div key={model} className="flex items-center justify-between text-[11px] font-black p-3 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors group">
                               <span className="text-slate-400 group-hover:text-slate-200 transition-colors">{model}</span>
                               <span className="text-rose-500 tabular-nums bg-rose-500/10 px-2 py-0.5 rounded-lg">{late}</span>
                             </div>
@@ -1661,7 +1661,7 @@ export default function App() {
                           const late = filteredRecords.filter(r => r.sectorName === sector && getSlaStatus(r).isLate).length;
                           if (late === 0) return null;
                           return (
-                            <div key={sector} className="flex items-center justify-between text-[11px] font-black p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-rose-500/20 transition-colors group">
+                            <div key={sector} className="flex items-center justify-between text-[11px] font-black p-3 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors group">
                               <span className="text-slate-400 group-hover:text-slate-200 transition-colors">{sector}</span>
                               <span className="text-rose-500 tabular-nums bg-rose-500/10 px-2 py-0.5 rounded-lg">{late}</span>
                             </div>
@@ -1674,8 +1674,8 @@ export default function App() {
 
                 {/* Location Classification Breakdown */}
                 <div className={cn(
-                  "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5 backdrop-blur-xl" : "bg-[#f0f9ff] border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+                  "p-8 rounded-[2.5rem] flex flex-col gap-6 transition-all duration-300",
+                  "bg-black shadow-2xl"
                 )}>
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl">
@@ -1729,8 +1729,8 @@ export default function App() {
 
                 {/* Controller Activity - Line Chart Style */}
                 <div className={cn(
-                  "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-stone-100 border-stone-300 shadow-xl"
+                  "p-8 rounded-[2.5rem] flex flex-col gap-6 transition-all duration-300",
+                  "bg-black shadow-2xl"
                 )}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -1814,8 +1814,8 @@ export default function App() {
 
                 {/* Stagnant Vehicles */}
                 <div className={cn(
-                  "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-stone-100 border-stone-300 shadow-xl"
+                  "p-8 rounded-[2.5rem] flex flex-col gap-6 transition-all duration-300",
+                  "bg-black shadow-2xl"
                 )}>
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-amber-500/10 text-amber-400 rounded-xl">
@@ -1840,7 +1840,7 @@ export default function App() {
                       .sort((a, b) => b.daysLate - a.daysLate)
                       .slice(0, 20)
                       .map(r => (
-                        <div key={r.carId} className="flex items-center gap-3 p-4 rounded-[1.5rem] bg-white/5 border border-white/5 group hover:border-amber-500/30 transition-all">
+                        <div key={r.carId} className="flex items-center gap-3 p-4 rounded-[1.5rem] bg-white/5 group hover:bg-white/10 transition-all">
                           <div className="flex flex-col items-center justify-center w-12 h-12 bg-amber-500/10 rounded-2xl group-hover:bg-amber-500/20 transition-colors border border-amber-500/20">
                             <span className="text-[14px] font-black text-amber-500">+{r.daysLate}</span>
                             <span className="text-[7px] font-black text-amber-500/60 uppercase">Dias</span>
@@ -1916,8 +1916,8 @@ export default function App() {
 
               {/* Contextual Database Filters */}
               <div className={cn(
-                "p-4 rounded-[2rem] border backdrop-blur-3xl flex flex-wrap gap-4 items-center transition-all duration-300",
-                theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5 backdrop-blur-xl" : "bg-[#f0f9ff] border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+                "p-4 rounded-[2rem] backdrop-blur-3xl flex flex-wrap gap-4 items-center transition-all duration-300",
+                "bg-black shadow-2xl"
               )}>
                 <div className="flex items-center gap-2 px-3 border-r border-slate-500/20">
                   <Filter className="w-4 h-4 text-slate-500" />
@@ -2399,11 +2399,10 @@ export default function App() {
                           rx="6"
                           className={cn(
                             "transition-all duration-300",
-                            theme === 'dark'
-                              ? (isSelected ? "fill-indigo-500/5 stroke-indigo-500" : "fill-transparent stroke-white/5")
-                              : (isSelected ? "fill-blue-100/20 stroke-blue-500" : "fill-transparent stroke-slate-300/40")
+                            isSelected 
+                              ? (theme === 'dark' ? "fill-indigo-500/10" : "fill-blue-500/10")
+                              : "fill-black"
                           )}
-                          style={{ strokeWidth: isSelected ? 2 : 1 }}
                         />
                         <foreignObject
                           x={`${displayBay.x}%`}
@@ -2414,14 +2413,13 @@ export default function App() {
                           <div className="w-full h-full flex flex-col items-center justify-start p-1 overflow-hidden">
                             {/* Bay Header */}
                             <div className={cn(
-                              "flex flex-col items-center justify-center py-1 w-full border-b mb-0.5",
-                              theme === 'dark' ? "border-white/5" : "border-stone-300/60"
+                              "flex flex-col items-center justify-center py-1 w-full mb-0.5"
                             )}>
                               <div className={cn(
                                 "text-[11px] font-black uppercase tracking-tight truncate w-full text-center",
                                 isSelected 
                                   ? "text-emerald-400" 
-                                  : (theme === 'dark' ? "text-slate-300" : "text-slate-700")
+                                  : "text-white"
                               )}>
                                 {displayBay.name}
                               </div>
