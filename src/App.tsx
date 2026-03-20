@@ -41,7 +41,8 @@ import {
   Users,
   Filter,
   MonitorPlay,
-  MonitorPause
+  MonitorPause,
+  Play
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'motion/react';
@@ -92,7 +93,7 @@ function parseExcelDate(dateStr?: string, timeStr?: string): Date | null {
 
 function getSlaStatus(car: CarRecord): { text: string, color: string, isLate: boolean } {
   const targetDate = parseExcelDate(car.embarkDate, car.embarkTime);
-  if (!targetDate) return { text: 'S/ DATA', color: 'bg-[#f0f9ff]0', isLate: false };
+  if (!targetDate) return { text: 'S/ DATA', color: 'bg-slate-500', isLate: false };
 
   const now = new Date();
   const diffMs = targetDate.getTime() - now.getTime();
@@ -154,15 +155,6 @@ export default function App() {
 
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  // Sync theme with document class for Tailwind 4.0
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [theme]);
-
   // Filters State
   const [filterModel, setFilterModel] = useState<string>('ALL');
   const [filterSector, setFilterSector] = useState<string>('ALL');
@@ -219,34 +211,34 @@ export default function App() {
 
   // Presentation Mode Auto-scroll
   useEffect(() => {
-    if (!isPresentationMode) return;
     let animationFrameId: number;
     let lastTime = performance.now();
-    let currentScroll = scrollContainerRef.current?.scrollLeft ?? 0;
 
     const scrollStep = (currentTime: number) => {
-      const dt = Math.min(currentTime - lastTime, 32); // cap at 32ms to avoid huge jumps on tab focus
+      const dt = currentTime - lastTime;
       lastTime = currentTime;
 
-      const el = scrollContainerRef.current;
-      if (el && !isDragging) {
-        const { scrollWidth, clientWidth } = el;
-        const maxScroll = scrollWidth - clientWidth;
-
-        if (scrollDirection.current === 1 && currentScroll >= maxScroll - 1) {
+      if (isPresentationMode && scrollContainerRef.current && !isDragging) {
+        const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+        
+        // At right edge
+        if (scrollLeft + clientWidth >= scrollWidth - 1) {
           scrollDirection.current = -1;
-        } else if (scrollDirection.current === -1 && currentScroll <= 1) {
+        }
+        // At left edge
+        else if (scrollLeft <= 0) {
           scrollDirection.current = 1;
         }
 
-        currentScroll = Math.max(0, Math.min(maxScroll, currentScroll + presentationSpeed * dt * scrollDirection.current));
-        el.scrollLeft = currentScroll;
+        scrollContainerRef.current.scrollLeft += presentationSpeed * dt * scrollDirection.current;
       }
-      // Only schedule next frame if still in presentation mode
       animationFrameId = requestAnimationFrame(scrollStep);
     };
 
-    animationFrameId = requestAnimationFrame(scrollStep);
+    if (isPresentationMode) {
+      animationFrameId = requestAnimationFrame(scrollStep);
+    }
+    
     return () => cancelAnimationFrame(animationFrameId);
   }, [isPresentationMode, isDragging, presentationSpeed]);
 
@@ -266,10 +258,12 @@ export default function App() {
 
         // Atualizar Layout (Baias)
         if (syncData.bays && syncData.bays.length > 0) {
-          // Só atualizamos se as baias atuais estiverem vazias ou se for o primeiro carregamento
-          // Para evitar sobrescrever edições locais em progresso (opcional: adicionar timestamp)
-          setBays(syncData.bays);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(syncData.bays));
+          // PROTEÇÃO: Não sobrescrever se estivermos editando OU se já carregamos algo localmente
+          // e o modo atual for 'edit' (evita pulos durante a sessão)
+          if (mode !== 'edit') {
+            setBays(syncData.bays);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(syncData.bays));
+          }
         }
 
         if (syncData.records && syncData.records.length > 0) return; 
@@ -405,8 +399,9 @@ export default function App() {
         slotHeight: 25,
         x: 2 + (index % 12) * 8,
         y: 2 + Math.floor(index / 12) * 8,
-        width: 10,
-        height: 10
+        width: 6,
+        height: 6,
+        tabGroup: activeTabGroup // Correctly assign to active view
       }));
 
     if (newBaysToAdd.length > 0) {
@@ -466,43 +461,6 @@ export default function App() {
     return dbRecords.filter(r => r.location === selectedBay.name);
   }, [selectedBay, dbRecords]);
 
-  // --- PERFORMANCE: Pre-group all cars by location (O(n) once, instead of O(bays×n) per render) ---
-  const carsByLocation = useMemo(() => {
-    const map: Record<string, CarRecord[]> = {};
-    filteredRecords.forEach(r => {
-      const loc = r.location;
-      if (!loc) return;
-      if (!map[loc]) map[loc] = [];
-      map[loc].push(r);
-    });
-    return map;
-  }, [filteredRecords]);
-
-  // --- PERFORMANCE: Pre-calculate SLA status for every car (O(n) once) ---
-  const slaByCarId = useMemo(() => {
-    const map: Record<string, ReturnType<typeof getSlaStatus>> = {};
-    filteredRecords.forEach(r => {
-      map[r.carId] = getSlaStatus(r);
-    });
-    return map;
-  }, [filteredRecords]);
-
-  // --- PERFORMANCE: Pre-sort cars per location by embark time (O(n log n) once per dbRecords change) ---
-  const sortedCarsByLocation = useMemo(() => {
-    const map: Record<string, CarRecord[]> = {};
-    Object.keys(carsByLocation).forEach(loc => {
-      map[loc] = carsByLocation[loc].slice().sort((a, b) => {
-        const dateA = parseExcelDate(a.embarkDate, a.embarkTime);
-        const dateB = parseExcelDate(b.embarkDate, b.embarkTime);
-        if (!dateA && !dateB) return 0;
-        if (!dateA) return 1;
-        if (!dateB) return -1;
-        return dateA.getTime() - dateB.getTime();
-      });
-    });
-    return map;
-  }, [carsByLocation]);
-
   // --- Map Interactions ---
   const getCoords = (e: React.MouseEvent | MouseEvent) => {
     if (!containerRef.current) return { x: 0, y: 0 };
@@ -553,12 +511,6 @@ export default function App() {
       }
       setSelectedBayId(null);
     }
-  };
-
-  const handleResizeStart = (bay: Bay, e: React.MouseEvent) => {
-    setSelectedBayId(bay.id);
-    setIsResizing(true);
-    setTempBay({ ...bay });
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -644,6 +596,7 @@ export default function App() {
         y: currentRect.y,
         width: currentRect.w,
         height: currentRect.h,
+        tabGroup: activeTabGroup // Correctly assign to active view
       };
       saveBays([...bays, newBay]);
       setSelectedBayId(newBay.id);
@@ -706,7 +659,9 @@ export default function App() {
   return (
     <div className={cn(
       "flex h-screen w-screen font-sans overflow-hidden transition-colors duration-500 relative",
-      "bg-bg-main text-text-primary"
+      theme === 'dark' 
+        ? "bg-slate-950 text-slate-200" 
+        : "bg-[#f8fafc] text-slate-900"
     )}>
       {/* Mobile Backdrop */}
       <AnimatePresence>
@@ -729,14 +684,16 @@ export default function App() {
             exit={{ x: -450 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className={cn(
-              "fixed lg:relative inset-y-0 left-0 glass-card border-r",
-              "w-80 z-40 transition-all duration-500 overflow-hidden",
-              "bg-bg-glass border-border-subtle shadow-premium"
+              "w-[320px] xs:w-[380px] sm:w-[420px] shrink-0 h-full border-r flex flex-col z-50 shadow-2xl transition-[background-color,border-color] duration-300",
+              "fixed lg:relative inset-y-0 left-0",
+              theme === 'dark' 
+                ? "bg-slate-900 border-slate-800" 
+                : "bg-white border-slate-100 shadow-sm"
             )}
           >
             <div className={cn(
               "p-8 border-b flex flex-col gap-6 transition-colors duration-300 relative overflow-hidden",
-              "border-border-subtle"
+              theme === 'dark' ? "border-white/5" : "border-slate-200"
             )}>
               {/* Decorative background glow for sidebar header */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[60px] rounded-full -mr-16 -mt-16" />
@@ -744,19 +701,21 @@ export default function App() {
               <div className="flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-4">
                   <div className={cn(
-                    "w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center border transition-all duration-300",
-                    "bg-white border-[#00f2ff] shadow-[0_0_15px_rgba(0,242,255,0.4)]"
+                    "w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center border shadow-sm transition-all duration-300",
+                    theme === 'dark' 
+                      ? "bg-white border-white/20 shadow-black/40" 
+                      : "bg-white border-slate-200 shadow-slate-200/50"
                   )}>
-                    <img src={LOGO_URL} alt="Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
+                    <img src={LOGO_URL} alt="Logo" className="w-9 h-9 object-contain" referrerPolicy="no-referrer" />
                   </div>
                   <div className="flex flex-col justify-center">
                     <h1 className={cn(
                       "font-black text-xl tracking-tighter leading-none transition-colors duration-300",
-                      "text-text-primary"
+                      theme === 'dark' ? "text-white" : "text-slate-900"
                     )}>
                       Controle
                     </h1>
-                    <h1 className="font-black text-xl tracking-tighter leading-none text-emerald-500 mt-1">
+                    <h1 className="font-black text-xl tracking-tighter leading-none text-indigo-600 mt-1">
                       DCC
                     </h1>
                   </div>
@@ -766,8 +725,9 @@ export default function App() {
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                     className={cn(
                       "p-2.5 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95",
-                      "bg-bg-surface border border-border-subtle",
-                      theme === 'dark' ? "text-amber-400" : "text-slate-600"
+                      theme === 'dark' 
+                        ? "bg-white/5 hover:bg-white/10 text-amber-400 border border-white/10" 
+                        : "bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200"
                     )}
                   >
                     {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -776,7 +736,7 @@ export default function App() {
                     onClick={() => setSidebarOpen(false)}
                     className={cn(
                       "p-2.5 rounded-xl transition-all hover:scale-110 active:scale-95 group/collapse",
-                      "bg-bg-surface border border-border-subtle text-text-muted hover:text-text-primary"
+                      theme === 'dark' ? "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/10" : "bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 border border-slate-200"
                     )}
                     title="Retrair Painel"
                   >
@@ -788,39 +748,42 @@ export default function App() {
                        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
               {/* Navigation Group */}
               <div className="space-y-3">
-                <span className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] pl-2">Navegação</span>
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] pl-2">Navegação</span>
                 
-                <div className="p-1 px-4 py-3 rounded-2xl flex flex-col gap-1 bg-bg-surface border border-border-subtle shadow-inner backdrop-blur-sm">
+                <div className={cn(
+                  "p-1.5 rounded-[1.5rem] flex flex-col gap-1 transition-all duration-300",
+                  theme === 'dark' ? "bg-black/40 border border-white/5 shadow-inner" : "bg-white/50 border border-slate-200 shadow-inner"
+                )}>
                   <button
                     onClick={() => setMode('dashboard')}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-black transition-all",
+                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all",
                       mode === 'dashboard' 
-                        ? "bg-indigo-500/10 text-indigo-500 shadow-lg shadow-indigo-500/5 ring-1 ring-indigo-500/30" 
-                        : "text-text-muted hover:text-text-primary hover:bg-bg-surface"
+                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-white text-slate-900 shadow-md") 
+                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-white/50")
                     )}
                   >
                     <div className={cn(
                       "p-2 rounded-xl transition-colors",
-                      mode === 'dashboard' ? "bg-indigo-500 text-white" : "bg-bg-surface text-text-muted"
+                      mode === 'dashboard' ? "bg-indigo-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500")
                     )}>
                       <LayoutDashboard className="w-4 h-4" />
                     </div>
                     Dashboard Geral
                   </button>
 
-                    <button
+                  <button
                     onClick={() => setMode('view')}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-black transition-all",
+                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all",
                       mode === 'view' 
-                        ? "bg-emerald-500/10 text-emerald-500 shadow-lg shadow-emerald-500/5 ring-1 ring-emerald-500/30" 
-                        : "text-text-muted hover:text-text-primary hover:bg-bg-surface"
+                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-white text-slate-900 shadow-md") 
+                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-white/50")
                     )}
                   >
                     <div className={cn(
                       "p-2 rounded-xl transition-colors",
-                      mode === 'view' ? "bg-emerald-500 text-white" : "bg-bg-surface text-text-muted"
+                      mode === 'view' ? "bg-indigo-600 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500")
                     )}>
                       <MousePointer2 className="w-4 h-4" />
                     </div>
@@ -830,15 +793,15 @@ export default function App() {
                   <button
                     onClick={() => setMode('database')}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-black transition-all",
+                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all",
                       mode === 'database' 
-                        ? "bg-blue-500/10 text-blue-500 shadow-lg shadow-blue-500/5 ring-1 ring-blue-500/30" 
-                        : "text-text-muted hover:text-text-primary hover:bg-bg-surface"
+                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-white text-slate-900 shadow-md ring-1 ring-slate-200/50") 
+                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50")
                     )}
                   >
                     <div className={cn(
                       "p-2 rounded-xl transition-colors",
-                      mode === 'database' ? "bg-blue-500 text-white" : "bg-bg-surface text-text-muted"
+                      mode === 'database' ? "bg-blue-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500")
                     )}>
                       <Database className="w-4 h-4" />
                     </div>
@@ -848,15 +811,15 @@ export default function App() {
                   <button
                     onClick={() => setMode('edit')}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-black transition-all",
+                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all",
                       mode === 'edit' 
-                        ? "bg-amber-500/10 text-amber-500 shadow-lg shadow-amber-500/5 ring-1 ring-amber-500/30" 
-                        : "text-text-muted hover:text-text-primary hover:bg-bg-surface"
+                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-white text-slate-900 shadow-md ring-1 ring-slate-200/50") 
+                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50")
                     )}
                   >
                     <div className={cn(
                       "p-2 rounded-xl transition-colors",
-                      mode === 'edit' ? "bg-amber-500 text-white" : "bg-bg-surface text-text-muted"
+                      mode === 'edit' ? "bg-amber-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500")
                     )}>
                       <Settings2 className="w-4 h-4" />
                     </div>
@@ -870,7 +833,7 @@ export default function App() {
                 <div className="space-y-2">
                   <h2 className={cn(
                     "text-[10px] font-bold uppercase tracking-widest px-1 transition-colors duration-300",
-                    "text-text-muted"
+                    theme === 'dark' ? "text-slate-500" : "text-slate-600"
                   )}>
                     Ações de Layout
                   </h2>
@@ -907,13 +870,13 @@ export default function App() {
               <div className="space-y-3">
                 <h2 className={cn(
                   "text-[10px] font-bold uppercase tracking-widest px-1 transition-colors duration-300",
-                  "text-text-muted"
+                  theme === 'dark' ? "text-slate-500" : "text-slate-400"
                 )}>
                   Informações no Hover
                 </h2>
                 <div className={cn(
                   "p-4 rounded-2xl border transition-all duration-300 grid grid-cols-1 gap-2",
-                  "bg-bg-surface border-border-subtle"
+                  theme === 'dark' ? "bg-slate-800/30 border-slate-800/50" : "bg-slate-100 border-slate-200"
                 )}>
                   {[
                     { id: 'carId', label: 'ID do Carro' },
@@ -935,16 +898,16 @@ export default function App() {
                         />
                         <div className={cn(
                           "w-8 h-4 rounded-full transition-colors duration-200",
-                          hoverConfig[field.id] ? "bg-emerald-500" : "bg-bg-main"
+                          hoverConfig[field.id] ? "bg-emerald-500" : (theme === 'dark' ? "bg-slate-700" : "bg-slate-300")
                         )} />
                         <div className={cn(
-                          "absolute left-1 w-2 h-2 bg-[#f0f9ff] rounded-full transition-transform duration-200",
+                          "absolute left-1 w-2 h-2 bg-white rounded-full transition-transform duration-200",
                           hoverConfig[field.id] ? "translate-x-4" : "translate-x-0"
                         )} />
                       </div>
                       <span className={cn(
                         "text-[10px] font-medium transition-colors duration-300",
-                        "text-text-secondary group-hover:text-text-primary"
+                        theme === 'dark' ? "text-slate-400 group-hover:text-slate-200" : "text-slate-600 group-hover:text-slate-900"
                       )}>
                         {field.label}
                       </span>
@@ -993,8 +956,8 @@ export default function App() {
                         }}
                         placeholder="https://..."
                         className={cn(
-                          "w-full px-3 py-2 border rounded-lg text-xs font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500/50",
-                          "bg-bg-surface border-border-subtle text-text-primary"
+                          "w-full px-3 py-2 border rounded-lg text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500/50",
+                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-slate-300" : "bg-white border-slate-300 text-slate-700"
                         )}
                       />
                       <p className="text-[9px] text-slate-500 italic">Funciona no Vercel mesmo com Zscaler.</p>
@@ -1007,19 +970,19 @@ export default function App() {
                         key={record.carId} 
                         className={cn(
                           "p-3 rounded-xl border transition-all duration-300 space-y-1",
-                          "bg-bg-surface border-border-subtle"
+                          theme === 'dark' ? "bg-slate-800/30 border-slate-800/50" : "bg-slate-100 border-slate-200"
                         )}
                       >
                         <div className="flex justify-between items-center">
                           <span className={cn(
                             "text-xs font-bold transition-colors duration-300",
-                            "text-text-primary"
+                            theme === 'dark' ? "text-white" : "text-slate-900"
                           )}>
                             {record.carId}
                           </span>
                           <span className={cn(
                             "text-[10px] px-1.5 py-0.5 rounded transition-colors duration-300",
-                            "bg-bg-main text-text-secondary"
+                            theme === 'dark' ? "bg-slate-700 text-slate-300" : "bg-slate-200 text-slate-600"
                           )}>
                             {record.model}
                           </span>
@@ -1044,7 +1007,7 @@ export default function App() {
                   <div className="flex items-center justify-between">
                     <h2 className={cn(
                       "text-xs font-bold uppercase tracking-widest transition-colors duration-300",
-                      "text-text-muted"
+                      theme === 'dark' ? "text-slate-500" : "text-slate-400"
                     )}>
                       Configuração da Baia
                     </h2>
@@ -1074,7 +1037,9 @@ export default function App() {
 
                   <div className={cn(
                     "space-y-4 p-4 rounded-2xl border transition-all duration-300 shadow-sm",
-                    "bg-bg-surface border-border-subtle"
+                    theme === 'dark' 
+                      ? "bg-slate-800/30 border-slate-800/50" 
+                      : "bg-slate-50/50 border-slate-200/60"
                   )}>
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-slate-500">ID da Locação (Excel)</label>
@@ -1085,7 +1050,9 @@ export default function App() {
                         onChange={(e) => updateBay(selectedBay.id, { name: e.target.value })}
                         className={cn(
                           "w-full border rounded-lg px-3 py-2 text-base font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all",
-                          "bg-bg-main border-border-subtle text-text-primary"
+                          theme === 'dark' 
+                            ? "bg-slate-900 border-slate-700 text-white" 
+                            : "bg-white border-slate-200 text-slate-900 shadow-inner shadow-slate-100"
                         )}
                         placeholder="Selecione ou digite..."
                       />
@@ -1105,7 +1072,7 @@ export default function App() {
                         onChange={(e) => updateBay(selectedBay.id, { sector: e.target.value })}
                         className={cn(
                           "w-full border rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all",
-                          "bg-bg-main border-border-subtle text-text-primary"
+                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
                         )}
                         placeholder="Selecione ou digite o Setor..."
                       />
@@ -1126,7 +1093,7 @@ export default function App() {
                           onChange={(e) => updateBay(selectedBay.id, { capacity: parseInt(e.target.value) || 1 })}
                           className={cn(
                             "w-full border rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all",
-                            "bg-bg-main border-border-subtle text-text-primary"
+                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
                           )}
                         />
                       </div>
@@ -1140,7 +1107,7 @@ export default function App() {
                           onChange={(e) => updateBay(selectedBay.id, { slotHeight: parseInt(e.target.value) || 25 })}
                           className={cn(
                             "w-full border rounded-lg px-1 py-2 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all",
-                            "bg-bg-main border-border-subtle text-text-primary"
+                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
                           )}
                         />
                       </div>
@@ -1153,7 +1120,7 @@ export default function App() {
                         onChange={(e) => updateBay(selectedBay.id, { orientation: e.target.value as 'vertical' | 'horizontal' })}
                         className={cn(
                           "w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/50",
-                          "bg-bg-main border-border-subtle text-text-primary"
+                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
                         )}
                       >
                         <option value="vertical">Vertical (Lista)</option>
@@ -1168,7 +1135,7 @@ export default function App() {
                         onChange={(e) => updateBay(selectedBay.id, { tabGroup: e.target.value as 'geral' | 'format' })}
                         className={cn(
                           "w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/50",
-                          "bg-bg-main border-border-subtle text-text-primary"
+                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
                         )}
                       >
                         <option value="geral">Picking Geral</option>
@@ -1185,7 +1152,7 @@ export default function App() {
                           onChange={(e) => updateBay(selectedBay.id, { x: parseFloat(e.target.value) || 0 })}
                           className={cn(
                             "w-full border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500/50",
-                            "bg-bg-main border-border-subtle text-text-primary"
+                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
                           )}
                         />
                       </div>
@@ -1197,7 +1164,7 @@ export default function App() {
                           onChange={(e) => updateBay(selectedBay.id, { y: parseFloat(e.target.value) || 0 })}
                           className={cn(
                             "w-full border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500/50",
-                            "bg-bg-main border-border-subtle text-text-primary"
+                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
                           )}
                         />
                       </div>
@@ -1209,7 +1176,7 @@ export default function App() {
                           onChange={(e) => updateBay(selectedBay.id, { width: parseFloat(e.target.value) || 0 })}
                           className={cn(
                             "w-full border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500/50",
-                            "bg-bg-main border-border-subtle text-text-primary"
+                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
                           )}
                         />
                       </div>
@@ -1221,7 +1188,7 @@ export default function App() {
                           onChange={(e) => updateBay(selectedBay.id, { height: parseFloat(e.target.value) || 0 })}
                           className={cn(
                             "w-full border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500/50",
-                            "bg-bg-main border-border-subtle text-text-primary"
+                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
                           )}
                         />
                       </div>
@@ -1233,7 +1200,7 @@ export default function App() {
                     <div className="flex items-center justify-between">
                       <h2 className={cn(
                         "text-xs font-bold uppercase tracking-widest transition-colors duration-300",
-                        "text-text-muted"
+                        theme === 'dark' ? "text-slate-500" : "text-slate-400"
                       )}>
                         Carros na Locação
                       </h2>
@@ -1254,25 +1221,25 @@ export default function App() {
                             key={car.carId} 
                             className={cn(
                               "p-4 rounded-xl border flex items-center justify-between group transition-all duration-300",
-                              "bg-bg-surface border-border-subtle hover:border-border-bright shadow-sm",
-                              isWrongSector && (theme === 'dark' ? "border-fuchsia-500/50 bg-fuchsia-500/10" : "border-fuchsia-400 bg-fuchsia-50/50")
+                              theme === 'dark' ? "bg-slate-800/50 border-slate-700/50 hover:bg-slate-800" : "bg-white border-slate-200 hover:bg-slate-50 shadow-sm",
+                              isWrongSector && (theme === 'dark' ? "border-fuchsia-500/50 bg-fuchsia-500/10" : "border-fuchsia-500 border bg-fuchsia-50")
                             )}
                           >
                             <div className="space-y-1">
                               <div className={cn(
                                 "text-base font-bold flex items-center gap-2 transition-colors duration-300",
-                                "text-text-primary"
+                                theme === 'dark' ? "text-white" : "text-slate-900"
                               )}>
                                 {isWrongSector && <AlertCircle className="w-4 h-4 text-fuchsia-500" />}
                                 {car.carId}
                                 <span className={cn(
                                   "text-xs font-medium px-2 py-0.5 rounded transition-colors duration-300",
-                                  "text-text-secondary bg-bg-main"
+                                  theme === 'dark' ? "text-slate-500 bg-slate-900" : "text-slate-500 bg-slate-100"
                                 )}>
                                   {car.model}
                                 </span>
                               </div>
-                              <div className="text-xs text-text-muted flex items-center gap-1.5">
+                              <div className="text-xs text-slate-400 flex items-center gap-1.5">
                                 <Clock className="w-3 h-3" />
                                 {car.embarkDate} {car.embarkTime}
                               </div>
@@ -1296,7 +1263,7 @@ export default function App() {
                       ) : (
                         <div className={cn(
                           "py-8 text-center rounded-2xl border border-dashed transition-colors duration-300",
-                          theme === 'dark' ? "bg-slate-800/20 border-slate-800" : "bg-[#f0f9ff] border-slate-200"
+                          theme === 'dark' ? "bg-slate-800/20 border-slate-800" : "bg-slate-50 border-slate-200"
                         )}>
                           <Car className="w-6 h-6 text-slate-700 mx-auto mb-2" />
                           <p className="text-[10px] text-slate-600">Nenhum carro vinculado nesta locação</p>
@@ -1312,18 +1279,18 @@ export default function App() {
                 )}>
                   <div className={cn(
                     "p-4 rounded-full transition-colors duration-300",
-                    "bg-bg-surface"
+                    theme === 'dark' ? "bg-slate-800" : "bg-slate-100"
                   )}>
                     <Box className="w-8 h-8" />
                   </div>
                   <div className="space-y-1">
                     <p className={cn(
                       "text-sm font-medium transition-colors duration-300",
-                      "text-text-primary"
+                      theme === 'dark' ? "text-slate-300" : "text-slate-600"
                     )}>
                       Nenhuma baia selecionada
                     </p>
-                    <p className="text-xs text-text-muted">
+                    <p className="text-xs text-slate-500">
                       {mode === 'edit' 
                         ? "Desenhe as locações no mapa." 
                         : "Selecione uma locação para ver os carros."}
@@ -1334,8 +1301,8 @@ export default function App() {
             </div>
 
             <div className={cn(
-              "p-4 border-t text-[10px] text-text-muted flex justify-between items-center transition-colors duration-300",
-              "border-border-subtle"
+              "p-4 border-t text-[10px] text-slate-500 flex justify-between items-center transition-colors duration-300",
+              theme === 'dark' ? "border-slate-800" : "border-slate-200"
             )}>
               <span>v1.1.0</span>
               <div className="flex items-center gap-1">
@@ -1375,11 +1342,10 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {mode === 'dashboard' ? (
+        {mode === 'dashboard' ? (
           <div className={cn(
             "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-[#030712]" : "bg-[#f8fafc]"
+            theme === 'dark' ? "bg-slate-950" : "bg-[#f8fafc]"
           )}>
             {/* Background Glows */}
             <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-indigo-500/5 blur-[120px] rounded-full -ml-64 -mt-64 pointer-events-none" />
@@ -1389,11 +1355,11 @@ export default function App() {
               <div className="flex flex-col gap-1">
                 <h1 className={cn(
                   "text-3xl font-black tracking-tight",
-                  "text-text-primary"
+                  theme === 'dark' ? "text-white" : "text-slate-900"
                 )}>
                   Dashboard Operacional
                 </h1>
-                <p className="text-text-muted text-sm font-medium">Análise em tempo real da performance de picking.</p>
+                <p className="text-slate-400 text-sm font-medium">Análise em tempo real da performance de picking.</p>
               </div>
 
               {/* KPI Grid */}
@@ -1414,23 +1380,26 @@ export default function App() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.1 }}
-                    className="p-6 glass-card rounded-[2.5rem] relative overflow-hidden group"
+                    className={cn(
+                      "p-4 sm:p-5 rounded-[1.5rem] border backdrop-blur-3xl flex flex-col gap-3 group transition-all duration-300 shadow-sm",
+                      theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200/50 shadow-sm shadow-slate-200/20"
+                    )}
                   >
-                    <div className="flex items-center justify-between mb-4 relative z-10">
+                    <div className="flex items-center justify-between mb-4">
                       <div className={cn(
-                        "p-3 rounded-2xl transition-all duration-300 group-hover:scale-110",
-                        kpi.color === 'indigo' ? "bg-indigo-500/10 text-indigo-500" :
-                        kpi.color === 'blue' ? "bg-blue-500/10 text-blue-500" :
-                        kpi.color === 'rose' ? "bg-rose-500/10 text-rose-500" :
-                        "bg-emerald-500/10 text-emerald-500"
+                        "p-3 rounded-2xl",
+                        kpi.color === 'indigo' ? "bg-indigo-500/10 text-indigo-400" :
+                        kpi.color === 'blue' ? "bg-blue-500/10 text-blue-400" :
+                        kpi.color === 'rose' ? "bg-rose-500/10 text-rose-400" :
+                        "bg-emerald-500/10 text-emerald-400"
                       )}>
                         {kpi.icon}
                       </div>
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse outline outline-4 outline-emerald-500/10" />
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     </div>
-                    <div className="space-y-1 relative z-10">
-                      <h3 className="text-text-muted text-[10px] font-black uppercase tracking-[0.2em]">{kpi.label}</h3>
-                      <p className="text-3xl font-black tabular-nums text-text-primary">
+                    <div className="space-y-0.5">
+                      <h3 className={cn("text-[9px] font-bold uppercase tracking-wider", theme === 'dark' ? "text-slate-500" : "text-slate-400")}>{kpi.label}</h3>
+                      <p className={cn("text-2xl font-black tabular-nums", theme === 'dark' ? "text-white" : "text-slate-900")}>
                         {kpi.value}
                       </p>
                     </div>
@@ -1440,34 +1409,42 @@ export default function App() {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Advanced Operational Health Chart */}
-                <div className="lg:col-span-3 p-8 glass-card rounded-[2.5rem] flex flex-col gap-8">
-                  <div className="flex items-center justify-between">
+                <div className={cn(
+                  "lg:col-span-3 p-8 rounded-[2rem] border transition-all duration-300 relative overflow-hidden",
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-100 shadow-sm"
+                )}>
+                  {/* Subtle Accent Gradient for Chart */}
+                  {theme === 'light' && (
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-[100px] pointer-events-none" />
+                  )}
+
+                  <div className="flex items-center justify-between relative z-10 mb-8">
                     <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl">
+                      <div className="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl">
                         <TrendingUp className="w-5 h-5" />
                       </div>
-                      <div>
-                        <h3 className="text-lg font-black tracking-tight text-text-primary">
-                          Saúde Operacional
-                        </h3>
-                        <p className="text-[10px] font-black text-text-muted uppercase tracking-widest">Plano do Dia · Real · Retroativo · Atrasados</p>
-                        <p className="text-[10px] font-medium text-text-muted mt-1 max-w-sm">Este gráfico mostra as previsões de embarques. As barras azuis refletem a quantidade de veículos embarcados por hora e a linha verde o avanço da meta.</p>
+                      <div className="flex flex-col">
+                        <h3 className={cn("text-lg font-bold tracking-tight", theme === 'dark' ? "text-white" : "text-slate-800")}>Saúde Operacional</h3>
+                        <p className={cn("text-[10px] font-bold uppercase tracking-widest opacity-60", theme === 'dark' ? "text-slate-400" : "text-slate-500")}>Performance de Embarques</p>
                       </div>
                     </div>
-                    {/* Legenda do Gráfico */}
-                    <div className="flex items-center gap-6 px-4 py-2 bg-bg-surface rounded-2xl border border-border-subtle shadow-sm">
+                    
+                    <div className="hidden sm:flex items-center gap-6">
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-blue-500/40 rounded-sm border border-blue-500/50" />
-                        <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">Embarques/Hora</span>
+                        <div className="w-2.5 h-2.5 rounded-full bg-indigo-500/20 border border-indigo-200" />
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Embarques/Hora</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                        <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">Progresso Acumulado</span>
+                        <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.4)]" />
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Progresso Acumulado</span>
                       </div>
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4">
+                  
+                  <p className={cn("text-xs mb-8 leading-relaxed", theme === 'dark' ? "text-slate-400" : "text-slate-500")}>
+                    Análise comparativa entre o volume de embarques por hora e a curva de progresso total do dia.
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4 relative z-10">
                     {(() => {
                       const today = new Date();
                       const todayStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
@@ -1502,113 +1479,179 @@ export default function App() {
                         { label: 'Atrasados', value: atrasados.length, color: 'text-rose-500', desc: 'Hoje — previsão vencida' },
                       ].map((stat, i) => (
                         <div key={i} className="space-y-1">
-                          <span className="text-[9px] font-black text-text-muted uppercase tracking-[0.15em]">{stat.label}</span>
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em]">{stat.label}</span>
                           <p className={cn("text-2xl font-black tabular-nums", stat.color)}>{stat.value}</p>
-                          <span className="text-[8px] text-text-muted font-medium">{stat.desc}</span>
+                          <span className="text-[8px] text-slate-400 font-medium">{stat.desc}</span>
                         </div>
                       ));
                     })()}
                   </div>
 
-                  <div className="h-56 w-full relative group pt-8 flex flex-col">
+                  <div className="h-56 w-full relative flex items-end gap-1 group px-2 pt-8">
                     {/* Background Grid Lines */}
-                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-5 pb-6">
+                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-5">
                       {[1, 2, 3, 4].map(i => <div key={i} className="w-full h-px bg-white" />)}
                     </div>
 
-                    {/* Bars & Cumulative Line Overlay */}
-                    {(() => {
-                      const hourlyData = Array.from({ length: 24 }).map((_, h) => {
-                        return filteredRecords.filter(r => r.status === 'EMBARCADO' && r.embarkTime?.startsWith(h.toString().padStart(2, '0'))).length;
+                     {(() => {
+                      const today = new Date();
+                      const todayStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
+                      
+                      const hourlyPlan = Array.from({ length: 24 }).map((_, h) => {
+                        return filteredRecords.filter(r => r.embarkDate === todayStr && r.embarkTime?.startsWith(h.toString().padStart(2, '0'))).length;
                       });
-                      const max = Math.max(...hourlyData) || 1;
+                      
+                      const hourlyReal = Array.from({ length: 24 }).map((_, h) => {
+                        return filteredRecords.filter(r => r.status === 'EMBARCADO' && r.embarkDate === todayStr && r.embarkTime?.startsWith(h.toString().padStart(2, '0'))).length;
+                      });
+
+                      const maxPlan = Math.max(...hourlyPlan) || 1;
                       let cumulative = 0;
-                      const cumulativeData = hourlyData.map(d => {
+                      const cumulativeData = hourlyReal.map(d => {
                         cumulative += d;
                         return cumulative;
                       });
                       const totalMax = cumulativeData[cumulativeData.length - 1] || 1;
 
-                      // Exact mathematical center for each of the 24 columns
-                      const points = cumulativeData.map((d, i) => {
-                        const x = ((i + 0.5) / 24) * 100;
-                        const y = 100 - (d / totalMax) * 100;
-                        return `${x},${y}`;
-                      }).join(' ');
-
                       return (
                         <>
-                          <div className="flex-1 relative w-full flex items-end px-2">
-                            <svg className="absolute inset-x-2 inset-y-0 w-[calc(100%-16px)] h-full pointer-events-none z-10 overflow-visible drop-shadow-[0_0_6px_rgba(16,185,129,0.5)]" viewBox="0 0 100 100" preserveAspectRatio="none">
-                              <motion.polyline
-                                points={points}
-                                fill="none"
-                                stroke="#10b981" // emerald-500
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                initial={{ pathLength: 0 }}
-                                animate={{ pathLength: 1 }}
-                                transition={{ duration: 2, ease: "easeInOut" }}
+                          <svg className="absolute inset-0 w-full h-full pointer-events-none z-10 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+                            <defs>
+                              <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#6366f1" stopOpacity="0.4" />
+                                <stop offset="50%" stopColor="#818cf8" stopOpacity="0.9" />
+                                <stop offset="100%" stopColor="#4f46e5" stopOpacity="1" />
+                              </linearGradient>
+                              <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stopColor="#4f46e5" stopOpacity="0.04" />
+                                <stop offset="100%" stopColor="#4f46e5" stopOpacity="0" />
+                              </linearGradient>
+                            </defs>
+                            
+                            {[0.25, 0.5, 0.75].map((lvl) => (
+                              <line 
+                                key={lvl} 
+                                x1="0" y1={100 * (1 - lvl)} 
+                                x2="100" y2={100 * (1 - lvl)} 
+                                stroke={theme === 'dark' ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)"} 
+                                strokeWidth="0.5"
                               />
-                            </svg>
+                            ))}
 
-                            {hourlyData.map((count, h) => {
-                              const hPerc = (count / max) * 100;
-                              const cumPerc = (cumulativeData[h] / totalMax) * 100;
+                            {(() => {
+                              const pts = cumulativeData.map((val, i) => ({
+                                x: (i / (cumulativeData.length - 1)) * 100,
+                                y: 100 - (val / totalMax) * 100
+                              }));
+                              
+                              if (pts.length < 2) return null;
+
+                              let d = `M ${pts[0].x} ${pts[0].y}`;
+                              for (let i = 0; i < pts.length - 1; i++) {
+                                const p0 = pts[Math.max(0, i - 1)];
+                                const p1 = pts[i];
+                                const p2 = pts[i + 1];
+                                const p3 = pts[Math.min(pts.length - 1, i + 2)];
+                                
+                                const cp1x = p1.x + (p2.x - p0.x) / 6;
+                                const cp1y = p1.y + (p2.y - p0.y) / 6;
+                                const cp2x = p2.x - (p3.x - p1.x) / 6;
+                                const cp2y = p2.y - (p3.y - p1.y) / 6;
+                                
+                                d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+                              }
+                              
+                              const areaD = `${d} L 100 100 L 0 100 Z`;
+
+                              return (
+                                <g>
+                                  <motion.path 
+                                    d={areaD} 
+                                    fill="url(#areaGradient)"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                  />
+                                  <motion.path 
+                                    d={d} 
+                                    fill="none" 
+                                    stroke="url(#lineGradient)" 
+                                    strokeWidth="1.5" 
+                                    strokeLinecap="round" 
+                                    strokeLinejoin="round" 
+                                    initial={{ pathLength: 0 }}
+                                    animate={{ pathLength: 1 }}
+                                    transition={{ duration: 1.5, ease: "easeOut" }}
+                                  />
+                                </g>
+                              );
+                            })()}
+                          </svg>
+
+                          <div className="flex-1 flex items-end gap-[1px] relative z-20">
+                            {hourlyPlan.map((planCount, h) => {
+                              const realCount = hourlyReal[h];
+                              const hPerc = (planCount / maxPlan) * 100;
                               
                               return (
-                                <div key={h} className="flex-1 flex flex-col items-center group/bar relative h-full px-[1px] sm:px-0.5">
-                                  <div className="w-full relative flex-1 flex flex-col justify-end">
-                                    {/* Hourly Count Label */}
-                                    {count > 0 && (
-                                      <motion.span
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className={cn(
-                                          "absolute left-1/2 -translate-x-1/2 text-[10px] sm:text-[11px] font-black tabular-nums z-20",
-                                          "text-blue-500"
-                                        )}
-                                        style={{ bottom: `${hPerc * 0.7 + 2}%` }}
-                                      >
-                                        {count}
-                                      </motion.span>
-                                    )}
-
-                                    {/* Hourly Bar */}
+                                <div key={h} className="flex-1 flex flex-col items-center group/bar relative h-full justify-end">
+                                  <div className="absolute inset-x-[15%] bottom-0 h-full bg-indigo-500/0 group-hover/bar:bg-indigo-500/5 transition-colors duration-200" />
+                                  
+                                  <div className="relative w-full flex flex-col justify-end h-full px-[20%] pointer-events-none">
+                                    {/* Plan Bar (Always Visible if > 0) */}
                                     <motion.div 
                                       initial={{ height: 0 }}
-                                      animate={{ height: `${hPerc * 0.7}%` }}
+                                      animate={{ height: `${Math.max(2, hPerc * 0.7)}%` }}
                                       className={cn(
-                                        "w-full rounded-t-sm transition-all duration-500",
-                                        count > 0 ? "bg-blue-500/20 group-hover/bar:bg-blue-500/40" : "bg-bg-surface/50"
+                                        "w-full rounded-t-[1px] transition-all duration-500 relative",
+                                        planCount > 0 
+                                          ? (theme === 'dark' ? "bg-white/5 border-t border-white/10" : "bg-slate-100 border-t border-slate-200")
+                                          : (theme === 'dark' ? "bg-transparent" : "bg-transparent")
                                       )}
-                                    />
-                                    
-                                    {/* Cumulative Point & Label */}
-                                    <motion.div 
-                                      initial={{ bottom: 0 }}
-                                      animate={{ bottom: `${cumPerc}%` }}
-                                      className="absolute left-1/2 -translate-x-1/2 w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)] z-20 border border-emerald-900 flex items-center justify-center"
                                     >
-                                      {/* Cumulative Text Label floating above the point when data changes */}
-                                      {count > 0 && cumulativeData[h] > 0 && (
-                                        <span className="absolute bottom-2.5 text-[10px] font-black text-emerald-400 whitespace-nowrap z-30 drop-shadow-md">
-                                          {cumulativeData[h]}
-                                        </span>
+                                      {/* Real Shipments Indicator - Labels */}
+                                      {realCount > 0 && (
+                                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 flex items-center justify-center">
+                                          <span className={cn(
+                                            "text-[10px] font-black tabular-nums transition-all drop-shadow-sm",
+                                            theme === 'dark' ? "text-indigo-400" : "text-indigo-600"
+                                          )}>
+                                            {realCount}
+                                          </span>
+                                        </div>
                                       )}
                                     </motion.div>
+                                    
+                                    {/* Tooltip on Hover */}
+                                    <div className="absolute opacity-0 group-hover/bar:opacity-100 bottom-full mb-8 left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-200 z-50">
+                                      <div className={cn(
+                                        "px-2.5 py-1.5 rounded border shadow-xl backdrop-blur-md flex flex-col items-center gap-0.5 whitespace-nowrap",
+                                        theme === 'dark' ? "bg-slate-900/95 border-white/10" : "bg-white border-slate-200"
+                                      )}>
+                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{h}h:00</span>
+                                        <div className="flex items-center gap-3">
+                                          <div className="flex flex-col items-center">
+                                            <span className="text-[8px] uppercase text-slate-400">Plano</span>
+                                            <span className={cn("text-xs font-black tabular-nums", theme === 'dark' ? "text-white" : "text-slate-900")}>{planCount}</span>
+                                          </div>
+                                          <div className="w-px h-4 bg-white/10" />
+                                          <div className="flex flex-col items-center">
+                                            <span className="text-[8px] uppercase text-indigo-400">Real</span>
+                                            <span className={cn("text-xs font-black tabular-nums", theme === 'dark' ? "text-indigo-400" : "text-indigo-600")}>{realCount}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
                                   </div>
+
+                                  <span className={cn(
+                                    "mt-3 text-[8px] font-bold tabular-nums transition-colors duration-300 opacity-40 group-hover/bar:opacity-100",
+                                    theme === 'dark' ? "text-slate-400" : "text-slate-500"
+                                  )}>
+                                    {h}
+                                  </span>
                                 </div>
                               );
                             })}
-                          </div>
-                          <div className="flex w-full px-2 mt-2 h-4 items-center">
-                            {hourlyData.map((_, h) => (
-                              <div key={`label-${h}`} className="flex-1 flex justify-center">
-                                <span className={cn("text-[8px] sm:text-[9px] font-bold tabular-nums", "text-text-muted")}>{h}h</span>
-                              </div>
-                            ))}
                           </div>
                         </>
                       );
@@ -1617,12 +1660,15 @@ export default function App() {
                 </div>
 
                 {/* Late by Model & Sector */}
-                <div className="lg:col-span-2 p-8 glass-card rounded-[2.5rem] flex flex-col gap-6">
+                <div className={cn(
+                  "lg:col-span-2 p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200/60 shadow-lg shadow-slate-200/50"
+                )}>
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-rose-500/10 text-rose-500 rounded-xl">
+                    <div className="p-2.5 bg-rose-500/10 text-rose-400 rounded-xl">
                       <AlertTriangle className="w-5 h-5" />
                     </div>
-                    <h3 className="text-lg font-black tracking-tight text-text-primary">
+                    <h3 className={cn("text-lg font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
                       Atrasos Críticos
                     </h3>
                   </div>
@@ -1630,7 +1676,7 @@ export default function App() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-4">
                       <div className="flex items-center justify-between px-1">
-                        <h4 className="text-[10px] font-black text-text-muted uppercase tracking-widest">Por Modelo</h4>
+                        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Por Modelo</h4>
                         <div className="w-1 h-1 rounded-full bg-rose-500 animate-pulse" />
                       </div>
                       <div className="space-y-2">
@@ -1638,8 +1684,8 @@ export default function App() {
                           const late = filteredRecords.filter(r => r.model === model && getSlaStatus(r).isLate).length;
                           if (late === 0) return null;
                           return (
-                            <div key={model} className="flex items-center justify-between text-[11px] font-black p-3 rounded-2xl bg-bg-surface hover:bg-bg-main transition-colors group">
-                              <span className="text-text-secondary group-hover:text-text-primary transition-colors">{model}</span>
+                            <div key={model} className="flex items-center justify-between text-[11px] font-bold p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-rose-500/20 transition-colors group">
+                              <span className="text-slate-400 group-hover:text-slate-200 transition-colors">{model}</span>
                               <span className="text-rose-500 tabular-nums bg-rose-500/10 px-2 py-0.5 rounded-lg">{late}</span>
                             </div>
                           );
@@ -1648,7 +1694,7 @@ export default function App() {
                     </div>
                     <div className="space-y-4">
                       <div className="flex items-center justify-between px-1">
-                        <h4 className="text-[10px] font-black text-text-muted uppercase tracking-widest">Por Setor</h4>
+                        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Por Setor</h4>
                         <div className="w-1 h-1 rounded-full bg-rose-500 animate-pulse" />
                       </div>
                       <div className="space-y-2">
@@ -1656,8 +1702,8 @@ export default function App() {
                           const late = filteredRecords.filter(r => r.sectorName === sector && getSlaStatus(r).isLate).length;
                           if (late === 0) return null;
                           return (
-                            <div key={sector} className="flex items-center justify-between text-[11px] font-black p-3 rounded-2xl bg-bg-surface hover:bg-bg-main transition-colors group">
-                              <span className="text-text-secondary group-hover:text-text-primary transition-colors">{sector}</span>
+                            <div key={sector} className="flex items-center justify-between text-[11px] font-bold p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-rose-500/20 transition-colors group">
+                              <span className="text-slate-400 group-hover:text-slate-200 transition-colors">{sector}</span>
                               <span className="text-rose-500 tabular-nums bg-rose-500/10 px-2 py-0.5 rounded-lg">{late}</span>
                             </div>
                           );
@@ -1667,13 +1713,15 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Location Classification Breakdown */}
-                <div className="p-8 glass-card rounded-[2.5rem] flex flex-col gap-6">
+                <div className={cn(
+                  "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-sm shadow-slate-200/20"
+                )}>
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl">
                       <Layout className="w-5 h-5" />
                     </div>
-                    <h3 className="text-lg font-black tracking-tight text-text-primary">
+                    <h3 className={cn("text-lg font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
                       Categorização Picking
                     </h3>
                   </div>
@@ -1699,16 +1747,16 @@ export default function App() {
                         return (
                           <div key={cat} className="space-y-1.5">
                             <div className="flex justify-between items-end px-1">
-                              <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">{cat}</span>
-                              <span className="text-[11px] font-black text-text-secondary tabular-nums">{count}</span>
+                              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{cat}</span>
+                              <span className="text-[11px] font-bold text-slate-400 tabular-nums">{count}</span>
                             </div>
-                            <div className="h-1.5 w-full rounded-full overflow-hidden bg-bg-main ring-1 ring-border-subtle">
+                            <div className={cn("h-1.5 w-full rounded-full overflow-hidden", theme === 'dark' ? "bg-white/5" : "bg-slate-100")}>
                               <motion.div 
                                 initial={{ width: 0 }}
                                 animate={{ width: `${percent}%` }}
                                 className={cn(
                                   "h-full rounded-full transition-all duration-1000",
-                                  cat.includes('Picking') ? "bg-blue-500" : "bg-emerald-500"
+                                  cat.includes('Picking') ? "bg-indigo-500/40" : "bg-emerald-500/40"
                                 )}
                               />
                             </div>
@@ -1720,30 +1768,33 @@ export default function App() {
                 </div>
 
                 {/* Controller Activity - Line Chart Style */}
-                <div className="p-8 glass-card rounded-[2.5rem] flex flex-col gap-6">
+                <div className={cn(
+                  "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-sm shadow-slate-200/20"
+                )}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="p-2.5 bg-rose-500/10 text-rose-400 rounded-xl">
                         <Users className="w-5 h-5" />
                       </div>
-                      <h3 className="text-lg font-black tracking-tight text-text-primary">
+                      <h3 className={cn("text-lg font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
                         Atividade por Controlador
                       </h3>
                     </div>
                     <div className="flex gap-1">
-                        <button 
-                          disabled={controllerPageIndex === 0}
-                          onClick={() => setControllerPageIndex(prev => Math.max(0, prev - 1))}
-                          className="p-1.5 rounded-lg bg-bg-surface text-text-muted disabled:opacity-20 hover:bg-bg-main transition-colors border border-border-subtle"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => setControllerPageIndex(prev => prev + 1)}
-                          className="p-1.5 rounded-lg bg-bg-surface text-text-muted hover:bg-bg-main transition-colors border border-border-subtle"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
+                      <button 
+                        disabled={controllerPageIndex === 0}
+                        onClick={() => setControllerPageIndex(prev => Math.max(0, prev - 1))}
+                        className="p-1.5 rounded-lg bg-white/5 text-slate-400 disabled:opacity-20 hover:bg-white/10"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => setControllerPageIndex(prev => prev + 1)}
+                        className="p-1.5 rounded-lg bg-white/5 text-slate-400 hover:bg-white/10"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
 
@@ -1774,10 +1825,13 @@ export default function App() {
                           {displayControllers.map(([ctrl, count]) => (
                             <div key={ctrl} className="flex flex-col gap-1.5 group">
                               <div className="flex justify-between items-end px-1">
-                                <span className="text-[11px] font-black text-text-muted group-hover:text-text-primary uppercase truncate max-w-[150px] transition-colors">{ctrl}</span>
+                                <span className="text-[11px] font-black text-slate-400 group-hover:text-slate-200 uppercase truncate max-w-[150px] transition-colors">{ctrl}</span>
                                 <span className="text-[12px] font-black text-rose-500 tabular-nums">{count}</span>
                               </div>
-                              <div className="h-2.5 w-full rounded-full relative bg-bg-main overflow-hidden ring-1 ring-border-subtle">
+                              <div className={cn(
+                                "h-2.5 w-full rounded-full relative bg-white/5 overflow-hidden ring-1 ring-white/5",
+                                theme === 'light' && "bg-slate-100 ring-slate-200"
+                              )}>
                                 <motion.div 
                                   initial={{ width: 0 }}
                                   animate={{ width: `${(count / max) * 100}%` }}
@@ -1799,13 +1853,16 @@ export default function App() {
                 </div>
 
                 {/* Stagnant Vehicles */}
-                <div className="p-8 glass-card rounded-[2.5rem] flex flex-col gap-6">
+                <div className={cn(
+                  "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-xl"
+                )}>
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-amber-500/10 text-amber-500 rounded-xl">
+                    <div className="p-2.5 bg-amber-500/10 text-amber-400 rounded-xl">
                       <Clock className="w-5 h-5" />
                     </div>
-                    <h3 className="text-lg font-black tracking-tight text-text-primary">
-                      Carros não locados
+                    <h3 className={cn("text-lg font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
+                      Carros sem movimentação
                     </h3>
                   </div>
 
@@ -1823,17 +1880,17 @@ export default function App() {
                       .sort((a, b) => b.daysLate - a.daysLate)
                       .slice(0, 20)
                       .map(r => (
-                        <div key={r.carId} className="flex items-center gap-3 p-4 rounded-[1.5rem] bg-bg-surface group hover:bg-bg-main transition-all border border-border-subtle hover:border-border-bright">
+                        <div key={r.carId} className="flex items-center gap-3 p-4 rounded-[1.5rem] bg-white/5 border border-white/5 group hover:border-amber-500/30 transition-all">
                           <div className="flex flex-col items-center justify-center w-12 h-12 bg-amber-500/10 rounded-2xl group-hover:bg-amber-500/20 transition-colors border border-amber-500/20">
-                            <span className="text-[14px] font-black text-amber-500">+{r.daysLate}</span>
-                            <span className="text-[7px] font-black text-amber-500/60 uppercase">Dias</span>
+                            <span className="text-[14px] font-bold text-amber-500">+{r.daysLate}</span>
+                            <span className="text-[7px] font-bold text-amber-500/60 uppercase">Dias</span>
                           </div>
                           <div className="flex flex-col flex-1 overflow-hidden">
-                            <span className="text-xs font-black truncate text-text-primary">{r.carId}</span>
+                            <span className={cn("text-xs font-bold truncate transition-colors", theme === 'dark' ? "text-white" : "text-slate-900")}>{r.carId}</span>
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[9px] font-black text-text-muted uppercase tracking-widest">{r.location}</span>
-                              <span className="text-[8px] text-text-muted font-bold">•</span>
-                              <span className="text-[9px] font-black text-text-muted uppercase tracking-widest">{r.model}</span>
+                              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{r.location}</span>
+                              <span className="text-[8px] text-slate-600 font-bold">•</span>
+                              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{r.model}</span>
                             </div>
                           </div>
                         </div>
@@ -1841,7 +1898,7 @@ export default function App() {
                     {dbRecords.filter(r => r.status !== 'EMBARCADO' && parseExcelDate(r.embarkDate, r.embarkTime) && new Date() > parseExcelDate(r.embarkDate, r.embarkTime)!).length === 0 && (
                       <div className="py-12 text-center opacity-40">
                         <CheckCircle2 className="w-8 h-8 mx-auto mb-3 text-emerald-500" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">Nenhum veículo atrasado</span>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Nenhum veículo atrasado</span>
                       </div>
                     )}
                   </div>
@@ -1850,7 +1907,10 @@ export default function App() {
             </div>
           </div>
         ) : mode === 'database' ? (
-          <div className="flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative bg-bg-main">
+          <div className={cn(
+            "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
+            theme === 'dark' ? "bg-slate-950" : "bg-[#f8fafc]"
+          )}>
             {/* Decorative background glows for Database View */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 blur-[120px] rounded-full -mr-64 -mt-64 pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-emerald-500/5 blur-[120px] rounded-full -ml-64 -mb-64 pointer-events-none" />
@@ -1858,10 +1918,13 @@ export default function App() {
             <div className="max-w-6xl mx-auto space-y-8 relative z-10">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="space-y-1">
-                  <h1 className="text-xl sm:text-3xl font-black tracking-tight text-text-primary">
+                  <h1 className={cn(
+                    "text-xl sm:text-3xl font-black tracking-tight transition-colors duration-300",
+                    theme === 'dark' ? "text-white" : "text-slate-900"
+                  )}>
                     Base de Dados
                   </h1>
-                  <p className="text-text-muted text-[10px] sm:text-sm">Exibindo {filteredRecords.length} de {dbRecords.length} veículos.</p>
+                  <p className="text-slate-400 text-[10px] sm:text-sm">Exibindo {filteredRecords.length} de {dbRecords.length} veículos.</p>
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   {(filterSector !== 'ALL' || filterModel !== 'ALL' || filterController !== 'ALL' || filterDate !== 'ALL' || filterTime !== 'ALL' || filterExcelStatus !== 'ALL' || filterCarId) && (
@@ -1892,10 +1955,13 @@ export default function App() {
               </div>
 
               {/* Contextual Database Filters */}
-              <div className="p-4 rounded-[2rem] glass-card flex flex-wrap gap-4 items-center">
-                <div className="flex items-center gap-2 px-3 border-r border-border-subtle">
-                  <Filter className="w-4 h-4 text-text-muted" />
-                  <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">Filtros</span>
+              <div className={cn(
+                "p-4 rounded-[2rem] border backdrop-blur-3xl flex flex-wrap gap-4 items-center transition-all duration-300",
+                theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-xl"
+              )}>
+                <div className="flex items-center gap-2 px-3 border-r border-slate-500/20">
+                  <Filter className="w-4 h-4 text-slate-500" />
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Filtros</span>
                 </div>
                 <div className="flex-1 flex flex-wrap gap-3">
                   {[
@@ -1909,45 +1975,67 @@ export default function App() {
                         value={f.value}
                         onChange={e => f.setter(e.target.value)}
                         className={cn(
-                          "pl-3 pr-8 py-2 rounded-xl text-[10px] font-black focus:border-blue-500/50 focus:outline-none appearance-none cursor-pointer transition-all uppercase tracking-tighter",
-                          "bg-bg-surface border border-border-subtle text-text-secondary hover:border-border-bright",
-                          f.value !== 'ALL' && "text-blue-500 bg-blue-500/10 border-blue-500/20"
+                          "pl-3 pr-8 py-2 rounded-xl text-[10px] font-black bg-slate-500/5 border border-transparent focus:border-blue-500/50 focus:outline-none appearance-none cursor-pointer transition-all uppercase tracking-tighter",
+                          theme === 'dark' ? "text-slate-300" : "text-slate-600",
+                          f.value !== 'ALL' && "text-blue-500 bg-blue-500/5 border-blue-500/20"
                         )}
                       >
                         <option value="ALL">{f.label.toUpperCase()}: TODOS</option>
                         {f.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
-                      <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rotate-90 text-text-muted pointer-events-none" />
+                      <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rotate-90 text-slate-500 pointer-events-none" />
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="rounded-[2.5rem] border border-border-subtle overflow-hidden transition-all duration-300 custom-scrollbar-none sm:custom-scrollbar glass-card">
+              <div className={cn(
+                "rounded-[2.5rem] border overflow-x-auto transition-all duration-300 custom-scrollbar-none sm:custom-scrollbar backdrop-blur-3xl",
+                theme === 'dark' 
+                  ? "bg-slate-900/40 border-white/5 shadow-2xl shadow-black/40 ring-1 ring-white/5" 
+                  : "bg-white/60 border-slate-200 shadow-xl shadow-slate-200/50"
+              )}>
                 <table className="w-full text-left border-collapse min-w-[600px] sm:min-w-0">
                   <thead>
-                    <tr className="bg-bg-surface border-b border-border-subtle">
-                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">Carro</th>
-                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">Modelo</th>
-                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">Locação</th>
-                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">Setor</th>
-                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">Status</th>
-                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-text-muted text-right">Embarque</th>
+                    <tr className={cn(
+                      "transition-colors duration-300",
+                      theme === 'dark' ? "bg-white/5 border-b border-white/5" : "bg-slate-50 border-b border-slate-100"
+                    )}>
+                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Veículo</th>
+                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Modelo</th>
+                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Locação</th>
+                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Setor</th>
+                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Status</th>
+                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 text-right">Embarque</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border-subtle">
+                  <tbody className={cn(
+                    "divide-y transition-colors duration-300",
+                    theme === 'dark' ? "divide-slate-800" : "divide-slate-100"
+                  )}>
                     {filteredRecords.map(record => (
-                      <tr key={record.carId} className="hover:bg-bg-surface/50 transition-colors group">
-                        <td className="px-8 py-5 text-sm font-black text-text-primary">
+                      <tr key={record.carId} className={cn(
+                        "transition-colors duration-300 group",
+                        theme === 'dark' ? "hover:bg-white/5" : "hover:bg-slate-50/50"
+                      )}>
+                        <td className={cn(
+                          "px-8 py-5 text-sm font-black transition-colors duration-300",
+                          theme === 'dark' ? "text-white" : "text-slate-900"
+                        )}>
                           {record.carId}
                         </td>
-                        <td className="px-8 py-5 text-sm font-black text-text-muted">{record.model}</td>
+                        <td className="px-8 py-5 text-sm font-black text-slate-500/70">{record.model}</td>
                         <td className="px-8 py-5">
-                          <span className="px-3 py-1.5 rounded-xl text-[11px] font-black tabular-nums border border-border-subtle bg-bg-surface text-text-secondary transition-all duration-300">
+                          <span className={cn(
+                            "px-3 py-1.5 rounded-xl text-[11px] font-black tabular-nums border transition-all duration-300",
+                            theme === 'dark' 
+                              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 group-hover:glow-emerald" 
+                              : "bg-emerald-50 border-emerald-100 text-emerald-700"
+                          )}>
                             {record.location}
                           </span>
                         </td>
-                        <td className="px-8 py-5 text-[11px] font-black text-text-muted uppercase tracking-wider">{record.sectorName}</td>
+                        <td className="px-8 py-5 text-[11px] font-black text-slate-500 uppercase tracking-wider">{record.sectorName}</td>
                         <td className="px-8 py-5">
                           <div className="flex items-center gap-2">
                             <div className={cn(
@@ -1962,8 +2050,8 @@ export default function App() {
                             </span>
                           </div>
                         </td>
-                        <td className="px-8 py-5 text-[11px] font-black text-text-muted tabular-nums text-right">
-                          {record.embarkDate} <span className="opacity-40 mx-0.5 text-text-muted">•</span> {record.embarkTime}
+                        <td className="px-8 py-5 text-[11px] font-black text-slate-500/60 tabular-nums text-right">
+                          {record.embarkDate} <span className="opacity-40 mx-0.5">•</span> {record.embarkTime}
                         </td>
                       </tr>
                     ))}
@@ -1975,311 +2063,815 @@ export default function App() {
         ) : (
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Command Center & Filters */}
-            <header className="p-6 glass-card border-none flex flex-col sm:flex-row items-center justify-between gap-4 z-20 m-4 rounded-3xl">
-              <div className="flex items-center gap-3">
-                <div className="hidden md:flex items-center gap-3 pl-2">
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-[10px] font-black tracking-[0.2em] text-text-primary">LIVE</span>
-                    </div>
-                    <span className="text-[14px] font-black tabular-nums transition-colors text-text-primary">{dbRecords.length} <span className="text-[8px] font-bold text-text-muted tracking-widest uppercase">TPS</span></span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="w-px h-8 bg-white/10 mx-1 hidden md:block" />
-
-              {/* Universal Search Pod */}
-              <div className="flex-1 max-w-2xl relative group">
-                <div className="flex items-center gap-3 px-6 py-2.5 rounded-xl transition-all duration-300 border bg-bg-surface border-border-subtle hover:border-indigo-500/50 focus-within:border-indigo-500 shadow-inner">
-                  <Search className={cn("w-4 h-4 transition-colors", filterCarId ? "text-indigo-400" : "text-slate-500")} />
-                  <input 
-                    ref={searchInputRef}
-                    type="text"
-                    placeholder="Comando de Busca (ID do Veículo)"
-                    value={filterCarId}
-                    onChange={e => setFilterCarId(e.target.value)}
-                    className="w-full text-sm font-bold bg-transparent focus:outline-none placeholder:text-text-muted text-text-primary"
-                  />
-                  <div className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded border border-border-subtle bg-bg-main">
-                    <span className="text-[10px] font-black text-text-muted">⌘</span>
-                    <span className="text-[10px] font-black text-text-muted">K</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => setShowMobileFilters(!showMobileFilters)}
-                  className={cn(
-                    "p-3 rounded-xl transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group relative overflow-hidden glass-card",
-                    showMobileFilters ? "bg-indigo-600 text-white" : "bg-bg-surface text-text-muted border border-border-subtle"
-                  )}
-                >
-                  <Settings2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-                  <span className="text-[10px] font-black tracking-widest hidden lg:block uppercase">Filtros</span>
-                  { (filterSector !== 'ALL' || filterModel !== 'ALL' || filterStatus !== 'ALL' || filterExcelStatus !== 'ALL' || filterController !== 'ALL' || filterDate !== 'ALL' || filterTime !== 'ALL') && (
-                    <div className="absolute top-1 right-1 min-w-[1.25rem] h-5 px-1 bg-rose-500 rounded-full border-2 border-slate-950 flex items-center justify-center animate-bounce-subtle shadow-lg">
-                      <span className="text-[8px] font-black text-white">!</span>
-                    </div>
-                  )}
-                </button>
-
-                <div className="w-px h-8 bg-white/10 mx-1 hidden sm:block" />
-
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => setAutoRefresh(!autoRefresh)}
-                    className={cn(
-                      "p-3 rounded-2xl transition-all hover:scale-105 active:scale-95 relative glass-card",
-                      autoRefresh ? "text-emerald-500 border-emerald-500/30" : "text-text-muted border-border-subtle"
-                    )}
-                  >
-                    <RefreshCw className={cn("w-4 h-4", autoRefresh && "animate-spin-slow")} />
-                  </button>
-                  <button onClick={() => fetchData()} className="hidden sm:flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-900/40 active:scale-95 border border-indigo-400/20">
-                    <Database className="w-4 h-4" />
-                    <span>Sync</span>
-                  </button>
-                </div>
-              </div>
-            </header>
-
-            {/* Advanced Analytics Panel - Map Mode */}
-            <AnimatePresence>
-              {showMobileFilters && (
-                <motion.div
-                  initial={{ opacity: 0, y: -20, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -20, scale: 0.98 }}
-                  className="mx-4 mb-4"
-                >
-                  <div className="p-8 glass-card border-border-subtle rounded-[2.5rem] shadow-2xl flex flex-wrap items-end gap-8">
-                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-                      {[
-                        { label: 'Setor', value: filterSector, setter: setFilterSector, options: availableSectors, all: 'ALL' },
-                        { label: 'Modelo', value: filterModel, setter: setFilterModel, options: availableModels, all: 'ALL' },
-                        { label: 'Controlador', value: filterController, setter: setFilterController, options: availableControllers, all: 'ALL' },
-                        { label: 'Data Emb.', value: filterDate, setter: setFilterDate, options: availableDates, all: 'ALL' },
-                        { label: 'Hora Emb.', value: filterTime, setter: setFilterTime, options: availableTimes, all: 'ALL' },
-                        { label: 'Situação', value: filterExcelStatus, setter: setFilterExcelStatus, options: availableExcelStatuses, all: 'ALL' }
-                      ].map((filter) => (
-                        <div key={filter.label} className="flex flex-col gap-2">
-                          <span className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] pl-1">{filter.label}</span>
-                          <div className="relative group">
-                            <select 
-                              value={filter.value} 
-                              onChange={e => filter.setter(e.target.value)}
-                              className="w-full px-4 py-2.5 rounded-xl text-xs font-black border appearance-none cursor-pointer transition-all bg-bg-surface shadow-inner border-border-subtle text-text-primary focus:border-indigo-500/50"
-                            >
-                              <option value={filter.all}>TODOS</option>
-                              {filter.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                            </select>
-                            <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-3 rotate-90 text-slate-500 pointer-events-none" />
-                          </div>
+            <div className="p-4 lg:p-6 z-10 bg-slate-950/30 backdrop-blur-sm border-b border-white/5 shadow-md">
+              {/* Command Center Overlay */}
+              <div className={cn(
+                  "flex items-center gap-4 px-4 py-2.5 border rounded-[2rem] shadow-xl transition-all duration-500 w-full",
+                  theme === 'dark' 
+                    ? "bg-slate-900/60 border-white/10 shadow-black/60 ring-1 ring-white/5" 
+                    : "bg-white/90 border-slate-200 shadow-slate-200/50"
+                )}>
+                  {/* Left Section: Sidebar & Basic Stats */}
+                  <div className="flex items-center gap-3">
+                    <div className="hidden md:flex items-center gap-3 pl-2">
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className={cn("text-[10px] font-black tracking-[0.2em] transition-colors", theme === 'dark' ? "text-white" : "text-slate-900")}>LIVE</span>
                         </div>
-                      ))}
+                        <span className="text-[14px] font-black tabular-nums transition-colors">{dbRecords.length} <span className="text-[8px] font-bold text-slate-500 tracking-widest">TPS</span></span>
+                      </div>
                     </div>
-                    
-                    <button
-                      onClick={() => {
-                        setFilterSector('ALL'); setFilterModel('ALL'); setFilterStatus('ALL');
-                        setFilterExcelStatus('ALL'); setFilterController('ALL');
-                        setFilterDate('ALL'); setFilterTime('ALL'); setFilterCarId('');
-                      }}
-                      className="px-8 py-4 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-2xl transition-all border border-rose-500/20 active:scale-95 flex items-center gap-2 group"
-                    >
-                      <X className="w-4 h-4 group-hover:rotate-90 transition-transform" />
-                      <span className="text-[10px] font-black tracking-[0.2em] uppercase">Reset</span>
-                    </button>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
 
-            {/* Map Canvas Area */}
-            <div className="flex-1 relative w-full h-full overflow-hidden flex flex-col px-4">
-              <div className="flex-none pb-4 z-20 flex justify-between items-end">
-                <div>
-                  <h2 className="text-2xl font-black tracking-tight text-text-primary drop-shadow-glow uppercase tracking-wider">Locações Operacionais</h2>
-                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Mapeamento de fluxo em tempo real
-                  </p>
-                </div>
-                
-                <div className="flex items-center gap-2 p-1 rounded-2xl glass-card bg-bg-surface border-border-subtle backdrop-blur-3xl shadow-sm">
-                  {['geral', 'format'].map(group => (
-                    <button
-                      key={group}
-                      onClick={() => setActiveTabGroup(group as any)}
+                  <div className="w-px h-8 bg-slate-500/20 mx-1 hidden md:block" />
+
+                  {/* Center Section: Global Search Command */}
+                  <div className="flex-1 max-w-2xl relative group">
+                    <div className={cn(
+                      "flex items-center gap-3 px-6 py-2.5 rounded-xl transition-all duration-300 border",
+                      theme === 'dark' 
+                        ? "bg-black/20 border-white/10 hover:border-indigo-500/50 focus-within:border-indigo-500" 
+                        : "bg-slate-100/50 border-slate-200 hover:border-slate-300 focus-within:border-emerald-500 focus-within:bg-white"
+                    )}>
+                      <Search className={cn("w-4 h-4 transition-colors", filterCarId ? "text-emerald-500" : "text-slate-500")} />
+                      <input 
+                        ref={searchInputRef}
+                        type="text"
+                        placeholder="Comando de Busca (ID do Veículo)"
+                        value={filterCarId}
+                        onChange={e => setFilterCarId(e.target.value)}
+                        className={cn(
+                          "w-full text-sm font-bold bg-transparent focus:outline-none placeholder:text-slate-500/50",
+                          theme === 'dark' ? "text-white" : "text-slate-900"
+                        )}
+                      />
+                      <div className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded border border-slate-500/30 bg-slate-500/10">
+                        <span className="text-[10px] font-black text-slate-500">⌘</span>
+                        <span className="text-[10px] font-black text-slate-500">K</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Section: Toggles & Actions */}
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => setShowMobileFilters(!showMobileFilters)}
                       className={cn(
-                        "px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] transition-all",
-                        activeTabGroup === group ? "bg-bg-main text-text-primary shadow-lg ring-1 ring-border-subtle" : "text-text-muted hover:text-text-primary"
+                        "p-3 rounded-xl transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group relative overflow-hidden",
+                        showMobileFilters 
+                          ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30" 
+                          : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50")
                       )}
                     >
-                      {group === 'geral' ? 'Picking Geral' : 'Format. Carro'}
+                      <Settings2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                      <span className="text-[10px] font-black tracking-widest hidden lg:block">FILTROS</span>
+                      { (filterSector !== 'ALL' || filterModel !== 'ALL' || filterStatus !== 'ALL' || filterExcelStatus !== 'ALL' || filterController !== 'ALL' || filterDate !== 'ALL' || filterTime !== 'ALL') && (
+                        <div className="absolute top-1 right-1 min-w-[1.25rem] h-5 px-1 bg-rose-500 rounded-full border-2 border-slate-950 flex items-center justify-center animate-bounce-subtle">
+                          <span className="text-[8px] font-black text-white">{filteredRecords.length}</span>
+                        </div>
+                      )}
                     </button>
-                  ))}
-                  <div className="w-px h-6 bg-border-subtle mx-1" />
-                  <button onClick={() => setIsPresentationMode(!isPresentationMode)} className={cn("p-2.5 rounded-xl transition-all", isPresentationMode ? "bg-emerald-500 text-white" : "text-text-muted hover:bg-bg-surface")}>
-                    <MonitorPlay className="w-4 h-4" />
-                  </button>
+
+                    <div className="w-px h-8 bg-slate-500/20 mx-1 hidden sm:block" />
+
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setAutoRefresh(!autoRefresh)}
+                        className={cn(
+                          "p-3 rounded-2xl transition-all hover:scale-105 active:scale-95 relative",
+                          autoRefresh 
+                            ? "bg-slate-800 text-emerald-400 border border-emerald-500/30" 
+                            : "bg-slate-800/40 text-slate-500 border border-white/5"
+                        )}
+                      >
+                        <RefreshCw className={cn("w-4 h-4", autoRefresh && "animate-spin-slow")} />
+                        {autoRefresh && (
+                          <div className="absolute -top-1 -right-1 flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                          </div>
+                        )}
+                      </button>
+                      
+                      <button 
+                        onClick={() => fetchData()}
+                        className={cn(
+                          "hidden sm:flex p-3 rounded-xl transition-all hover:scale-105 active:scale-95 border",
+                          theme === 'dark' ? "bg-slate-800 border-white/10 text-white" : "bg-white border-slate-200 text-slate-900 shadow-sm hover:bg-slate-50"
+                        )}
+                      >
+                        <Database className="w-4 h-4 mr-2" />
+                        <span className="text-[10px] font-black tracking-widest">SYNC</span>
+                      </button>
+                    </div>
+                  </div>
+              </div>
+
+              {/* Advanced Filter Hub - Collapsible */}
+              <AnimatePresence>
+                {showMobileFilters && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                    className="mt-3"
+                  >
+                    <div className={cn(
+                      "p-4 sm:p-5 backdrop-blur-3xl border rounded-[1.5rem] shadow-2xl flex flex-wrap items-end gap-5",
+                      theme === 'dark' 
+                        ? "bg-slate-900/90 border-white/10 shadow-black/60" 
+                        : "bg-white border-slate-200 shadow-xl shadow-slate-200/40"
+                    )}>
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {/* Custom Select Wrapper Component Logic */}
+                        {[
+                          { label: 'Setor', value: filterSector, setter: setFilterSector, options: availableSectors, all: 'ALL' },
+                          { label: 'Modelo', value: filterModel, setter: setFilterModel, options: availableModels, all: 'ALL' },
+                          { label: 'Controlador', value: filterController, setter: setFilterController, options: availableControllers, all: 'ALL' },
+                          { label: 'Data Emb.', value: filterDate, setter: setFilterDate, options: availableDates, all: 'ALL' },
+                          { label: 'Hora Emb.', value: filterTime, setter: setFilterTime, options: availableTimes, all: 'ALL' },
+                          { label: 'Situação', value: filterExcelStatus, setter: setFilterExcelStatus, options: availableExcelStatuses, all: 'ALL' }
+                        ].map((filter) => (
+                           <div key={filter.label} className="flex flex-col gap-1.5">
+                             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest pl-1">{filter.label}</span>
+                            <div className="relative group">
+                              <select 
+                                value={filter.value} 
+                                onChange={e => filter.setter(e.target.value)}
+                                className={cn(
+                                 "w-full px-4 py-2 rounded-xl text-[11px] font-bold bg-slate-500/5 border border-slate-500/10 focus:border-indigo-500 focus:bg-white/5 focus:outline-none appearance-none cursor-pointer transition-all",
+                                 theme === 'dark' ? "text-white" : "text-slate-800"
+                               )}
+                              >
+                                <option value={filter.all}>TODOS</option>
+                                {filter.options.map(opt => {
+                                  let label = opt;
+                                  if (filter.label === 'Setor') {
+                                    const total = dbRecords.filter(r => r.sectorName === opt).length;
+                                    const embarked = dbRecords.filter(r => r.sectorName === opt && r.status === 'EMBARCADO').length;
+                                    const percent = Math.round((embarked / (total || 1)) * 100);
+                                    label = `${opt} (${percent}%)`;
+                                  }
+                                  return <option key={opt} value={opt}>{label}</option>;
+                                })}
+                              </select>
+                              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                                <ChevronRight className="w-3 h-3 rotate-90" />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Filter Stats Indicator */}
+                      <div className="flex flex-col items-center justify-center px-5 py-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 min-w-[120px]">
+                        <span className="text-[8px] font-bold text-emerald-500 uppercase tracking-[0.2em] mb-0.5">Encontrados</span>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-black text-emerald-400 tabular-nums">
+                            {filteredRecords.length}
+                          </span>
+                          <span className="text-[9px] font-bold text-emerald-500/60 lowercase">unidades</span>
+                        </div>
+                      </div>
+
+                      {/* Clear Actions */}
+                       <button
+                        onClick={() => {
+                          setFilterSector('ALL');
+                          setFilterModel('ALL');
+                          setFilterStatus('ALL');
+                          setFilterExcelStatus('ALL');
+                          setFilterController('ALL');
+                          setFilterDate('ALL');
+                          setFilterTime('ALL');
+                          setFilterCarId('');
+                        }}
+                        className="p-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl transition-all shadow-lg shadow-rose-500/20 active:scale-95 flex items-center gap-2 group"
+                      >
+                        <X className="w-4 h-4 group-hover:rotate-90 transition-transform" />
+                        <span className="text-[9px] font-bold tracking-[0.2em]">RESET</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            
+            {/* Map Area */}
+            {/* Map Area */}
+            <div className={cn(
+              "flex-1 relative w-full h-full overflow-hidden flex flex-col transition-colors duration-300",
+              theme === 'dark' ? "bg-slate-950" : "bg-[#f8fafc]"
+            )}>
+              {/* Map Header & Tabs */}
+              <div className="flex-none p-4 pb-0 z-20">
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <h2 className={cn("text-xl font-bold tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
+                      Monitoramento de Unidades
+                    </h2>
+                    <p className={cn("text-[10px] font-bold uppercase tracking-[0.2em]", theme === 'dark' ? "text-slate-400" : "text-slate-500")}>
+                      Operação em Tempo Real
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between gap-4">
+                    {/* Tabs (Segmented Control style) */}
+                     <div className={cn(
+                       "flex items-center p-1 rounded-xl w-fit transition-all duration-300 relative",
+                       theme === 'dark' ? "bg-slate-900 border border-slate-800 shadow-inner" : "bg-slate-200/50 border border-slate-200/50 shadow-inner"
+                     )}>
+                       {['geral', 'format'].map((group) => (
+                         <button
+                           key={group}
+                           onClick={() => setActiveTabGroup(group as any)}
+                           className={cn(
+                             "px-6 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all relative z-10 h-[32px] flex items-center justify-center min-w-[140px]",
+                             activeTabGroup === group 
+                               ? (theme === 'dark' ? "text-white" : "text-slate-900") 
+                               : "text-slate-500 hover:text-slate-700"
+                           )}
+                         >
+                           {activeTabGroup === group && (
+                             <motion.div
+                               layoutId="activeTabPill"
+                               className={cn(
+                                 "absolute inset-0 rounded-lg shadow-sm backdrop-blur-sm",
+                                 theme === 'dark' ? "bg-slate-800 ring-1 ring-white/10" : "bg-white"
+                               )}
+                               transition={{ type: "spring", bounce: 0.1, duration: 0.6 }}
+                             />
+                           )}
+                           <span className="relative z-20">
+                             {group === 'geral' ? 'Geral' : 'Formatado'}
+                           </span>
+                         </button>
+                       ))}
+
+                      <div className="w-px h-4 bg-slate-400/20 mx-1" />
+
+                      <button
+                        onClick={() => setIsPresentationMode(!isPresentationMode)}
+                        className={cn(
+                          "px-6 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 relative z-10 h-[32px]",
+                          isPresentationMode 
+                            ? "text-indigo-600" 
+                            : "text-slate-500 hover:text-slate-700"
+                        )}
+                      >
+                        {isPresentationMode && (
+                          <motion.div
+                            layoutId="activeTabPill"
+                            className={cn(
+                              "absolute inset-0 rounded-lg shadow-sm backdrop-blur-sm",
+                              theme === 'dark' ? "bg-slate-800 ring-1 ring-indigo-500/20" : "bg-white"
+                            )}
+                            transition={{ type: "spring", bounce: 0.1, duration: 0.6 }}
+                          />
+                        )}
+                        <div className="relative z-20 flex items-center gap-2">
+                          <Play className={cn("w-3 h-3", isPresentationMode ? "fill-current" : "")} />
+                          APRESENTAÇÃO
+                        </div>
+                      </button>
+                    </div>
+
+                    {/* Speed Control Slider (Integrated) */}
+                    <AnimatePresence>
+                      {isPresentationMode && (
+                        <motion.div 
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -10 }}
+                          className={cn(
+                            "flex items-center gap-3 px-4 py-1.5 rounded-xl border transition-all h-[40px]",
+                            theme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200 shadow-sm"
+                          )}
+                        >
+                          <span className={cn("text-[9px] font-mono font-bold uppercase tracking-widest", theme === 'dark' ? "text-slate-400" : "text-slate-500")}>
+                            Velocidade
+                          </span>
+                          <input
+                            type="range"
+                            min="0.01"
+                            max="0.80"
+                            step="0.01"
+                            value={presentationSpeed}
+                            onChange={(e) => setPresentationSpeed(parseFloat(e.target.value))}
+                            className="w-24 h-1 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-auto custom-scrollbar relative w-full h-full rounded-[2.5rem] glass-card border-none shadow-2xl bg-bg-surface/5" ref={scrollContainerRef}>
-                <div className="min-w-[4000px] min-h-[1200px] w-full h-full relative" onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
+              {/* Scrollable Map Container */}
+              <div 
+                className="flex-1 overflow-auto custom-scrollbar relative w-full h-full mt-2"
+                ref={scrollContainerRef}
+              >
+                <div className="min-w-[10000px] min-h-[1200px] w-full h-full relative" 
+                     ref={containerRef}
+                     onMouseDown={handleMouseDown}
+                     onMouseMove={handleMouseMove}
+                     onMouseUp={handleMouseUp}
+                     onMouseLeave={handleMouseUp}>
+                  
+                  {/* Interactive Overlay */}
                   <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible" style={{ zIndex: 10 }}>
-                    {bays.filter(bay => (bay.tabGroup || 'geral') === activeTabGroup).map(bay => {
-                      const isSelected = selectedBayId === bay.id;
-                      const carsInBay = sortedCarsByLocation[bay.name] || [];
-                      const occupancyRatio = carsInBay.length / (bay.capacity || 1);
-                      const displayBay = (isSelected && tempBay) ? tempBay : bay;
-                      
-                      let color = 'emerald';
-                      if (occupancyRatio >= 1) color = 'rose';
-                      else if (occupancyRatio > 0.5) color = 'amber';
+                    {/* Visual Scale Ruler */}
+                    {(isDrawing || isResizing) && (
+                      <g className="opacity-50">
+                      {/* Horizontal Ruler (Top) */}
+                      {Array.from({ length: 21 }).map((_, i) => {
+                        const x = i * 5;
+                        return (
+                          <g key={`hx-${x}`}>
+                            <line 
+                              x1={`${x}%`} y1="0" x2={`${x}%`} y2="1.5%" 
+                              className="stroke-white stroke-[0.5]" 
+                            />
+                            {i % 2 === 0 && (
+                              <text 
+                                x={`${x}%`} y="3%" 
+                                className="fill-white text-[8px] font-mono" 
+                                textAnchor="middle"
+                              >
+                                {x}%
+                              </text>
+                            )}
+                          </g>
+                        );
+                      })}
+                      {/* Vertical Ruler (Left) */}
+                      {Array.from({ length: 21 }).map((_, i) => {
+                        const y = i * 5;
+                        return (
+                          <g key={`vy-${y}`}>
+                            <line 
+                              x1="0" y1={`${y}%`} x2="1.5%" y2={`${y}%`} 
+                              className="stroke-white stroke-[0.5]" 
+                            />
+                            {i % 2 === 0 && (
+                              <text 
+                                x="2%" y={`${y}%`} 
+                                className="fill-white text-[8px] font-mono" 
+                                alignmentBaseline="middle"
+                              >
+                                {y}%
+                              </text>
+                            )}
+                          </g>
+                        );
+                      })}
+                    </g>
+                  )}
 
-                      return (
-                        <g key={bay.id} className="pointer-events-auto cursor-pointer group" onClick={(e) => { e.stopPropagation(); setSelectedBayId(bay.id); }}>
-                          <rect x={`${displayBay.x}%`} y={`${displayBay.y}%`} width={`${displayBay.width}%`} height={`${displayBay.height}%`} rx="12" className={cn("transition-all duration-300", isSelected ? "fill-indigo-500/20" : "fill-bg-surface shadow-2xl")} />
-                          <foreignObject x={`${displayBay.x}%`} y={`${displayBay.y}%`} width={`${displayBay.width}%`} height={`${displayBay.height}%`}>
-                            <div className="w-full h-full flex flex-col p-3 overflow-hidden">
-                              <div className="text-[11px] font-black uppercase text-center text-text-primary mb-2 tracking-widest">{displayBay.name}</div>
-                              <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 p-4 bg-bg-main/40 rounded-3xl border border-border-subtle/50 overflow-hidden shadow-inner">
-                                {carsInBay.map((car, idx) => (
-                                  <motion.div 
-                                    key={`${car.carId}-${idx}`} 
-                                    onMouseEnter={(e) => setHoveredCar({ car, x: e.clientX, y: e.clientY })} 
-                                    onMouseLeave={() => setHoveredCar(null)} 
-                                    className={cn(
-                                      "aspect-square rounded-xl border-2 transition-all duration-500 relative group/car shadow-md hover:scale-125 hover:z-50 cursor-pointer", 
-                                      getSlaStatus(car).isLate 
-                                        ? "bg-gradient-to-br from-rose-500 to-rose-600 border-rose-300/40 shadow-rose-900/20" 
-                                        : "bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-300/40 shadow-emerald-900/20"
-                                    )}
-                                  >
-                                    <div className="absolute inset-0 bg-white/20 opacity-0 group-hover/car:opacity-100 transition-opacity rounded-[10px]" />
-                                    <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white drop-shadow-sm tracking-tight text-center truncate px-1">
-                                      {car.carId?.slice(-3)}
-                                    </span>
-                                  </motion.div>
-                                ))}
-                                {Array.from({ length: Math.max(0, (bay.capacity || 0) - (carsInBay.length || 0)) }).map((_, i) => (
-                                  <div key={`empty-${i}`} className="aspect-square border border-dashed border-border-subtle/30 bg-bg-main/10 rounded-[8px]" />
-                                ))}
+                  {bays.filter(bay => (bay.tabGroup || 'geral') === activeTabGroup).map(bay => {
+                    const isSelected = selectedBayId === bay.id;
+                    const carsInBay = dbRecords
+                      .filter(r => r.location === bay.name)
+                      .sort((a, b) => {
+                        const dateA = parseExcelDate(a.embarkDate, a.embarkTime);
+                        const dateB = parseExcelDate(b.embarkDate, b.embarkTime);
+                        if (!dateA && !dateB) return 0;
+                        if (!dateA) return 1;
+                        if (!dateB) return -1;
+                        return dateA.getTime() - dateB.getTime();
+                      });
+
+                    const occupancyRatio = carsInBay.length / bay.capacity;
+                    const displayBay = (isSelected && tempBay) ? tempBay : bay;
+                    
+                    let color = 'emerald';
+                    if (occupancyRatio >= 1) color = 'rose';
+                    else if (occupancyRatio > 0.5) color = 'amber';
+
+                    return (
+                      <g 
+                        key={bay.id} 
+                        className={cn(
+                          "pointer-events-auto cursor-pointer group",
+                          (isDragging || isResizing || isDrawing) && "pointer-events-none"
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedBayId(bay.id);
+                        }}
+                      >
+                        <rect
+                          x={`${displayBay.x}%`}
+                          y={`${displayBay.y}%`}
+                          width={`${displayBay.width}%`}
+                          height={`${displayBay.height}%`}
+                          className={cn(
+                            "transition-all duration-300",
+                            isSelected ? "stroke-2" : "stroke-0", // No stroke by default
+                            "fill-transparent",
+                            isSelected && (theme === 'dark' ? "fill-white/5 stroke-white" : "fill-emerald-500/5 stroke-emerald-500")
+                          )}
+                        />
+                        <foreignObject
+                          x={`${displayBay.x}%`}
+                          y={`${displayBay.y}%`}
+                          width={`${displayBay.width}%`}
+                          height={`${displayBay.height}%`}
+                        >
+                          <div className="w-full h-full flex flex-col items-center justify-start p-1 overflow-hidden">
+                            <div className="flex flex-col items-center justify-center py-1.5 w-full">
+                              <div className={cn(
+                                "text-[12px] font-black uppercase tracking-tight truncate w-full text-center transition-colors duration-300",
+                                isSelected 
+                                  ? (theme === 'dark' ? "text-white" : "text-emerald-700") 
+                                  : (theme === 'dark' ? "text-slate-300" : "text-slate-600")
+                              )}>
+                                {displayBay.name}
                               </div>
-                              <div className="w-full h-2 bg-bg-main/60 rounded-full mt-3 overflow-hidden shadow-inner border border-border-subtle/30">
-                                <div className={cn("h-full transition-all duration-1000 rounded-full shadow-[0_0_10px_rgba(var(--glow-color))]", 
-                                  color === 'rose' ? "bg-rose-500" : color === 'amber' ? "bg-amber-500" : "bg-emerald-500"
-                                )} style={{ 
-                                  width: `${Math.min(100, occupancyRatio * 100)}%`,
-                                  // @ts-ignore
-                                  '--glow-color': color === 'rose' ? '244,63,94,0.4' : color === 'amber' ? '245,158,11,0.4' : '16,185,129,0.4'
-                                }} />
+                              <div className={cn(
+                                "text-[9px] font-bold uppercase tracking-widest truncate w-full text-center leading-none opacity-60",
+                                isSelected ? "text-emerald-400" : (theme === 'dark' ? "text-slate-500" : "text-slate-400")
+                              )}>
+                                {displayBay.sector || 'Sem Setor'}
                               </div>
                             </div>
-                          </foreignObject>
-                          {isSelected && (
-                            <g className="pointer-events-none">
-                              <rect x={`${displayBay.x}%`} y={`${displayBay.y}%`} width={`${displayBay.width}%`} height={`${displayBay.height}%`} fill="none" stroke="#6366f1" strokeWidth="2" strokeDasharray="6,3" className="animate-pulse" />
-                              <rect x={`${displayBay.x + displayBay.width - 0.8}%`} y={`${displayBay.y + displayBay.height - 0.8}%`} width="1.6%" height="1.6%" fill="#6366f1" rx="4" className="pointer-events-auto cursor-nwse-resize" onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(bay, e); }} />
-                            </g>
-                          )}
-                        </g>
-                      )
-                    })}
-                    {isDrawing && currentRect && (
-                      <rect x={`${currentRect.x}%`} y={`${currentRect.y}%`} width={`${currentRect.w}%`} height={`${currentRect.h}%`} className="fill-indigo-500/20 stroke-indigo-500 stroke-2 border-dashed animate-pulse" />
-                    )}
-                  </svg>
-                </div>
+
+                            {/* Ruler / Capacity Indicator (Vertical Slots) */}
+                            <div className={cn(
+                              "flex-1 w-full flex mt-0.5 rounded-sm custom-scrollbar mb-1 relative transition-colors duration-300",
+                              displayBay.orientation === 'horizontal' ? "flex-row overflow-x-auto overflow-y-hidden" : "flex-col overflow-y-auto overflow-x-hidden",
+                              theme === 'dark' 
+                                ? "bg-transparent" 
+                                : "bg-transparent"
+                            )}>
+                              {Array.from({ length: Math.max(displayBay.capacity, carsInBay.length) }).map((_, i, arr) => {
+                                const totalSlots = arr.length;
+                                const isOverflow = i >= displayBay.capacity; // Slots extras além da capacidade física
+                                const carIndex = i; // Stack from top down
+                                const car = carsInBay[carIndex];
+                                
+                                // Checking Filters
+                                let isVisible = true;
+                                let slaInfo = car ? getSlaStatus(car) : null;
+                                
+                                if (car) {
+                                  if (filterModel !== 'ALL' && car.model !== filterModel) isVisible = false;
+                                  if (filterSector !== 'ALL' && car.sectorName !== filterSector) isVisible = false;
+                                  if (filterExcelStatus !== 'ALL' && car.status !== filterExcelStatus) isVisible = false;
+                                  if (filterController !== 'ALL' && car.controller !== filterController) isVisible = false;
+                                  if (filterDate !== 'ALL' && car.embarkDate !== filterDate) isVisible = false;
+                                  if (filterTime !== 'ALL' && car.embarkTime !== filterTime) isVisible = false;
+                                  if (filterCarId !== '' && !car.carId.toLowerCase().includes(filterCarId.toLowerCase())) isVisible = false;
+                                  if (filterStatus !== 'ALL') {
+                                    if (filterStatus === 'LATE' && !slaInfo?.isLate) isVisible = false;
+                                    if (filterStatus === 'NEXT' && slaInfo?.text !== 'PRÓX. EMB.') isVisible = false;
+                                    if (filterStatus === 'ONTIME' && slaInfo?.text !== 'NO PRAZO') isVisible = false;
+                                  }
+                                }
+                                
+                                const isWrongSector = car && displayBay.sector && car.sectorName !== displayBay.sector;
+                                
+                                return (
+                                  <div 
+                                    key={i}
+                                    style={displayBay.orientation === 'horizontal' ? {
+                                      width: displayBay.slotHeight ? `${displayBay.slotHeight * 3}px` : `84px`, // roughly aspect ratio
+                                      minWidth: displayBay.slotHeight ? `${displayBay.slotHeight * 3}px` : `84px`
+                                    } : { 
+                                      height: displayBay.slotHeight ? `${displayBay.slotHeight}px` : `28px`,
+                                      minHeight: displayBay.slotHeight ? `${displayBay.slotHeight}px` : `28px` 
+                                    }}
+                                    className={cn(
+                                      "flex items-center shrink-0",
+                                      displayBay.orientation === 'horizontal' ? "h-full flex-col px-1.5 py-1.5 gap-1.5 mr-[3px] justify-center" : "w-full flex-row px-1.5 gap-1.5 mb-[3px]",
+                                      isOverflow && "bg-rose-950/40 border border-rose-500/40 border-dashed rounded-sm",
+                                      !isVisible && "opacity-[0.05] saturate-0 pointer-events-none" 
+                                    )}
+                                  >
+                                    <span className={cn(
+                                      "text-[8px] font-bold shrink-0 drop-shadow-md",
+                                      displayBay.orientation === 'horizontal' ? "w-full text-center" : "w-4 text-right",
+                                      isOverflow ? "text-rose-400" : "text-slate-500"
+                                    )}>
+                                      {i + 1}
+                                    </span>
+                                    <div className={cn(
+                                      "rounded-[4px] transition-all duration-300 overflow-hidden shadow-sm border flex items-center justify-center",
+                                      displayBay.orientation === 'horizontal' ? "w-full flex-1" : "flex-1 h-full",
+                                      car 
+                                        ? (theme === 'dark'
+                                            ? (isWrongSector ? "bg-gradient-to-r from-fuchsia-600/90 to-purple-600/90 border-fuchsia-500/50" : color === 'rose' ? "bg-gradient-to-r from-rose-600/90 to-red-600/90 border-rose-500/50" : color === 'amber' ? "bg-gradient-to-r from-amber-600/90 to-orange-500/90 border-amber-500/50" : "bg-gradient-to-r from-emerald-600/90 to-teal-500/90 border-emerald-500/50")
+                                            : (isWrongSector 
+                                                ? "bg-amber-50/40 border-amber-200 shadow-sm" 
+                                                : "bg-white border-slate-200 shadow-sm")
+                                          )
+                                        : "bg-transparent border-transparent", // Clean empty slots
+                                      car && "hover:scale-[1.03] hover:shadow-lg hover:z-10 hover:brightness-110 cursor-help"
+                                    )}
+                                    onMouseEnter={(e) => {
+                                      if (car) {
+                                        setHoveredCar({ car, x: e.clientX, y: e.clientY });
+                                      }
+                                    }}
+                                    onMouseMove={(e) => {
+                                      if (car) {
+                                        setHoveredCar({ car, x: e.clientX, y: e.clientY });
+                                      }
+                                    }}
+                                    onMouseLeave={() => setHoveredCar(null)}
+                                    >
+                                      {car && (
+                                        <div className={cn("w-full h-full flex px-1.5 gap-1", displayBay.orientation === 'horizontal' ? "flex-col items-center justify-center py-1" : "flex-row items-center justify-between")}>
+                                          <div className={cn("flex items-center min-w-0 flex-1 gap-1.5", displayBay.orientation === 'horizontal' && "justify-center mb-0.5 w-full")}>
+                                            {isWrongSector ? (
+                                              <AlertTriangle className={cn("shrink-0 animate-pulse", displayBay.orientation === 'horizontal' ? "w-4 h-4" : "w-3 h-3", theme === 'dark' ? "text-white" : "text-amber-500")} />
+                                            ) : slaInfo?.isLate ? (
+                                              <Clock className={cn("shrink-0", displayBay.orientation === 'horizontal' ? "w-4 h-4" : "w-3 h-3", theme === 'dark' ? "text-white/80" : "text-rose-400")} />
+                                            ) : (
+                                              <div className={cn("rounded-full shrink-0", displayBay.orientation === 'horizontal' ? "w-2.5 h-2.5" : "w-1.5 h-1.5", theme === 'dark' ? "bg-white/40" : "bg-emerald-400/60")} />
+                                            )}
+                                            {(!displayBay.orientation || displayBay.orientation === 'vertical') && (
+                                              <span className={cn("font-mono font-bold leading-none truncate text-[11px] tracking-tight", theme === 'dark' ? "text-white drop-shadow-sm" : "text-slate-900")}>
+                                                {car.carId}
+                                              </span>
+                                            )}
+                                          </div>
+                                          
+                                          {/* SLA & Time Indicator */}
+                                          {(!displayBay.slotHeight || displayBay.slotHeight >= 20 || displayBay.orientation === 'horizontal') && (
+                                            <div className={cn("flex shrink-0 overflow-hidden", displayBay.orientation === 'horizontal' ? "w-full flex-col items-center gap-0.5 mt-auto" : "items-center justify-end ml-auto gap-1.5")}>
+                                              <span className={cn("text-[8px] font-mono font-medium tracking-tight truncate", theme === 'dark' ? "text-white/90 drop-shadow-sm" : "text-slate-500")}>
+                                                {displayBay.orientation === 'horizontal' ? car.carId : car.embarkTime}
+                                              </span>
+                                              {(() => {
+                                                const sla = slaInfo || getSlaStatus(car);
+                                                return (
+                                                  <div className={cn("rounded-full text-[7px] font-bold uppercase whitespace-nowrap border text-center",
+                                                    displayBay.orientation === 'horizontal' ? "w-full px-1 py-[1px] leading-tight text-[6px]" : "px-1.5 py-[2px]",
+                                                    theme === 'dark' 
+                                                      ? (sla.text === 'ATRASADO' ? "bg-rose-500 text-white border-rose-400/50 shadow-[0_0_8px_rgba(244,63,94,0.6)]" : sla.text === 'PRÓX. EMB.' ? "bg-amber-500 text-white border-amber-400/50 shadow-[0_0_8px_rgba(245,158,11,0.6)]" : "bg-emerald-500 text-white border-emerald-400/50 shadow-[0_0_8px_rgba(16,185,129,0.6)]")
+                                                      : (sla.text === 'ATRASADO' ? "bg-rose-50 text-rose-600 border-rose-100" : sla.text === 'PRÓX. EMB.' ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-emerald-50 text-emerald-600 border-emerald-100")
+                                                  )}>
+                                                    {sla.text}
+                                                  </div>
+                                                );
+                                              })()}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            
+                            {(isResizing || isDrawing) && isSelected && (
+                              <div className="absolute top-0 right-0 transform translate-x-full bg-blue-600 text-white text-[7px] px-1 rounded font-bold animate-pulse z-50">
+                                {displayBay.capacity} VAGAS
+                              </div>
+                            )}
+                          </div>
+                        </foreignObject>
+                        
+                        {isSelected && mode === 'edit' && (
+                          <rect
+                            x={`${displayBay.x + displayBay.width - 2}%`}
+                            y={`${displayBay.y + displayBay.height - 2}%`}
+                            width="2%"
+                            height="2%"
+                            className="fill-white stroke-blue-500 stroke-[0.5] cursor-nwse-resize hover:fill-blue-500 transition-colors pointer-events-auto"
+                          />
+                        )}
+                      </g>
+                    );
+                  })}
+
+                  {currentRect && (
+                    <g>
+                      <rect
+                        x={`${currentRect.x}%`}
+                        y={`${currentRect.y}%`}
+                        width={`${currentRect.w}%`}
+                        height={`${currentRect.h}%`}
+                        className="fill-emerald-500/20 stroke-emerald-500 stroke-2 stroke-dasharray-[4,4] animate-[dash_1s_linear_infinite]"
+                      />
+                      <foreignObject
+                        x={`${currentRect.x}%`}
+                        y={`${currentRect.y}%`}
+                        width={`${currentRect.w}%`}
+                        height={`${currentRect.h}%`}
+                      >
+                        <div className="w-full h-full flex items-center justify-center">
+                          <div className="bg-emerald-600 text-white text-[8px] px-1.5 py-0.5 rounded font-bold shadow-lg">
+                            {Math.max(1, Math.floor(currentRect.h / 2.5))} VAGAS
+                          </div>
+                        </div>
+                      </foreignObject>
+                    </g>
+                  )}
+                </svg>
               </div>
             </div>
           </div>
-        )}
-      </div>
-
+        </div>
+      )}
+            {/* Hover Tooltip */}
+            <AnimatePresence>
+                {hoveredCar && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className={cn(
+                      "fixed z-[100] pointer-events-none p-3 rounded-xl border shadow-2xl backdrop-blur-md transition-colors duration-300",
+                      theme === 'dark' ? "bg-slate-900/90 border-slate-700" : "bg-white/90 border-slate-200"
+                    )}
+                    style={{ 
+                      left: hoveredCar.x + 15, 
+                      top: hoveredCar.y + 15,
+                      minWidth: '180px'
+                    }}
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between border-b border-slate-700/30 pb-1.5 mb-1.5">
+                        <span className={cn(
+                          "text-[10px] font-mono font-bold uppercase tracking-widest",
+                          theme === 'dark' ? "text-indigo-400" : "text-indigo-600"
+                        )}>
+                          Unit Monitor
+                        </span>
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      </div>
+                      
+                      <div className="grid grid-cols-1 gap-1.5">
+                        {[
+                          { id: 'carId', label: 'ID', icon: <Hash className="w-3 h-3" /> },
+                          { id: 'model', label: 'Modelo', icon: <Box className="w-3 h-3" /> },
+                          { id: 'status', label: 'Status', icon: <Activity className="w-3 h-3" /> },
+                          { id: 'sectorName', label: 'Setor', icon: <MapPin className="w-3 h-3" /> },
+                          { id: 'embarkDate', label: 'Data', icon: <Calendar className="w-3 h-3" /> },
+                          { id: 'embarkTime', label: 'Hora', icon: <Clock className="w-3 h-3" /> },
+                          { id: 'carPhysical', label: 'Físico', icon: <Truck className="w-3 h-3" /> },
+                          { id: 'sectorId', label: 'ID Setor', icon: <Database className="w-3 h-3" /> },
+                        ].filter(f => hoverConfig[f.id]).map(field => (
+                          <div key={field.id} className="flex items-start gap-2">
+                            <div className="mt-0.5 text-slate-500">
+                              {field.icon}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter leading-none mb-0.5">
+                                {field.label}
+                              </span>
+                              <span className={cn(
+                                "text-[10px] font-mono font-bold transition-colors duration-300",
+                                theme === 'dark' ? "text-white" : "text-slate-900"
+                              )}>
+                                {(hoveredCar.car as any)[field.id] || '---'}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+        {/* Import Modal */}
         <AnimatePresence>
-          {hoveredCar && (
-            <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 10 }} className="fixed z-[100] pointer-events-none p-6 rounded-[2.5rem] glass-card border-border-bright/20 shadow-2xl min-w-[280px]" style={{ left: hoveredCar.x + 24, top: hoveredCar.y + 24 }}>
-              <div className="space-y-5">
-                <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400">Status Operacional</span>
-                    <span className={cn("text-[11px] font-black uppercase tracking-widest mt-0.5", getSlaStatus(hoveredCar.car).isLate ? "text-rose-500" : "text-emerald-500")}>
-                      {getSlaStatus(hoveredCar.car).text}
-                    </span>
-                  </div>
-                  <div className={cn("w-3 h-3 rounded-full animate-pulse shadow-[0_0_12px_rgba(var(--glow-color))]", 
-                    getSlaStatus(hoveredCar.car).isLate ? "bg-rose-500" : "bg-emerald-500"
-                  )} style={{
-                    // @ts-ignore
-                    '--glow-color': getSlaStatus(hoveredCar.car).isLate ? '244,63,94,0.6' : '16,185,129,0.6'
-                  }} />
-                </div>
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[9px] font-black text-text-muted uppercase tracking-widest leading-tight">Identificação</span>
-                    <span className="text-3xl font-black text-text-primary tabular-nums tracking-tighter drop-shadow-sm">{hoveredCar.car.carId}</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 pt-1">
-                    <div className="flex flex-col">
-                      <span className="text-[9px] font-black text-text-muted uppercase tracking-widest leading-tight">Modelo</span>
-                      <span className="text-[11px] font-bold text-text-secondary truncate">{hoveredCar.car.model}</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[9px] font-black text-text-muted uppercase tracking-widest leading-tight">Setor</span>
-                      <span className="text-[11px] font-bold text-text-secondary truncate">{hoveredCar.car.sectorName}</span>
-                    </div>
-                  </div>
-                  <div className="bg-indigo-500/5 rounded-2xl p-3 border border-indigo-500/10 mt-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Clock className="w-3 h-3 text-indigo-400" />
-                      <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Embarque Previsto</span>
-                    </div>
-                    <span className="text-sm font-black text-text-primary tabular-nums">
-                      {hoveredCar.car.embarkDate} <span className="opacity-30 mx-1">•</span> {hoveredCar.car.embarkTime}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
           {showImport && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-bg-main/80 backdrop-blur-xl" onClick={() => setShowImport(false)} />
-              <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-3xl glass-card rounded-[3rem] shadow-2xl border-border-subtle overflow-hidden">
-                <div className="p-8 border-b border-border-subtle flex justify-between items-center bg-bg-surface/50">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-indigo-500/10 rounded-2xl"><FileSpreadsheet className="w-6 h-6 text-indigo-500" /></div>
-                    <h2 className="text-xl font-black text-text-primary uppercase tracking-tight">Importar Dados Excel</h2>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowImport(false)}
+                className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+              />
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className={cn(
+                  "relative w-full max-w-2xl border rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] overflow-hidden transition-colors duration-300 backdrop-blur-3xl",
+                  theme === 'dark' 
+                    ? "bg-slate-900/60 border-white/10 ring-1 ring-inset ring-white/5" 
+                    : "bg-white/80 border-white shadow-slate-300/40 ring-1 ring-inset ring-black/5"
+                )}
+              >
+                <div className={cn(
+                  "p-6 border-b flex justify-between items-center transition-colors duration-300",
+                  theme === 'dark' ? "border-slate-800" : "border-slate-100"
+                )}>
+                  <div className="flex items-center gap-3">
+                    <FileSpreadsheet className="w-5 h-5 text-blue-400" />
+                    <h2 className={cn(
+                      "text-lg font-mono font-bold transition-colors duration-300",
+                      theme === 'dark' ? "text-white" : "text-slate-900"
+                    )}>
+                      Data Injection
+                    </h2>
                   </div>
-                  <button onClick={() => setShowImport(false)} className="p-2 hover:bg-bg-surface rounded-xl text-text-muted transition-all"><X className="w-6 h-6" /></button>
+                  <button onClick={() => setShowImport(false)} className="text-slate-500 hover:text-rose-500 transition-colors">
+                    <Plus className="w-6 h-6 rotate-45" />
+                  </button>
                 </div>
-                <div className="p-10 space-y-8">
-                  <textarea value={importText} onChange={e => setImportText(e.target.value)} placeholder="Cole aqui os dados copiados do Excel..." className="w-full h-80 p-8 glass-card rounded-[2rem] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/30 resize-none custom-scrollbar text-text-primary placeholder:text-text-muted shadow-inner bg-bg-main border-none" />
-                  <div className="flex gap-4">
-                    <button onClick={() => setShowImport(false)} className="flex-1 py-5 glass-card rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] text-text-muted hover:bg-bg-surface transition-colors">Cancelar Operação</button>
-                    <button onClick={handleImport} className="flex-1 py-5 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-900/40 border border-indigo-400/20 hover:scale-[1.02] active:scale-95 transition-all">Sincronizar Agora</button>
+                <div className="p-8 space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 pl-1">Conteúdo do Excel (ID | Modelo | Locação | Setor | Status | Embarque)</label>
+                    <textarea 
+                      value={importText}
+                      onChange={e => setImportText(e.target.value)}
+                      placeholder="Cole aqui as linhas copiadas do Excel..."
+                      className={cn(
+                        "w-full h-64 p-6 rounded-[2rem] text-sm font-medium focus:outline-none transition-all duration-300 border resize-none custom-scrollbar",
+                        theme === 'dark' 
+                          ? "bg-black/40 border-white/5 text-white placeholder:text-slate-600 focus:border-blue-500/50 focus:bg-black/60 shadow-inner" 
+                          : "bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-blue-500/50 focus:bg-white"
+                      )}
+                    />
+                  </div>
+                  <div className="flex gap-4 pt-2">
+                    <button 
+                      onClick={() => setShowImport(false)}
+                      className={cn(
+                        "flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95",
+                        theme === 'dark' ? "bg-white/5 text-slate-400 hover:bg-white/10" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                      )}
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      onClick={handleImport}
+                      className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-500 transition-all shadow-xl shadow-blue-900/40 active:scale-95 border border-blue-400/20"
+                    >
+                      Processar Importação
+                    </button>
                   </div>
                 </div>
               </motion.div>
             </div>
           )}
+        </AnimatePresence>
 
+        {/* Clear Map Confirmation Modal */}
+        <AnimatePresence>
           {showClearConfirm && (
-            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-bg-main/90 backdrop-blur-3xl" onClick={() => setShowClearConfirm(false)} />
-              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-sm p-10 glass-card border-rose-500/20 rounded-[3rem] shadow-2xl text-center space-y-8">
-                <div className="w-24 h-24 bg-rose-500/10 rounded-[2.5rem] flex items-center justify-center mx-auto border border-rose-500/20 glow-rose"><Trash2 className="w-12 h-12 text-rose-500" /></div>
-                <div className="space-y-4"><h2 className="text-3xl font-black text-text-primary uppercase tracking-tight">Apagar Mapa?</h2><p className="text-text-muted text-[10px] font-black uppercase tracking-widest leading-relaxed px-4">Esta ação irá remover permanentemente todas as locações configuradas no painel.</p></div>
-                <div className="flex flex-col gap-4">
-                  <button onClick={() => { saveBays([]); setSelectedBayId(null); setShowClearConfirm(false); }} className="w-full py-5 bg-rose-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-rose-900/40 hover:bg-rose-500">Excluir Tudo</button>
-                  <button onClick={() => setShowClearConfirm(false)} className="w-full py-5 glass-card rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] text-text-muted hover:bg-bg-surface transition-colors">Voltar</button>
+            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowClearConfirm(false)}
+                className="absolute inset-0 bg-slate-950/90 backdrop-blur-md"
+              />
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className={cn(
+                  "relative w-full max-w-sm p-8 border rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] text-center space-y-6 backdrop-blur-3xl",
+                  theme === 'dark' 
+                    ? "bg-slate-900/60 border-white/10 ring-1 ring-inset ring-white/5" 
+                    : "bg-white/80 border-white shadow-slate-300/40 ring-1 ring-inset ring-black/5"
+                )}
+              >
+                <div className="w-20 h-20 bg-rose-500/10 rounded-[2rem] flex items-center justify-center mx-auto border border-rose-500/20 glow-rose">
+                  <Trash2 className="w-10 h-10 text-rose-500" />
+                </div>
+                <div className="space-y-2">
+                  <h2 className={cn(
+                    "text-2xl font-black tracking-tight transition-colors duration-300",
+                    theme === 'dark' ? "text-white" : "text-slate-900"
+                  )}>
+                    Limpar Mapa?
+                  </h2>
+                  <p className="text-slate-400 text-sm font-medium leading-relaxed">
+                    Esta ação irá excluir permanentemente todas as baias. Os dados da planilha não serão afetados.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-3 pt-4">
+                  <button 
+                    onClick={() => {
+                      saveBays([]);
+                      setSelectedBayId(null);
+                      setShowClearConfirm(false);
+                    }}
+                    className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-xs hover:bg-rose-500 transition-all shadow-xl shadow-rose-900/40 uppercase tracking-widest active:scale-95 border border-rose-400/20"
+                  >
+                    Sim, Limpar Tudo
+                  </button>
+                  <button 
+                    onClick={() => setShowClearConfirm(false)}
+                    className={cn(
+                      "w-full py-4 rounded-2xl font-black text-xs transition-all uppercase tracking-widest active:scale-95",
+                      theme === 'dark' ? "bg-white/5 text-slate-400 hover:bg-white/10" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                    )}
+                  >
+                    Cancelar
+                  </button>
                 </div>
               </motion.div>
             </div>
@@ -2288,7 +2880,11 @@ export default function App() {
       </main>
 
       <style>{`
-        @keyframes dash { to { stroke-dashoffset: -8; } }
+        @keyframes dash {
+          to {
+            stroke-dashoffset: -8;
+          }
+        }
       `}</style>
     </div>
   );
