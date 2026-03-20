@@ -2148,26 +2148,37 @@ export default function App() {
                           <foreignObject x={`${displayBay.x}%`} y={`${displayBay.y}%`} width={`${displayBay.width}%`} height={`${displayBay.height}%`}>
                             <div className="w-full h-full flex flex-col p-3 overflow-hidden">
                               <div className="text-[11px] font-black uppercase text-center text-text-primary mb-2 tracking-widest">{displayBay.name}</div>
-                              <div className="flex-1 grid grid-cols-5 sm:grid-cols-10 gap-1 p-1 bg-bg-main/50 rounded-xl border border-border-subtle overflow-hidden">
+                              <div className="flex-1 grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5 p-2 bg-bg-main/40 rounded-2xl border border-border-subtle/50 overflow-hidden shadow-inner">
                                 {carsInBay.map((car, idx) => (
                                   <motion.div 
                                     key={`${car.carId}-${idx}`} 
                                     onMouseEnter={(e) => setHoveredCar({ car, x: e.clientX, y: e.clientY })} 
                                     onMouseLeave={() => setHoveredCar(null)} 
                                     className={cn(
-                                      "aspect-square rounded-md border transition-all duration-300 relative group/car shadow-lg", 
-                                      getSlaStatus(car).isLate ? "bg-rose-500 border-rose-400 shadow-rose-900/40" : "bg-emerald-500 border-emerald-400 shadow-emerald-900/40"
+                                      "aspect-square rounded-[8px] border-2 transition-all duration-500 relative group/car shadow-md hover:scale-110 hover:z-10 cursor-pointer", 
+                                      getSlaStatus(car).isLate 
+                                        ? "bg-gradient-to-br from-rose-500 to-rose-600 border-rose-300/40 shadow-rose-900/20" 
+                                        : "bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-300/40 shadow-emerald-900/20"
                                     )}
                                   >
-                                    <span className="absolute inset-0 flex items-center justify-center text-[7px] font-black text-white">{car.carId?.slice(-3)}</span>
+                                    <div className="absolute inset-0 bg-white/10 opacity-0 group-hover/car:opacity-100 transition-opacity rounded-[6px]" />
+                                    <span className="absolute inset-0 flex items-center justify-center text-[10px] sm:text-[11px] font-black text-white drop-shadow-sm tracking-tighter">
+                                      {car.carId?.slice(-3)}
+                                    </span>
                                   </motion.div>
                                 ))}
                                 {Array.from({ length: Math.max(0, (bay.capacity || 0) - (carsInBay.length || 0)) }).map((_, i) => (
-                                  <div key={`empty-${i}`} className="aspect-square border border-border-subtle bg-bg-main/30 rounded-md" />
+                                  <div key={`empty-${i}`} className="aspect-square border border-dashed border-border-subtle/30 bg-bg-main/10 rounded-[8px]" />
                                 ))}
                               </div>
-                              <div className="w-full h-1.5 bg-bg-main rounded-full mt-3 overflow-hidden shadow-inner ring-1 ring-border-subtle">
-                                <div className={cn("h-full transition-all duration-1000 rounded-full", color === 'rose' ? "bg-rose-500" : color === 'amber' ? "bg-amber-500" : "bg-emerald-500")} style={{ width: `${Math.min(100, occupancyRatio * 100)}%` }} />
+                              <div className="w-full h-2 bg-bg-main/60 rounded-full mt-3 overflow-hidden shadow-inner border border-border-subtle/30">
+                                <div className={cn("h-full transition-all duration-1000 rounded-full shadow-[0_0_10px_rgba(var(--glow-color))]", 
+                                  color === 'rose' ? "bg-rose-500" : color === 'amber' ? "bg-amber-500" : "bg-emerald-500"
+                                )} style={{ 
+                                  width: `${Math.min(100, occupancyRatio * 100)}%`,
+                                  // @ts-ignore
+                                  '--glow-color': color === 'rose' ? '244,63,94,0.4' : color === 'amber' ? '245,158,11,0.4' : '16,185,129,0.4'
+                                }} />
                               </div>
                             </div>
                           </foreignObject>
@@ -2193,16 +2204,46 @@ export default function App() {
 
         <AnimatePresence>
           {hoveredCar && (
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="fixed z-[100] pointer-events-none p-5 rounded-3xl glass-card border-border-subtle shadow-2xl min-w-[240px]" style={{ left: hoveredCar.x + 24, top: hoveredCar.y + 24 }}>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400">Status Veículo</span>
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 glow-emerald animate-pulse" />
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 10 }} className="fixed z-[100] pointer-events-none p-6 rounded-[2.5rem] glass-card border-border-bright/20 shadow-2xl min-w-[280px]" style={{ left: hoveredCar.x + 24, top: hoveredCar.y + 24 }}>
+              <div className="space-y-5">
+                <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400">Status Operacional</span>
+                    <span className={cn("text-[11px] font-black uppercase tracking-widest mt-0.5", getSlaStatus(hoveredCar.car).isLate ? "text-rose-500" : "text-emerald-500")}>
+                      {getSlaStatus(hoveredCar.car).text}
+                    </span>
+                  </div>
+                  <div className={cn("w-3 h-3 rounded-full animate-pulse shadow-[0_0_12px_rgba(var(--glow-color))]", 
+                    getSlaStatus(hoveredCar.car).isLate ? "bg-rose-500" : "bg-emerald-500"
+                  )} style={{
+                    // @ts-ignore
+                    '--glow-color': getSlaStatus(hoveredCar.car).isLate ? '244,63,94,0.6' : '16,185,129,0.6'
+                  }} />
                 </div>
-                <div className="space-y-3">
-                  <div className="flex flex-col"><span className="text-[9px] font-black text-text-muted uppercase tracking-widest leading-tight">Frota</span><span className="text-2xl font-black text-text-primary tabular-nums tracking-tighter">{hoveredCar.car.carId}</span></div>
-                  <div className="flex flex-col"><span className="text-[9px] font-black text-text-muted uppercase tracking-widest leading-tight">Modelo | Setor</span><span className="text-xs font-bold text-text-secondary">{hoveredCar.car.model} • {hoveredCar.car.sectorName}</span></div>
-                  <div className="flex flex-col"><span className="text-[9px] font-black text-text-muted uppercase tracking-widest leading-tight">Embarque Previsto</span><span className="text-xs font-black text-indigo-500">{hoveredCar.car.embarkDate} • {hoveredCar.car.embarkTime}</span></div>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[9px] font-black text-text-muted uppercase tracking-widest leading-tight">Identificação</span>
+                    <span className="text-3xl font-black text-text-primary tabular-nums tracking-tighter drop-shadow-sm">{hoveredCar.car.carId}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 pt-1">
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-black text-text-muted uppercase tracking-widest leading-tight">Modelo</span>
+                      <span className="text-[11px] font-bold text-text-secondary truncate">{hoveredCar.car.model}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-black text-text-muted uppercase tracking-widest leading-tight">Setor</span>
+                      <span className="text-[11px] font-bold text-text-secondary truncate">{hoveredCar.car.sectorName}</span>
+                    </div>
+                  </div>
+                  <div className="bg-indigo-500/5 rounded-2xl p-3 border border-indigo-500/10 mt-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Clock className="w-3 h-3 text-indigo-400" />
+                      <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Embarque Previsto</span>
+                    </div>
+                    <span className="text-sm font-black text-text-primary tabular-nums">
+                      {hoveredCar.car.embarkDate} <span className="opacity-30 mx-1">•</span> {hoveredCar.car.embarkTime}
+                    </span>
+                  </div>
                 </div>
               </div>
             </motion.div>
