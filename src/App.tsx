@@ -405,8 +405,8 @@ export default function App() {
         slotHeight: 25,
         x: 2 + (index % 12) * 8,
         y: 2 + Math.floor(index / 12) * 8,
-        width: 6,
-        height: 6
+        width: 10,
+        height: 10
       }));
 
     if (newBaysToAdd.length > 0) {
@@ -2148,21 +2148,21 @@ export default function App() {
                           <foreignObject x={`${displayBay.x}%`} y={`${displayBay.y}%`} width={`${displayBay.width}%`} height={`${displayBay.height}%`}>
                             <div className="w-full h-full flex flex-col p-3 overflow-hidden">
                               <div className="text-[11px] font-black uppercase text-center text-text-primary mb-2 tracking-widest">{displayBay.name}</div>
-                              <div className="flex-1 grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5 p-2 bg-bg-main/40 rounded-2xl border border-border-subtle/50 overflow-hidden shadow-inner">
+                              <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 p-4 bg-bg-main/40 rounded-3xl border border-border-subtle/50 overflow-hidden shadow-inner">
                                 {carsInBay.map((car, idx) => (
                                   <motion.div 
                                     key={`${car.carId}-${idx}`} 
                                     onMouseEnter={(e) => setHoveredCar({ car, x: e.clientX, y: e.clientY })} 
                                     onMouseLeave={() => setHoveredCar(null)} 
                                     className={cn(
-                                      "aspect-square rounded-[8px] border-2 transition-all duration-500 relative group/car shadow-md hover:scale-110 hover:z-10 cursor-pointer", 
+                                      "aspect-square rounded-xl border-2 transition-all duration-500 relative group/car shadow-md hover:scale-125 hover:z-50 cursor-pointer", 
                                       getSlaStatus(car).isLate 
                                         ? "bg-gradient-to-br from-rose-500 to-rose-600 border-rose-300/40 shadow-rose-900/20" 
                                         : "bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-300/40 shadow-emerald-900/20"
                                     )}
                                   >
-                                    <div className="absolute inset-0 bg-white/10 opacity-0 group-hover/car:opacity-100 transition-opacity rounded-[6px]" />
-                                    <span className="absolute inset-0 flex items-center justify-center text-[10px] sm:text-[11px] font-black text-white drop-shadow-sm tracking-tighter">
+                                    <div className="absolute inset-0 bg-white/20 opacity-0 group-hover/car:opacity-100 transition-opacity rounded-[10px]" />
+                                    <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white drop-shadow-sm tracking-tight text-center truncate px-1">
                                       {car.carId?.slice(-3)}
                                     </span>
                                   </motion.div>
