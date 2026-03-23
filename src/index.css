@@ -15,25 +15,28 @@
   --color-border-subtle: var(--border-subtle);
   --color-border-bright: var(--border-bright);
   
-  --color-accent-primary: #6366f1; /* Indigo-500 */
-  --color-accent-secondary: #10b981; /* Emerald-500 */
+  --color-accent-primary: var(--accent-primary);
+  --color-accent-secondary: var(--accent-secondary);
 }
 
 :root {
-  /* Light Theme - Modern & Clean */
-  --bg-main: #f8fafc; /* Slate-50 */
-  --bg-surface: #ffffff;
-  --bg-glass: rgba(255, 255, 255, 0.7);
+  /* Premium Light Theme - Clean, High-Contrast & Professional */
+  --bg-main: #f8fafc; /* Slate-50 - Bright & Fresh */
+  --bg-surface: #ffffff; /* Pure White - For elevated elements */
+  --bg-glass: rgba(255, 255, 255, 0.85);
   
   --text-primary: #0f172a; /* Slate-900 */
   --text-secondary: #334155; /* Slate-700 */
   --text-muted: #64748b; /* Slate-500 */
   
-  --border-subtle: rgba(0, 0, 0, 0.06);
-  --border-bright: rgba(0, 0, 0, 0.12);
+  --accent-primary: #0f172a; /* Slate-900 - From user's requested tone */
+  --accent-secondary: #10b981; /* Emerald-500 */
   
-  --glass-blur: 16px;
-  --premium-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  --border-subtle: rgba(15, 23, 42, 0.06); /* Subtle Slate border */
+  --border-bright: rgba(15, 23, 42, 0.12);
+  
+  --glass-blur: 12px;
+  --premium-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
 }
 
 .dark {
@@ -45,6 +48,9 @@
   --text-primary: #f8fafc; /* Slate-50 */
   --text-secondary: #cbd5e1; /* Slate-300 */
   --text-muted: #94a3b8; /* Slate-400 */
+  
+  --accent-primary: #6366f1; /* Indigo-500 for Dark */
+  --accent-secondary: #10b981; /* Emerald-500 */
   
   --border-subtle: rgba(255, 255, 255, 0.06);
   --border-bright: rgba(255, 255, 255, 0.12);
@@ -72,7 +78,7 @@ html, body, #root {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, var(--border-bright), #6366f1);
+  background: transparent;
   border-radius: 20px;
 }
 

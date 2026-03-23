@@ -49,13 +49,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { dataService, CarRecord } from './services/dataService';
+import { cn } from './utils/cn';
+import { CustomSelect } from './components/CustomSelect';
 
 // --- Utilities ---
 const snapToGrid = (val: number, step = 1) => Math.round(val / step) * step;
-
-const cn = (...inputs: ClassValue[]) => {
-  return twMerge(clsx(inputs));
-}
 
 // --- Types ---
 interface Bay {
@@ -99,7 +97,7 @@ function getSlaStatus(car: CarRecord): { text: string, color: string, isLate: bo
   const diffMs = targetDate.getTime() - now.getTime();
   const diffHours = diffMs / (1000 * 60 * 60);
 
-  if (diffHours < 0) {
+  if (diffMs < 0) {
     return { text: 'ATRASADO', color: 'bg-rose-500', isLate: true };
   } else if (diffHours <= 1) {
     return { text: 'PRÓX. EMB.', color: 'bg-amber-500', isLate: false };
@@ -661,7 +659,7 @@ export default function App() {
       "flex h-screen w-screen font-sans overflow-hidden transition-colors duration-500 relative",
       theme === 'dark' 
         ? "bg-slate-950 text-slate-200" 
-        : "bg-[#f8fafc] text-slate-900"
+        : "bg-bg-main text-slate-900"
     )}>
       {/* Mobile Backdrop */}
       <AnimatePresence>
@@ -688,7 +686,7 @@ export default function App() {
               "fixed lg:relative inset-y-0 left-0",
               theme === 'dark' 
                 ? "bg-slate-900 border-slate-800" 
-                : "bg-white border-slate-100 shadow-sm"
+                : "bg-bg-surface border-slate-100 shadow-sm"
             )}
           >
             <div className={cn(
@@ -699,24 +697,27 @@ export default function App() {
               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[60px] rounded-full -mr-16 -mt-16" />
               
               <div className="flex items-center justify-between relative z-10">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   <div className={cn(
-                    "w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center border shadow-sm transition-all duration-300",
+                    "w-14 h-14 rounded-2xl flex items-center justify-center border transition-all duration-500 bg-white",
                     theme === 'dark' 
-                      ? "bg-white border-white/20 shadow-black/40" 
-                      : "bg-white border-slate-200 shadow-slate-200/50"
+                      ? "border-white/10 shadow-2xl shadow-indigo-500/10" 
+                      : "border-slate-200 shadow-xl shadow-slate-200/50"
                   )}>
-                    <img src={LOGO_URL} alt="Logo" className="w-9 h-9 object-contain" referrerPolicy="no-referrer" />
+                    <img src={LOGO_URL} alt="Logo" className="w-11 h-11 object-contain" referrerPolicy="no-referrer" />
                   </div>
-                  <div className="flex flex-col justify-center">
+                  <div className="flex flex-col">
+                    <span className={cn(
+                      "font-black text-[13px] uppercase tracking-[0.2em] leading-none mb-1",
+                      theme === 'dark' ? "text-slate-400" : "text-slate-500"
+                    )}>
+                      Logística
+                    </span>
                     <h1 className={cn(
-                      "font-black text-xl tracking-tighter leading-none transition-colors duration-300",
+                      "font-black text-2xl tracking-tighter leading-none transition-colors duration-300",
                       theme === 'dark' ? "text-white" : "text-slate-900"
                     )}>
-                      Controle
-                    </h1>
-                    <h1 className="font-black text-xl tracking-tighter leading-none text-indigo-600 mt-1">
-                      DCC
+                      DCC <span className="text-indigo-600">Picking</span>
                     </h1>
                   </div>
                 </div>
@@ -726,7 +727,7 @@ export default function App() {
                     className={cn(
                       "p-2.5 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95",
                       theme === 'dark' 
-                        ? "bg-white/5 hover:bg-white/10 text-amber-400 border border-white/10" 
+                        ? "bg-bg-surface/5 hover:bg-bg-surface/10 text-amber-400 border border-white/10" 
                         : "bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200"
                     )}
                   >
@@ -736,7 +737,7 @@ export default function App() {
                     onClick={() => setSidebarOpen(false)}
                     className={cn(
                       "p-2.5 rounded-xl transition-all hover:scale-110 active:scale-95 group/collapse",
-                      theme === 'dark' ? "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/10" : "bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 border border-slate-200"
+                      theme === 'dark' ? "bg-bg-surface/5 hover:bg-bg-surface/10 text-slate-400 hover:text-white border border-white/10" : "bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 border border-slate-200"
                     )}
                     title="Retrair Painel"
                   >
@@ -751,16 +752,16 @@ export default function App() {
                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] pl-2">Navegação</span>
                 
                 <div className={cn(
-                  "p-1.5 rounded-[1.5rem] flex flex-col gap-1 transition-all duration-300",
-                  theme === 'dark' ? "bg-black/40 border border-white/5 shadow-inner" : "bg-white/50 border border-slate-200 shadow-inner"
+                  "p-1.5 rounded-[2rem] flex flex-col gap-1 transition-all duration-300",
+                  theme === 'dark' ? "bg-black/40 border border-white/5 shadow-inner" : "bg-slate-100/50 border border-slate-200/60 shadow-inner"
                 )}>
                   <button
                     onClick={() => setMode('dashboard')}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all",
+                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-[11px] font-bold transition-all",
                       mode === 'dashboard' 
-                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-white text-slate-900 shadow-md") 
-                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-white/50")
+                        ? (theme === 'dark' ? "bg-slate-800 text-white shadow-lg ring-1 ring-white/10" : "bg-white text-slate-900 shadow-xl shadow-slate-200/60 ring-1 ring-slate-100") 
+                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40" : "text-slate-500 hover:text-slate-900 hover:bg-white/60")
                     )}
                   >
                     <div className={cn(
@@ -775,10 +776,10 @@ export default function App() {
                   <button
                     onClick={() => setMode('view')}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all",
+                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-[11px] font-bold transition-all",
                       mode === 'view' 
-                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-white text-slate-900 shadow-md") 
-                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-white/50")
+                        ? (theme === 'dark' ? "bg-slate-800 text-white shadow-lg ring-1 ring-white/10" : "bg-white text-slate-900 shadow-xl shadow-slate-200/60 ring-1 ring-slate-100") 
+                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40" : "text-slate-500 hover:text-slate-900 hover:bg-white/60")
                     )}
                   >
                     <div className={cn(
@@ -793,10 +794,10 @@ export default function App() {
                   <button
                     onClick={() => setMode('database')}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all",
+                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-[11px] font-bold transition-all",
                       mode === 'database' 
-                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-white text-slate-900 shadow-md ring-1 ring-slate-200/50") 
-                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50")
+                        ? (theme === 'dark' ? "bg-slate-800 text-white shadow-lg ring-1 ring-white/10" : "bg-white text-slate-900 shadow-xl shadow-slate-200/60 ring-1 ring-slate-100") 
+                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40" : "text-slate-600 hover:text-slate-900 hover:bg-white/60")
                     )}
                   >
                     <div className={cn(
@@ -811,10 +812,10 @@ export default function App() {
                   <button
                     onClick={() => setMode('edit')}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all",
+                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-[11px] font-bold transition-all",
                       mode === 'edit' 
-                        ? (theme === 'dark' ? "bg-white/10 text-white shadow-lg shadow-black/20 ring-1 ring-white/10" : "bg-white text-slate-900 shadow-md ring-1 ring-slate-200/50") 
-                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-white/5" : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50")
+                        ? (theme === 'dark' ? "bg-slate-800 text-white shadow-lg ring-1 ring-white/10" : "bg-white text-slate-900 shadow-xl shadow-slate-200/60 ring-1 ring-slate-100") 
+                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40" : "text-slate-600 hover:text-slate-900 hover:bg-white/60")
                     )}
                   >
                     <div className={cn(
@@ -901,7 +902,7 @@ export default function App() {
                           hoverConfig[field.id] ? "bg-emerald-500" : (theme === 'dark' ? "bg-slate-700" : "bg-slate-300")
                         )} />
                         <div className={cn(
-                          "absolute left-1 w-2 h-2 bg-white rounded-full transition-transform duration-200",
+                          "absolute left-1 w-2 h-2 bg-bg-surface rounded-full transition-transform duration-200",
                           hoverConfig[field.id] ? "translate-x-4" : "translate-x-0"
                         )} />
                       </div>
@@ -957,7 +958,7 @@ export default function App() {
                         placeholder="https://..."
                         className={cn(
                           "w-full px-3 py-2 border rounded-lg text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500/50",
-                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-slate-300" : "bg-white border-slate-300 text-slate-700"
+                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-slate-300" : "bg-bg-surface border-slate-300 text-slate-700"
                         )}
                       />
                       <p className="text-[9px] text-slate-500 italic">Funciona no Vercel mesmo com Zscaler.</p>
@@ -1052,7 +1053,7 @@ export default function App() {
                           "w-full border rounded-lg px-3 py-2 text-base font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all",
                           theme === 'dark' 
                             ? "bg-slate-900 border-slate-700 text-white" 
-                            : "bg-white border-slate-200 text-slate-900 shadow-inner shadow-slate-100"
+                            : "bg-bg-surface border-slate-200 text-slate-900 shadow-inner shadow-slate-100"
                         )}
                         placeholder="Selecione ou digite..."
                       />
@@ -1072,7 +1073,7 @@ export default function App() {
                         onChange={(e) => updateBay(selectedBay.id, { sector: e.target.value })}
                         className={cn(
                           "w-full border rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all",
-                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
+                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-bg-surface border-slate-300 text-slate-900"
                         )}
                         placeholder="Selecione ou digite o Setor..."
                       />
@@ -1093,7 +1094,7 @@ export default function App() {
                           onChange={(e) => updateBay(selectedBay.id, { capacity: parseInt(e.target.value) || 1 })}
                           className={cn(
                             "w-full border rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all",
-                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
+                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-bg-surface border-slate-300 text-slate-900"
                           )}
                         />
                       </div>
@@ -1107,7 +1108,7 @@ export default function App() {
                           onChange={(e) => updateBay(selectedBay.id, { slotHeight: parseInt(e.target.value) || 25 })}
                           className={cn(
                             "w-full border rounded-lg px-1 py-2 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all",
-                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
+                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-bg-surface border-slate-300 text-slate-900"
                           )}
                         />
                       </div>
@@ -1120,7 +1121,7 @@ export default function App() {
                         onChange={(e) => updateBay(selectedBay.id, { orientation: e.target.value as 'vertical' | 'horizontal' })}
                         className={cn(
                           "w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/50",
-                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
+                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-bg-surface border-slate-300 text-slate-900"
                         )}
                       >
                         <option value="vertical">Vertical (Lista)</option>
@@ -1135,7 +1136,7 @@ export default function App() {
                         onChange={(e) => updateBay(selectedBay.id, { tabGroup: e.target.value as 'geral' | 'format' })}
                         className={cn(
                           "w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/50",
-                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
+                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-bg-surface border-slate-300 text-slate-900"
                         )}
                       >
                         <option value="geral">Picking Geral</option>
@@ -1152,7 +1153,7 @@ export default function App() {
                           onChange={(e) => updateBay(selectedBay.id, { x: parseFloat(e.target.value) || 0 })}
                           className={cn(
                             "w-full border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500/50",
-                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
+                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-bg-surface border-slate-300 text-slate-900"
                           )}
                         />
                       </div>
@@ -1164,7 +1165,7 @@ export default function App() {
                           onChange={(e) => updateBay(selectedBay.id, { y: parseFloat(e.target.value) || 0 })}
                           className={cn(
                             "w-full border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500/50",
-                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
+                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-bg-surface border-slate-300 text-slate-900"
                           )}
                         />
                       </div>
@@ -1176,7 +1177,7 @@ export default function App() {
                           onChange={(e) => updateBay(selectedBay.id, { width: parseFloat(e.target.value) || 0 })}
                           className={cn(
                             "w-full border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500/50",
-                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
+                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-bg-surface border-slate-300 text-slate-900"
                           )}
                         />
                       </div>
@@ -1188,7 +1189,7 @@ export default function App() {
                           onChange={(e) => updateBay(selectedBay.id, { height: parseFloat(e.target.value) || 0 })}
                           className={cn(
                             "w-full border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500/50",
-                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300 text-slate-900"
+                            theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-bg-surface border-slate-300 text-slate-900"
                           )}
                         />
                       </div>
@@ -1221,7 +1222,7 @@ export default function App() {
                             key={car.carId} 
                             className={cn(
                               "p-4 rounded-xl border flex items-center justify-between group transition-all duration-300",
-                              theme === 'dark' ? "bg-slate-800/50 border-slate-700/50 hover:bg-slate-800" : "bg-white border-slate-200 hover:bg-slate-50 shadow-sm",
+                              theme === 'dark' ? "bg-slate-800/50 border-slate-700/50 hover:bg-slate-800" : "bg-bg-surface border-slate-200 hover:bg-slate-50 shadow-sm",
                               isWrongSector && (theme === 'dark' ? "border-fuchsia-500/50 bg-fuchsia-500/10" : "border-fuchsia-500 border bg-fuchsia-50")
                             )}
                           >
@@ -1331,7 +1332,7 @@ export default function App() {
                   "p-4 rounded-[1.5rem] transition-all hover:scale-110 active:scale-95 group relative border shadow-2xl backdrop-blur-3xl",
                   theme === 'dark' 
                     ? "bg-slate-900/90 text-white border-white/10 glow-indigo" 
-                    : "bg-stone-100/95 border-stone-200 shadow-stone-200/50"
+                    : "bg-white border-slate-300 shadow-xl shadow-slate-400/20"
                 )}
                 title="Abrir Painel"
               >
@@ -1345,7 +1346,7 @@ export default function App() {
         {mode === 'dashboard' ? (
           <div className={cn(
             "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-slate-950" : "bg-[#f8fafc]"
+            theme === 'dark' ? "bg-slate-950" : "bg-bg-main"
           )}>
             {/* Background Glows */}
             <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-indigo-500/5 blur-[120px] rounded-full -ml-64 -mt-64 pointer-events-none" />
@@ -1382,7 +1383,7 @@ export default function App() {
                     transition={{ delay: idx * 0.1 }}
                     className={cn(
                       "p-4 sm:p-5 rounded-[1.5rem] border backdrop-blur-3xl flex flex-col gap-3 group transition-all duration-300 shadow-sm",
-                      theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200/50 shadow-sm shadow-slate-200/20"
+                      theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-xl shadow-slate-200/40"
                     )}
                   >
                     <div className="flex items-center justify-between mb-4">
@@ -1410,8 +1411,8 @@ export default function App() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Advanced Operational Health Chart */}
                 <div className={cn(
-                  "lg:col-span-3 p-8 rounded-[2rem] border transition-all duration-300 relative overflow-hidden",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-100 shadow-sm"
+                  "lg:col-span-3 p-8 rounded-[2rem] border transition-all duration-300 relative overflow-hidden shadow-sm",
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-2xl shadow-slate-200/40"
                 )}>
                   {/* Subtle Accent Gradient for Chart */}
                   {theme === 'light' && (
@@ -1456,17 +1457,19 @@ export default function App() {
                       // Real: carros já embarcados (status EMBARCADO) com data de hoje
                       const real = filteredRecords.filter(r => r.status === 'EMBARCADO' && r.embarkDate === todayStr);
 
-                      // Retroativo: carros NÃO embarcados de dias anteriores
+                      // Retroativo: carros de DIAS ANTERIORES que não foram embarcados
                       const retroativo = filteredRecords.filter(r => {
                         if (r.status === 'EMBARCADO') return false;
-                        if (r.embarkDate === todayStr) return false;
                         const t = parseExcelDate(r.embarkDate, r.embarkTime);
-                        return t && t < now;
+                        if (!t) return false;
+                        
+                        // Considera retroativo se a data for ANTERIOR a hoje
+                        const dStr = `${String(t.getDate()).padStart(2,'0')}/${String(t.getMonth()+1).padStart(2,'0')}/${t.getFullYear()}`;
+                        return dStr !== todayStr && t < now;
                       });
 
-                      // Atrasados: carros de HOJE que já venceram a previsão de embarque
+                      // Atrasados: QUALQUER carro pendente com prazo vencido (Hoje ou Retroativo)
                       const atrasados = filteredRecords.filter(r => {
-                        if (r.embarkDate !== todayStr) return false;
                         if (r.status === 'EMBARCADO') return false;
                         const t = parseExcelDate(r.embarkDate, r.embarkTime);
                         return t && t < now;
@@ -1490,7 +1493,7 @@ export default function App() {
                   <div className="h-56 w-full relative flex items-end gap-1 group px-2 pt-8">
                     {/* Background Grid Lines */}
                     <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-5">
-                      {[1, 2, 3, 4].map(i => <div key={i} className="w-full h-px bg-white" />)}
+                      {[1, 2, 3, 4].map(i => <div key={i} className="w-full h-px bg-bg-surface" />)}
                     </div>
 
                      {(() => {
@@ -1604,7 +1607,7 @@ export default function App() {
                                       className={cn(
                                         "w-full rounded-t-[1px] transition-all duration-500 relative",
                                         planCount > 0 
-                                          ? (theme === 'dark' ? "bg-white/5 border-t border-white/10" : "bg-slate-100 border-t border-slate-200")
+                                          ? (theme === 'dark' ? "bg-bg-surface/5 border-t border-white/10" : "bg-slate-100 border-t border-slate-200")
                                           : (theme === 'dark' ? "bg-transparent" : "bg-transparent")
                                       )}
                                     >
@@ -1625,7 +1628,7 @@ export default function App() {
                                     <div className="absolute opacity-0 group-hover/bar:opacity-100 bottom-full mb-8 left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-200 z-50">
                                       <div className={cn(
                                         "px-2.5 py-1.5 rounded border shadow-xl backdrop-blur-md flex flex-col items-center gap-0.5 whitespace-nowrap",
-                                        theme === 'dark' ? "bg-slate-900/95 border-white/10" : "bg-white border-slate-200"
+                                        theme === 'dark' ? "bg-slate-900/95 border-white/10" : "bg-bg-surface border-slate-200"
                                       )}>
                                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{h}h:00</span>
                                         <div className="flex items-center gap-3">
@@ -1633,7 +1636,7 @@ export default function App() {
                                             <span className="text-[8px] uppercase text-slate-400">Plano</span>
                                             <span className={cn("text-xs font-black tabular-nums", theme === 'dark' ? "text-white" : "text-slate-900")}>{planCount}</span>
                                           </div>
-                                          <div className="w-px h-4 bg-white/10" />
+                                          <div className="w-px h-4 bg-bg-surface/10" />
                                           <div className="flex flex-col items-center">
                                             <span className="text-[8px] uppercase text-indigo-400">Real</span>
                                             <span className={cn("text-xs font-black tabular-nums", theme === 'dark' ? "text-indigo-400" : "text-indigo-600")}>{realCount}</span>
@@ -1662,7 +1665,7 @@ export default function App() {
                 {/* Late by Model & Sector */}
                 <div className={cn(
                   "lg:col-span-2 p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200/60 shadow-lg shadow-slate-200/50"
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-bg-surface border-slate-200/60 shadow-lg shadow-slate-200/50"
                 )}>
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-rose-500/10 text-rose-400 rounded-xl">
@@ -1684,7 +1687,7 @@ export default function App() {
                           const late = filteredRecords.filter(r => r.model === model && getSlaStatus(r).isLate).length;
                           if (late === 0) return null;
                           return (
-                            <div key={model} className="flex items-center justify-between text-[11px] font-bold p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-rose-500/20 transition-colors group">
+                            <div key={model} className="flex items-center justify-between text-[11px] font-bold p-3 rounded-2xl bg-bg-surface/5 border border-white/5 hover:border-rose-500/20 transition-colors group">
                               <span className="text-slate-400 group-hover:text-slate-200 transition-colors">{model}</span>
                               <span className="text-rose-500 tabular-nums bg-rose-500/10 px-2 py-0.5 rounded-lg">{late}</span>
                             </div>
@@ -1702,7 +1705,7 @@ export default function App() {
                           const late = filteredRecords.filter(r => r.sectorName === sector && getSlaStatus(r).isLate).length;
                           if (late === 0) return null;
                           return (
-                            <div key={sector} className="flex items-center justify-between text-[11px] font-bold p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-rose-500/20 transition-colors group">
+                            <div key={sector} className="flex items-center justify-between text-[11px] font-bold p-3 rounded-2xl bg-bg-surface/5 border border-white/5 hover:border-rose-500/20 transition-colors group">
                               <span className="text-slate-400 group-hover:text-slate-200 transition-colors">{sector}</span>
                               <span className="text-rose-500 tabular-nums bg-rose-500/10 px-2 py-0.5 rounded-lg">{late}</span>
                             </div>
@@ -1715,7 +1718,7 @@ export default function App() {
 
                 <div className={cn(
                   "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-sm shadow-slate-200/20"
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-bg-surface border-slate-200 shadow-sm shadow-slate-200/20"
                 )}>
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl">
@@ -1750,7 +1753,7 @@ export default function App() {
                               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{cat}</span>
                               <span className="text-[11px] font-bold text-slate-400 tabular-nums">{count}</span>
                             </div>
-                            <div className={cn("h-1.5 w-full rounded-full overflow-hidden", theme === 'dark' ? "bg-white/5" : "bg-slate-100")}>
+                            <div className={cn("h-1.5 w-full rounded-full overflow-hidden", theme === 'dark' ? "bg-bg-surface/5" : "bg-slate-100")}>
                               <motion.div 
                                 initial={{ width: 0 }}
                                 animate={{ width: `${percent}%` }}
@@ -1770,7 +1773,7 @@ export default function App() {
                 {/* Controller Activity - Line Chart Style */}
                 <div className={cn(
                   "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-sm shadow-slate-200/20"
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-bg-surface border-slate-200 shadow-sm shadow-slate-200/20"
                 )}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -1785,13 +1788,13 @@ export default function App() {
                       <button 
                         disabled={controllerPageIndex === 0}
                         onClick={() => setControllerPageIndex(prev => Math.max(0, prev - 1))}
-                        className="p-1.5 rounded-lg bg-white/5 text-slate-400 disabled:opacity-20 hover:bg-white/10"
+                        className="p-1.5 rounded-lg bg-bg-surface/5 text-slate-400 disabled:opacity-20 hover:bg-bg-surface/10"
                       >
                         <ChevronLeft className="w-4 h-4" />
                       </button>
                       <button 
                         onClick={() => setControllerPageIndex(prev => prev + 1)}
-                        className="p-1.5 rounded-lg bg-white/5 text-slate-400 hover:bg-white/10"
+                        className="p-1.5 rounded-lg bg-bg-surface/5 text-slate-400 hover:bg-bg-surface/10"
                       >
                         <ChevronRight className="w-4 h-4" />
                       </button>
@@ -1829,7 +1832,7 @@ export default function App() {
                                 <span className="text-[12px] font-black text-rose-500 tabular-nums">{count}</span>
                               </div>
                               <div className={cn(
-                                "h-2.5 w-full rounded-full relative bg-white/5 overflow-hidden ring-1 ring-white/5",
+                                "h-2.5 w-full rounded-full relative bg-bg-surface/5 overflow-hidden ring-1 ring-white/5",
                                 theme === 'light' && "bg-slate-100 ring-slate-200"
                               )}>
                                 <motion.div 
@@ -1855,7 +1858,7 @@ export default function App() {
                 {/* Stagnant Vehicles */}
                 <div className={cn(
                   "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-xl"
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-bg-surface border-slate-200 shadow-xl"
                 )}>
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-amber-500/10 text-amber-400 rounded-xl">
@@ -1880,7 +1883,7 @@ export default function App() {
                       .sort((a, b) => b.daysLate - a.daysLate)
                       .slice(0, 20)
                       .map(r => (
-                        <div key={r.carId} className="flex items-center gap-3 p-4 rounded-[1.5rem] bg-white/5 border border-white/5 group hover:border-amber-500/30 transition-all">
+                        <div key={r.carId} className="flex items-center gap-3 p-4 rounded-[1.5rem] bg-bg-surface/5 border border-white/5 group hover:border-amber-500/30 transition-all">
                           <div className="flex flex-col items-center justify-center w-12 h-12 bg-amber-500/10 rounded-2xl group-hover:bg-amber-500/20 transition-colors border border-amber-500/20">
                             <span className="text-[14px] font-bold text-amber-500">+{r.daysLate}</span>
                             <span className="text-[7px] font-bold text-amber-500/60 uppercase">Dias</span>
@@ -1909,7 +1912,7 @@ export default function App() {
         ) : mode === 'database' ? (
           <div className={cn(
             "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-slate-950" : "bg-[#f8fafc]"
+            theme === 'dark' ? "bg-slate-950" : "bg-bg-main"
           )}>
             {/* Decorative background glows for Database View */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 blur-[120px] rounded-full -mr-64 -mt-64 pointer-events-none" />
@@ -1956,8 +1959,10 @@ export default function App() {
 
               {/* Contextual Database Filters */}
               <div className={cn(
-                "p-4 rounded-[2rem] border backdrop-blur-3xl flex flex-wrap gap-4 items-center transition-all duration-300",
-                theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-xl"
+                "p-4 rounded-[2rem] border flex flex-wrap gap-4 items-center transition-all duration-300",
+                theme === 'dark' 
+                  ? "bg-slate-900 border-white/5 ring-1 ring-white/5" 
+                  : "bg-white border-slate-200 shadow-xl"
               )}>
                 <div className="flex items-center gap-2 px-3 border-r border-slate-500/20">
                   <Filter className="w-4 h-4 text-slate-500" />
@@ -1969,23 +1974,29 @@ export default function App() {
                     { label: 'Setor', value: filterSector, setter: setFilterSector, options: availableSectors },
                     { label: 'Modelo', value: filterModel, setter: setFilterModel, options: availableModels },
                     { label: 'Data', value: filterDate, setter: setFilterDate, options: availableDates },
-                  ].map(f => (
-                    <div key={f.label} className="relative group">
-                      <select 
+                    { label: 'Status SLA', value: filterStatus, setter: setFilterStatus, options: ['LATE', 'NEXT', 'ONTIME'], isSla: true },
+                  ].map(f => {
+                    const options = f.isSla ? [
+                      { value: 'ALL', label: 'SLA: TODOS' },
+                      { value: 'LATE', label: 'ATRASADO' },
+                      { value: 'NEXT', label: 'PRÓXIMO EMBARQUE' },
+                      { value: 'ONTIME', label: 'NO PRAZO' }
+                    ] : [
+                      { value: 'ALL', label: `${f.label.toUpperCase()}: TODOS` },
+                      ...(f.options || []).map(opt => ({ value: opt, label: opt }))
+                    ];
+
+                    return (
+                      <CustomSelect
+                        key={f.label}
+                        label={f.label}
                         value={f.value}
-                        onChange={e => f.setter(e.target.value)}
-                        className={cn(
-                          "pl-3 pr-8 py-2 rounded-xl text-[10px] font-black bg-slate-500/5 border border-transparent focus:border-blue-500/50 focus:outline-none appearance-none cursor-pointer transition-all uppercase tracking-tighter",
-                          theme === 'dark' ? "text-slate-300" : "text-slate-600",
-                          f.value !== 'ALL' && "text-blue-500 bg-blue-500/5 border-blue-500/20"
-                        )}
-                      >
-                        <option value="ALL">{f.label.toUpperCase()}: TODOS</option>
-                        {f.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
-                      <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rotate-90 text-slate-500 pointer-events-none" />
-                    </div>
-                  ))}
+                        onChange={f.setter}
+                        options={options}
+                        theme={theme}
+                      />
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1993,13 +2004,13 @@ export default function App() {
                 "rounded-[2.5rem] border overflow-x-auto transition-all duration-300 custom-scrollbar-none sm:custom-scrollbar backdrop-blur-3xl",
                 theme === 'dark' 
                   ? "bg-slate-900/40 border-white/5 shadow-2xl shadow-black/40 ring-1 ring-white/5" 
-                  : "bg-white/60 border-slate-200 shadow-xl shadow-slate-200/50"
+                  : "bg-bg-surface/60 border-slate-200 shadow-xl shadow-slate-200/50"
               )}>
                 <table className="w-full text-left border-collapse min-w-[600px] sm:min-w-0">
                   <thead>
                     <tr className={cn(
                       "transition-colors duration-300",
-                      theme === 'dark' ? "bg-white/5 border-b border-white/5" : "bg-slate-50 border-b border-slate-100"
+                      theme === 'dark' ? "bg-bg-surface/5 border-b border-white/5" : "bg-slate-50 border-b border-slate-100"
                     )}>
                       <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Veículo</th>
                       <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Modelo</th>
@@ -2016,7 +2027,7 @@ export default function App() {
                     {filteredRecords.map(record => (
                       <tr key={record.carId} className={cn(
                         "transition-colors duration-300 group",
-                        theme === 'dark' ? "hover:bg-white/5" : "hover:bg-slate-50/50"
+                        theme === 'dark' ? "hover:bg-bg-surface/5" : "hover:bg-slate-50/50"
                       )}>
                         <td className={cn(
                           "px-8 py-5 text-sm font-black transition-colors duration-300",
@@ -2063,13 +2074,16 @@ export default function App() {
         ) : (
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Command Center & Filters */}
-            <div className="p-4 lg:p-6 z-10 bg-slate-950/30 backdrop-blur-sm border-b border-white/5 shadow-md">
+            <div className={cn(
+              "p-4 lg:p-6 z-50 backdrop-blur-sm transition-colors duration-300",
+              theme === 'dark' ? "bg-slate-950/30 border-b border-white/5 shadow-md" : "bg-bg-main"
+            )}>
               {/* Command Center Overlay */}
               <div className={cn(
-                  "flex items-center gap-4 px-4 py-2.5 border rounded-[2rem] shadow-xl transition-all duration-500 w-full",
+                  "flex items-center gap-4 px-4 py-2.5 border rounded-[2.5rem] shadow-xl transition-all duration-500 w-full",
                   theme === 'dark' 
                     ? "bg-slate-900/60 border-white/10 shadow-black/60 ring-1 ring-white/5" 
-                    : "bg-white/90 border-slate-200 shadow-slate-200/50"
+                    : "bg-white border-slate-200 shadow-xl shadow-slate-200/50"
                 )}>
                   {/* Left Section: Sidebar & Basic Stats */}
                   <div className="flex items-center gap-3">
@@ -2077,9 +2091,9 @@ export default function App() {
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                          <span className={cn("text-[10px] font-black tracking-[0.2em] transition-colors", theme === 'dark' ? "text-white" : "text-slate-900")}>LIVE</span>
+                          <span className={cn("text-[10px] font-black tracking-[0.2em] transition-colors", theme === 'dark' ? "text-white" : "text-slate-950")}>LIVE</span>
                         </div>
-                        <span className="text-[14px] font-black tabular-nums transition-colors">{dbRecords.length} <span className="text-[8px] font-bold text-slate-500 tracking-widest">TPS</span></span>
+                        <span className={cn("text-[14px] font-black tabular-nums transition-colors", theme === 'light' && "text-slate-950")}>{dbRecords.length} <span className="text-[8px] font-bold text-slate-500 tracking-widest">TPS</span></span>
                       </div>
                     </div>
                   </div>
@@ -2089,12 +2103,12 @@ export default function App() {
                   {/* Center Section: Global Search Command */}
                   <div className="flex-1 max-w-2xl relative group">
                     <div className={cn(
-                      "flex items-center gap-3 px-6 py-2.5 rounded-xl transition-all duration-300 border",
+                      "flex items-center gap-3 px-6 py-2.5 rounded-[1.5rem] transition-all duration-300 border",
                       theme === 'dark' 
                         ? "bg-black/20 border-white/10 hover:border-indigo-500/50 focus-within:border-indigo-500" 
-                        : "bg-slate-100/50 border-slate-200 hover:border-slate-300 focus-within:border-emerald-500 focus-within:bg-white"
+                        : "bg-slate-50/50 border-slate-200 hover:border-slate-300 focus-within:border-slate-900 focus-within:bg-white"
                     )}>
-                      <Search className={cn("w-4 h-4 transition-colors", filterCarId ? "text-emerald-500" : "text-slate-500")} />
+                      <Search className={cn("w-4 h-4 transition-colors", filterCarId ? "text-emerald-500" : "text-slate-400")} />
                       <input 
                         ref={searchInputRef}
                         type="text"
@@ -2118,10 +2132,10 @@ export default function App() {
                     <button 
                       onClick={() => setShowMobileFilters(!showMobileFilters)}
                       className={cn(
-                        "p-3 rounded-xl transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group relative overflow-hidden",
+                        "p-3 rounded-2xl transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group relative overflow-hidden",
                         showMobileFilters 
                           ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30" 
-                          : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50")
+                          : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-white text-slate-900 border border-slate-200 shadow-md hover:bg-slate-50")
                       )}
                     >
                       <Settings2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
@@ -2158,7 +2172,7 @@ export default function App() {
                         onClick={() => fetchData()}
                         className={cn(
                           "hidden sm:flex p-3 rounded-xl transition-all hover:scale-105 active:scale-95 border",
-                          theme === 'dark' ? "bg-slate-800 border-white/10 text-white" : "bg-white border-slate-200 text-slate-900 shadow-sm hover:bg-slate-50"
+                          theme === 'dark' ? "bg-slate-800 border-white/10 text-white" : "bg-bg-surface border-slate-200 text-slate-900 shadow-sm hover:bg-slate-50"
                         )}
                       >
                         <Database className="w-4 h-4 mr-2" />
@@ -2175,53 +2189,55 @@ export default function App() {
                     initial={{ opacity: 0, y: -20, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                    className="mt-3"
+                    className="mt-3 relative z-[100]"
                   >
                     <div className={cn(
                       "p-4 sm:p-5 backdrop-blur-3xl border rounded-[1.5rem] shadow-2xl flex flex-wrap items-end gap-5",
                       theme === 'dark' 
                         ? "bg-slate-900/90 border-white/10 shadow-black/60" 
-                        : "bg-white border-slate-200 shadow-xl shadow-slate-200/40"
+                        : "bg-bg-surface border-slate-200 shadow-xl shadow-slate-200/40"
                     )}>
                       <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {/* Custom Select Wrapper Component Logic */}
+                        {/* Custom Select Filter Hub */}
                         {[
                           { label: 'Setor', value: filterSector, setter: setFilterSector, options: availableSectors, all: 'ALL' },
                           { label: 'Modelo', value: filterModel, setter: setFilterModel, options: availableModels, all: 'ALL' },
                           { label: 'Controlador', value: filterController, setter: setFilterController, options: availableControllers, all: 'ALL' },
                           { label: 'Data Emb.', value: filterDate, setter: setFilterDate, options: availableDates, all: 'ALL' },
                           { label: 'Hora Emb.', value: filterTime, setter: setFilterTime, options: availableTimes, all: 'ALL' },
-                          { label: 'Situação', value: filterExcelStatus, setter: setFilterExcelStatus, options: availableExcelStatuses, all: 'ALL' }
-                        ].map((filter) => (
-                           <div key={filter.label} className="flex flex-col gap-1.5">
-                             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest pl-1">{filter.label}</span>
-                            <div className="relative group">
-                              <select 
-                                value={filter.value} 
-                                onChange={e => filter.setter(e.target.value)}
-                                className={cn(
-                                 "w-full px-4 py-2 rounded-xl text-[11px] font-bold bg-slate-500/5 border border-slate-500/10 focus:border-indigo-500 focus:bg-white/5 focus:outline-none appearance-none cursor-pointer transition-all",
-                                 theme === 'dark' ? "text-white" : "text-slate-800"
-                               )}
-                              >
-                                <option value={filter.all}>TODOS</option>
-                                {filter.options.map(opt => {
-                                  let label = opt;
-                                  if (filter.label === 'Setor') {
-                                    const total = dbRecords.filter(r => r.sectorName === opt).length;
-                                    const embarked = dbRecords.filter(r => r.sectorName === opt && r.status === 'EMBARCADO').length;
-                                    const percent = Math.round((embarked / (total || 1)) * 100);
-                                    label = `${opt} (${percent}%)`;
-                                  }
-                                  return <option key={opt} value={opt}>{label}</option>;
-                                })}
-                              </select>
-                              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
-                                <ChevronRight className="w-3 h-3 rotate-90" />
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                          { label: 'Situação', value: filterExcelStatus, setter: setFilterExcelStatus, options: availableExcelStatuses, all: 'ALL' },
+                          { label: 'Status SLA', value: filterStatus, setter: setFilterStatus, options: ['LATE', 'NEXT', 'ONTIME'], all: 'ALL', isSla: true }
+                        ].map((filter) => {
+                          const options = filter.isSla ? [
+                            { value: 'ALL', label: 'TODOS' },
+                            { value: 'LATE', label: 'ATRASADO' },
+                            { value: 'NEXT', label: 'PRÓXIMO EMBARQUE' },
+                            { value: 'ONTIME', label: 'NO PRAZO' }
+                          ] : [
+                            { value: filter.all, label: 'TODOS' },
+                            ...filter.options.map(opt => {
+                              let label = opt;
+                              if (filter.label === 'Setor') {
+                                const total = dbRecords.filter(r => r.sectorName === opt).length;
+                                const embarked = dbRecords.filter(r => r.sectorName === opt && r.status === 'EMBARCADO').length;
+                                const percent = Math.round((embarked / (total || 1)) * 100);
+                                label = `${opt} (${percent}%)`;
+                              }
+                              return { value: opt, label };
+                            })
+                          ];
+
+                          return (
+                            <CustomSelect
+                              key={filter.label}
+                              label={filter.label}
+                              value={filter.value}
+                              onChange={filter.setter}
+                              options={options}
+                              theme={theme}
+                            />
+                          );
+                        })}
                       </div>
 
                       {/* Filter Stats Indicator */}
@@ -2262,7 +2278,7 @@ export default function App() {
             {/* Map Area */}
             <div className={cn(
               "flex-1 relative w-full h-full overflow-hidden flex flex-col transition-colors duration-300",
-              theme === 'dark' ? "bg-slate-950" : "bg-[#f8fafc]"
+              theme === 'dark' ? "bg-slate-950" : "bg-bg-main"
             )}>
               {/* Map Header & Tabs */}
               <div className="flex-none p-4 pb-0 z-20">
@@ -2277,32 +2293,31 @@ export default function App() {
                   </div>
                   
                   <div className="flex items-center justify-between gap-4">
-                    {/* Tabs (Segmented Control style) */}
-                     <div className={cn(
-                       "flex items-center p-1 rounded-xl w-fit transition-all duration-300 relative",
-                       theme === 'dark' ? "bg-slate-900 border border-slate-800 shadow-inner" : "bg-slate-200/50 border border-slate-200/50 shadow-inner"
-                     )}>
-                       {['geral', 'format'].map((group) => (
-                         <button
-                           key={group}
-                           onClick={() => setActiveTabGroup(group as any)}
-                           className={cn(
-                             "px-6 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all relative z-10 h-[32px] flex items-center justify-center min-w-[140px]",
-                             activeTabGroup === group 
-                               ? (theme === 'dark' ? "text-white" : "text-slate-900") 
-                               : "text-slate-500 hover:text-slate-700"
-                           )}
-                         >
-                           {activeTabGroup === group && (
-                             <motion.div
-                               layoutId="activeTabPill"
-                               className={cn(
-                                 "absolute inset-0 rounded-lg shadow-sm backdrop-blur-sm",
-                                 theme === 'dark' ? "bg-slate-800 ring-1 ring-white/10" : "bg-white"
-                               )}
-                               transition={{ type: "spring", bounce: 0.1, duration: 0.6 }}
-                             />
-                           )}
+                                   <div className={cn(
+                        "flex items-center p-1 rounded-xl w-fit transition-all duration-300 relative",
+                        theme === 'dark' ? "bg-slate-900 border border-slate-800 shadow-inner" : "bg-white border border-slate-300 shadow-xl"
+                      )}>
+                        {['geral'].map((group) => (
+                          <button
+                            key={group}
+                            onClick={() => setActiveTabGroup(group as any)}
+                            className={cn(
+                              "px-6 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all relative z-10 h-[32px] flex items-center justify-center min-w-[140px]",
+                              activeTabGroup === group 
+                                ? (theme === 'dark' ? "text-white" : "text-slate-900") 
+                                : "text-slate-500 hover:text-slate-700"
+                            )}
+                          >
+                            {activeTabGroup === group && (
+                              <motion.div
+                                layoutId="activeTabPill"
+                                className={cn(
+                                  "absolute inset-0 rounded-lg shadow-md",
+                                  theme === 'dark' ? "bg-slate-800 ring-1 ring-white/10" : "bg-slate-100 ring-1 ring-slate-300"
+                                )}
+                                transition={{ type: "spring", bounce: 0.1, duration: 0.6 }}
+                              />
+                            )}
                            <span className="relative z-20">
                              {group === 'geral' ? 'Geral' : 'Formatado'}
                            </span>
@@ -2325,7 +2340,7 @@ export default function App() {
                             layoutId="activeTabPill"
                             className={cn(
                               "absolute inset-0 rounded-lg shadow-sm backdrop-blur-sm",
-                              theme === 'dark' ? "bg-slate-800 ring-1 ring-indigo-500/20" : "bg-white"
+                              theme === 'dark' ? "bg-slate-800 ring-1 ring-indigo-500/20" : "bg-bg-surface"
                             )}
                             transition={{ type: "spring", bounce: 0.1, duration: 0.6 }}
                           />
@@ -2346,7 +2361,7 @@ export default function App() {
                           exit={{ opacity: 0, x: -10 }}
                           className={cn(
                             "flex items-center gap-3 px-4 py-1.5 rounded-xl border transition-all h-[40px]",
-                            theme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200 shadow-sm"
+                            theme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-bg-surface border-slate-200 shadow-sm"
                           )}
                         >
                           <span className={cn("text-[9px] font-mono font-bold uppercase tracking-widest", theme === 'dark' ? "text-slate-400" : "text-slate-500")}>
@@ -2480,19 +2495,19 @@ export default function App() {
                           width={`${displayBay.width}%`}
                           height={`${displayBay.height}%`}
                         >
-                          <div className="w-full h-full flex flex-col items-center justify-start p-1 overflow-hidden">
+                          <div className="w-full h-full flex flex-col items-center justify-start p-1 overflow-hidden drop-shadow-sm">
                             <div className="flex flex-col items-center justify-center py-1.5 w-full">
                               <div className={cn(
-                                "text-[12px] font-black uppercase tracking-tight truncate w-full text-center transition-colors duration-300",
+                                "text-[15px] font-black uppercase tracking-tight truncate w-full text-center transition-colors duration-300",
                                 isSelected 
-                                  ? (theme === 'dark' ? "text-white" : "text-emerald-700") 
-                                  : (theme === 'dark' ? "text-slate-300" : "text-slate-600")
+                                  ? (theme === 'dark' ? "text-white" : "text-slate-950") 
+                                  : (theme === 'dark' ? "text-slate-200" : "text-slate-900")
                               )}>
-                                {displayBay.name}
+                                {displayBay.name} <span className="text-[14px] font-black ml-1">({carsInBay.length})</span>
                               </div>
                               <div className={cn(
-                                "text-[9px] font-bold uppercase tracking-widest truncate w-full text-center leading-none opacity-60",
-                                isSelected ? "text-emerald-400" : (theme === 'dark' ? "text-slate-500" : "text-slate-400")
+                                "text-[11px] font-bold uppercase tracking-widest truncate w-full text-center leading-none opacity-60",
+                                isSelected ? "text-indigo-400" : (theme === 'dark' ? "text-slate-500" : "text-slate-600")
                               )}>
                                 {displayBay.sector || 'Sem Setor'}
                               </div>
@@ -2558,17 +2573,17 @@ export default function App() {
                                       {i + 1}
                                     </span>
                                     <div className={cn(
-                                      "rounded-[4px] transition-all duration-300 overflow-hidden shadow-sm border flex items-center justify-center",
+                                      "rounded-[4px] transition-all duration-300 overflow-hidden shadow-md border flex items-center justify-center",
                                       displayBay.orientation === 'horizontal' ? "w-full flex-1" : "flex-1 h-full",
                                       car 
                                         ? (theme === 'dark'
                                             ? (isWrongSector ? "bg-gradient-to-r from-fuchsia-600/90 to-purple-600/90 border-fuchsia-500/50" : color === 'rose' ? "bg-gradient-to-r from-rose-600/90 to-red-600/90 border-rose-500/50" : color === 'amber' ? "bg-gradient-to-r from-amber-600/90 to-orange-500/90 border-amber-500/50" : "bg-gradient-to-r from-emerald-600/90 to-teal-500/90 border-emerald-500/50")
                                             : (isWrongSector 
-                                                ? "bg-amber-50/40 border-amber-200 shadow-sm" 
-                                                : "bg-white border-slate-200 shadow-sm")
+                                                ? "bg-amber-100/60 border-amber-300 shadow-md" 
+                                                : "bg-white border-slate-300 shadow-xl shadow-slate-400/30")
                                           )
                                         : "bg-transparent border-transparent", // Clean empty slots
-                                      car && "hover:scale-[1.03] hover:shadow-lg hover:z-10 hover:brightness-110 cursor-help"
+                                      car && "hover:scale-[1.03] hover:shadow-2xl hover:z-10 hover:brightness-110 cursor-help"
                                     )}
                                     onMouseEnter={(e) => {
                                       if (car) {
@@ -2590,10 +2605,10 @@ export default function App() {
                                             ) : slaInfo?.isLate ? (
                                               <Clock className={cn("shrink-0", displayBay.orientation === 'horizontal' ? "w-4 h-4" : "w-3 h-3", theme === 'dark' ? "text-white/80" : "text-rose-400")} />
                                             ) : (
-                                              <div className={cn("rounded-full shrink-0", displayBay.orientation === 'horizontal' ? "w-2.5 h-2.5" : "w-1.5 h-1.5", theme === 'dark' ? "bg-white/40" : "bg-emerald-400/60")} />
+                                              <div className={cn("rounded-full shrink-0", displayBay.orientation === 'horizontal' ? "w-2.5 h-2.5" : "w-1.5 h-1.5", theme === 'dark' ? "bg-bg-surface/40" : "bg-emerald-400/60")} />
                                             )}
                                             {(!displayBay.orientation || displayBay.orientation === 'vertical') && (
-                                              <span className={cn("font-mono font-bold leading-none truncate text-[11px] tracking-tight", theme === 'dark' ? "text-white drop-shadow-sm" : "text-slate-900")}>
+                                              <span className={cn("font-mono font-bold leading-none truncate text-[14px] tracking-tight", theme === 'dark' ? "text-white drop-shadow-sm" : "text-slate-900")}>
                                                 {car.carId}
                                               </span>
                                             )}
@@ -2602,7 +2617,7 @@ export default function App() {
                                           {/* SLA & Time Indicator */}
                                           {(!displayBay.slotHeight || displayBay.slotHeight >= 20 || displayBay.orientation === 'horizontal') && (
                                             <div className={cn("flex shrink-0 overflow-hidden", displayBay.orientation === 'horizontal' ? "w-full flex-col items-center gap-0.5 mt-auto" : "items-center justify-end ml-auto gap-1.5")}>
-                                              <span className={cn("text-[8px] font-mono font-medium tracking-tight truncate", theme === 'dark' ? "text-white/90 drop-shadow-sm" : "text-slate-500")}>
+                                              <span className={cn("text-[12px] font-mono font-black tracking-tight truncate", theme === 'dark' ? "text-white/90 drop-shadow-sm" : "text-slate-600")}>
                                                 {displayBay.orientation === 'horizontal' ? car.carId : car.embarkTime}
                                               </span>
                                               {(() => {
@@ -2687,7 +2702,7 @@ export default function App() {
                     exit={{ opacity: 0, scale: 0.95 }}
                     className={cn(
                       "fixed z-[100] pointer-events-none p-3 rounded-xl border shadow-2xl backdrop-blur-md transition-colors duration-300",
-                      theme === 'dark' ? "bg-slate-900/90 border-slate-700" : "bg-white/90 border-slate-200"
+                      theme === 'dark' ? "bg-slate-900/90 border-slate-700" : "bg-bg-surface/90 border-slate-200"
                     )}
                     style={{ 
                       left: hoveredCar.x + 15, 
@@ -2758,7 +2773,7 @@ export default function App() {
                   "relative w-full max-w-2xl border rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] overflow-hidden transition-colors duration-300 backdrop-blur-3xl",
                   theme === 'dark' 
                     ? "bg-slate-900/60 border-white/10 ring-1 ring-inset ring-white/5" 
-                    : "bg-white/80 border-white shadow-slate-300/40 ring-1 ring-inset ring-black/5"
+                    : "bg-bg-surface/80 border-white shadow-slate-300/40 ring-1 ring-inset ring-black/5"
                 )}
               >
                 <div className={cn(
@@ -2789,7 +2804,7 @@ export default function App() {
                         "w-full h-64 p-6 rounded-[2rem] text-sm font-medium focus:outline-none transition-all duration-300 border resize-none custom-scrollbar",
                         theme === 'dark' 
                           ? "bg-black/40 border-white/5 text-white placeholder:text-slate-600 focus:border-blue-500/50 focus:bg-black/60 shadow-inner" 
-                          : "bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-blue-500/50 focus:bg-white"
+                          : "bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-blue-500/50 focus:bg-bg-surface"
                       )}
                     />
                   </div>
@@ -2798,7 +2813,7 @@ export default function App() {
                       onClick={() => setShowImport(false)}
                       className={cn(
                         "flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95",
-                        theme === 'dark' ? "bg-white/5 text-slate-400 hover:bg-white/10" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                        theme === 'dark' ? "bg-bg-surface/5 text-slate-400 hover:bg-bg-surface/10" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                       )}
                     >
                       Cancelar
@@ -2835,7 +2850,7 @@ export default function App() {
                   "relative w-full max-w-sm p-8 border rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] text-center space-y-6 backdrop-blur-3xl",
                   theme === 'dark' 
                     ? "bg-slate-900/60 border-white/10 ring-1 ring-inset ring-white/5" 
-                    : "bg-white/80 border-white shadow-slate-300/40 ring-1 ring-inset ring-black/5"
+                    : "bg-bg-surface/80 border-white shadow-slate-300/40 ring-1 ring-inset ring-black/5"
                 )}
               >
                 <div className="w-20 h-20 bg-rose-500/10 rounded-[2rem] flex items-center justify-center mx-auto border border-rose-500/20 glow-rose">
@@ -2867,7 +2882,7 @@ export default function App() {
                     onClick={() => setShowClearConfirm(false)}
                     className={cn(
                       "w-full py-4 rounded-2xl font-black text-xs transition-all uppercase tracking-widest active:scale-95",
-                      theme === 'dark' ? "bg-white/5 text-slate-400 hover:bg-white/10" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                      theme === 'dark' ? "bg-bg-surface/5 text-slate-400 hover:bg-bg-surface/10" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                     )}
                   >
                     Cancelar
