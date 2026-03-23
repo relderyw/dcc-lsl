@@ -2495,25 +2495,31 @@ export default function App() {
                           width={`${displayBay.width}%`}
                           height={`${displayBay.height}%`}
                         >
-                          <div className="w-full h-full flex flex-col items-center justify-start p-1 overflow-hidden drop-shadow-sm">
-                            <div className="flex flex-col items-center justify-center py-1.5 w-full">
-                              <div className={cn(
-                                "text-[15px] font-black uppercase tracking-tight truncate w-full text-center transition-colors duration-300",
-                                isSelected 
-                                  ? (theme === 'dark' ? "text-white" : "text-slate-950") 
-                                  : (theme === 'dark' ? "text-slate-200" : "text-slate-900")
-                              )}>
-                                {displayBay.name} <span className="text-[14px] font-black ml-1">({carsInBay.length})</span>
+                          <div className="w-full h-full flex flex-col items-center justify-start p-1 overflow-hidden drop-shadow-sm rounded-2xl relative">
+                            {carsInBay.length > 10 && (
+                              <div className="absolute inset-0 z-0 p-[3px] rounded-2xl bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 pointer-events-none opacity-90">
+                                <div className={cn("w-full h-full rounded-[13px]", theme === 'dark' ? "bg-slate-900" : "bg-white")} />
                               </div>
-                              <div className={cn(
-                                "text-[11px] font-bold uppercase tracking-widest truncate w-full text-center leading-none opacity-60",
-                                isSelected ? "text-indigo-400" : (theme === 'dark' ? "text-slate-500" : "text-slate-600")
-                              )}>
-                                {displayBay.sector || 'Sem Setor'}
+                            )}
+                            <div className="relative z-10 flex flex-col items-center justify-start w-full h-full">
+                              <div className="flex flex-col items-center justify-center py-1.5 w-full">
+                                <div className={cn(
+                                  "text-[15px] font-black uppercase tracking-tight truncate w-full text-center transition-colors duration-300",
+                                  isSelected 
+                                    ? (theme === 'dark' ? "text-white" : "text-slate-950") 
+                                    : (theme === 'dark' ? "text-slate-200" : "text-slate-900")
+                                )}>
+                                  {displayBay.name} <span className="text-[14px] font-black ml-1">({carsInBay.length})</span>
+                                </div>
+                                <div className={cn(
+                                  "text-[11px] font-bold uppercase tracking-widest truncate w-full text-center leading-none opacity-60",
+                                  isSelected ? "text-indigo-400" : (theme === 'dark' ? "text-slate-500" : "text-slate-600")
+                                )}>
+                                  {displayBay.sector || 'Sem Setor'}
+                                </div>
                               </div>
-                            </div>
 
-                            {/* Ruler / Capacity Indicator (Vertical Slots) */}
+                              {/* Ruler / Capacity Indicator (Vertical Slots) */}
                             <div className={cn(
                               "flex-1 w-full flex mt-0.5 rounded-sm custom-scrollbar mb-1 relative transition-colors duration-300",
                               displayBay.orientation === 'horizontal' ? "flex-row overflow-x-auto overflow-y-hidden" : "flex-col overflow-y-auto overflow-x-hidden",
@@ -2640,14 +2646,15 @@ export default function App() {
                                     </div>
                                   </div>
                                 );
-                              })}
-                            </div>
-                            
-                            {(isResizing || isDrawing) && isSelected && (
-                              <div className="absolute top-0 right-0 transform translate-x-full bg-blue-600 text-white text-[7px] px-1 rounded font-bold animate-pulse z-50">
-                                {displayBay.capacity} VAGAS
+                                })}
                               </div>
-                            )}
+                              
+                              {(isResizing || isDrawing) && isSelected && (
+                                <div className="absolute top-0 right-0 transform translate-x-full bg-blue-600 text-white text-[7px] px-1 rounded font-bold animate-pulse z-50">
+                                  {displayBay.capacity} VAGAS
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </foreignObject>
                         
