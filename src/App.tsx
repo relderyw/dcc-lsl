@@ -118,7 +118,17 @@ function getLocationCategory(location: string): string {
   return 'Controlador';
 }
 
+function getCountColorClass(count: number): string {
+  const diff = Math.abs(count - 10);
+  if (diff === 0) return "text-emerald-500";
+  if (diff <= 3) return "text-lime-500";
+  if (diff <= 8) return "text-yellow-500";
+  if (diff <= 15) return "text-orange-500";
+  return "text-rose-500";
+}
+
 export default function App() {
+
   const [bays, setBays] = useState<Bay[]>([]);
   const [mode, setMode] = useState<Mode>('view');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -1770,6 +1780,62 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* Top Pickings */}
+                <div className={cn(
+                  "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-bg-surface border-slate-200 shadow-sm shadow-slate-200/20"
+                )}>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl">
+                      <BarChart3 className="w-5 h-5" />
+                    </div>
+                    <h3 className={cn("text-lg font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
+                      Pickings Mais Cheios
+                    </h3>
+                  </div>
+
+                  <div className="space-y-4">
+                    {(() => {
+                      const locationStats = filteredRecords
+                        .filter(r => getLocationCategory(r.location).includes('Picking') && r.location)
+                        .reduce((acc, r) => {
+                          const c = r.location;
+                          acc[c] = (acc[c] || 0) + 1;
+                          return acc;
+                        }, {} as Record<string, number>);
+
+                      const sortedLocations = (Object.entries(locationStats) as [string, number][])
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 7); // Top 7 to match Categorização Picking elements length
+                      
+                      const maxLoc = Math.max(...(Object.values(locationStats) as number[]), 1);
+
+                      return sortedLocations.map(([loc, count], idx) => {
+                        const percent = Math.round((count / maxLoc) * 100);
+                        
+                        return (
+                          <div key={loc} className="space-y-1.5">
+                            <div className="flex justify-between items-end px-1">
+                              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate mr-2" title={loc}>{loc}</span>
+                              <span className="text-[11px] font-bold text-slate-400 tabular-nums shrink-0">{count}</span>
+                            </div>
+                            <div className={cn("h-1.5 w-full rounded-full overflow-hidden", theme === 'dark' ? "bg-bg-surface/5" : "bg-slate-100")}>
+                              <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${percent}%` }}
+                                className={cn(
+                                  "h-full rounded-full transition-all duration-1000",
+                                  idx < 3 ? "bg-rose-500/40" : "bg-indigo-500/40" // Top 3 gets red indicating high utilization
+                                )}
+                              />
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+
                 {/* Controller Activity - Line Chart Style */}
                 <div className={cn(
                   "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
@@ -2496,11 +2562,6 @@ export default function App() {
                           height={`${displayBay.height}%`}
                         >
                           <div className="w-full h-full flex flex-col items-center justify-start p-1 overflow-hidden drop-shadow-sm rounded-2xl relative">
-                            {carsInBay.length > 10 && (
-                              <div className="absolute inset-0 z-0 p-[3px] rounded-2xl bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 pointer-events-none opacity-90">
-                                <div className={cn("w-full h-full rounded-[13px]", theme === 'dark' ? "bg-slate-900" : "bg-white")} />
-                              </div>
-                            )}
                             <div className="relative z-10 flex flex-col items-center justify-start w-full h-full">
                               <div className="flex flex-col items-center justify-center py-1.5 w-full">
                                 <div className={cn(
@@ -2509,7 +2570,7 @@ export default function App() {
                                     ? (theme === 'dark' ? "text-white" : "text-slate-950") 
                                     : (theme === 'dark' ? "text-slate-200" : "text-slate-900")
                                 )}>
-                                  {displayBay.name} <span className="text-[14px] font-black ml-1">({carsInBay.length})</span>
+                                  {displayBay.name} <span className={cn("text-[14px] font-black ml-1 transition-colors", getCountColorClass(carsInBay.length))}>({carsInBay.length})</span>
                                 </div>
                                 <div className={cn(
                                   "text-[11px] font-bold uppercase tracking-widest truncate w-full text-center leading-none opacity-60",
