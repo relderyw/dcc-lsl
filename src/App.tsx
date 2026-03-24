@@ -1561,14 +1561,18 @@ export default function App() {
 
                               let d = `M ${pts[0].x} ${pts[0].y}`;
                                 for (let i = 0; i < pts.length - 1; i++) {
+                                  const p0 = pts[Math.max(0, i - 1)];
                                   const p1 = pts[i];
                                   const p2 = pts[i + 1];
+                                  const p3 = pts[Math.min(pts.length - 1, i + 2)];
                                   
-                                  // Monotonic easing prevents overshoots
-                                  const cp1x = p1.x + (p2.x - p1.x) / 2;
-                                  const cp2x = p1.x + (p2.x - p1.x) / 2;
+                                  // Catmull-Rom Spline
+                                  const cp1x = p1.x + (p2.x - p0.x) / 6;
+                                  const cp1y = p1.y + (p2.y - p0.y) / 6;
+                                  const cp2x = p2.x - (p3.x - p1.x) / 6;
+                                  const cp2y = p2.y - (p3.y - p1.y) / 6;
                                   
-                                  d += ` C ${cp1x} ${p1.y}, ${cp2x} ${p2.y}, ${p2.x} ${p2.y}`;
+                                  d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
                                 }
                               
                               const areaD = `${d} L 100 100 L 0 100 Z`;
@@ -1580,18 +1584,19 @@ export default function App() {
                                     fill="url(#areaGradient)"
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
+                                    transition={{ duration: 1.5, ease: "easeOut" }}
                                   />
                                   <motion.path 
                                     d={d} 
                                     fill="none" 
                                     stroke="url(#lineGradient)" 
-                                    strokeWidth="3" 
+                                    strokeWidth="3.5" 
                                     strokeLinecap="round" 
                                     strokeLinejoin="round" 
                                     vectorEffect="non-scaling-stroke"
-                                    initial={{ pathLength: 0 }}
-                                    animate={{ pathLength: 1 }}
-                                    transition={{ duration: 1.5, ease: "easeOut" }}
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
                                   />
                                 </g>
                               );
