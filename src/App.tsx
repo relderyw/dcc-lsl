@@ -1548,7 +1548,7 @@ export default function App() {
 
                       return (
                         <>
-                          <svg className="absolute inset-0 w-full h-full pointer-events-none z-10 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+                          <svg className="absolute top-0 inset-x-0 h-[calc(100%-32px)] w-full pointer-events-none z-10 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
                             <defs>
                               <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                                 <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
@@ -1667,7 +1667,7 @@ export default function App() {
                                     initial={{ height: 0 }}
                                     animate={{ height: `${Math.max(1, hPercReal)}%` }}
                                     className={cn(
-                                      "absolute bottom-0 inset-x-[35%] rounded-t-[2px] transition-all duration-500 z-20 pointer-events-none",
+                                      "absolute bottom-8 inset-x-[35%] rounded-t-[2px] transition-all duration-500 z-20 pointer-events-none",
                                       realCount > 0 
                                         ? (theme === 'dark' ? "bg-emerald-500/85 drop-shadow-[0_0_8px_rgba(16,185,129,0.2)]" : "bg-emerald-500")
                                         : "bg-transparent"
@@ -1691,7 +1691,7 @@ export default function App() {
                                     initial={{ height: 0 }}
                                     animate={{ height: `${Math.max(1, hPercPlan)}%` }}
                                     className={cn(
-                                      "absolute bottom-0 inset-x-[35%] rounded-t-[2px] transition-all duration-500 z-10 pointer-events-none",
+                                      "absolute bottom-8 inset-x-[35%] rounded-t-[2px] transition-all duration-500 z-10 pointer-events-none",
                                       planCount > 0 
                                         ? (theme === 'dark' ? "border-t border-l border-r border-dashed border-slate-500 bg-transparent" : "border-t border-l border-r border-dashed border-slate-400 bg-transparent")
                                         : "bg-transparent"
@@ -1729,7 +1729,7 @@ export default function App() {
                                   </div>
 
                                   <span className={cn(
-                                    "mt-3 text-xs sm:text-sm font-bold tabular-nums transition-colors duration-300 opacity-60 group-hover/bar:opacity-100",
+                                    "absolute bottom-0 text-xs sm:text-sm font-bold tabular-nums transition-colors duration-300 opacity-60 group-hover/bar:opacity-100",
                                     theme === 'dark' ? "text-slate-300" : "text-slate-600"
                                   )}>
                                     {h}
