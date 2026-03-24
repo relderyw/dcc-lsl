@@ -1492,9 +1492,9 @@ export default function App() {
                         { label: 'Atrasados', value: atrasados.length, color: 'text-rose-500', desc: 'Hoje — previsão vencida' },
                       ].map((stat, i) => (
                         <div key={i} className="space-y-1">
-                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em]">{stat.label}</span>
-                          <p className={cn("text-2xl font-black tabular-nums", stat.color)}>{stat.value}</p>
-                          <span className="text-[8px] text-slate-400 font-medium">{stat.desc}</span>
+                          <span className="text-[10px] sm:text-xs font-black text-slate-500 uppercase tracking-[0.15em]">{stat.label}</span>
+                          <p className={cn("text-2xl sm:text-3xl font-black tabular-nums", stat.color)}>{stat.value}</p>
+                          <span className="text-[9px] sm:text-[11px] text-slate-400 font-medium">{stat.desc}</span>
                         </div>
                       ));
                     })()}
@@ -1588,9 +1588,10 @@ export default function App() {
                                     d={d} 
                                     fill="none" 
                                     stroke="url(#lineGradient)" 
-                                    strokeWidth="1.5" 
+                                    strokeWidth="3.5" 
                                     strokeLinecap="round" 
                                     strokeLinejoin="round" 
+                                    style={{ filter: "drop-shadow(0px 8px 12px rgba(99, 102, 241, 0.6))" }}
                                     initial={{ pathLength: 0 }}
                                     animate={{ pathLength: 1 }}
                                     transition={{ duration: 1.5, ease: "easeOut" }}
@@ -1617,15 +1618,15 @@ export default function App() {
                                       className={cn(
                                         "w-full rounded-t-[1px] transition-all duration-500 relative",
                                         planCount > 0 
-                                          ? (theme === 'dark' ? "bg-bg-surface/5 border-t border-white/10" : "bg-slate-100 border-t border-slate-200")
+                                          ? (theme === 'dark' ? "bg-indigo-500/20 border-t-2 border-indigo-400/40" : "bg-indigo-100 border-t-2 border-indigo-300")
                                           : (theme === 'dark' ? "bg-transparent" : "bg-transparent")
                                       )}
                                     >
                                       {/* Real Shipments Indicator - Labels */}
                                       {realCount > 0 && (
-                                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 flex items-center justify-center">
+                                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex items-center justify-center">
                                           <span className={cn(
-                                            "text-[10px] font-black tabular-nums transition-all drop-shadow-sm",
+                                            "text-xs sm:text-sm font-black tabular-nums transition-all drop-shadow-sm",
                                             theme === 'dark' ? "text-indigo-400" : "text-indigo-600"
                                           )}>
                                             {realCount}
@@ -1657,8 +1658,8 @@ export default function App() {
                                   </div>
 
                                   <span className={cn(
-                                    "mt-3 text-[8px] font-bold tabular-nums transition-colors duration-300 opacity-40 group-hover/bar:opacity-100",
-                                    theme === 'dark' ? "text-slate-400" : "text-slate-500"
+                                    "mt-3 text-[10px] sm:text-xs font-bold tabular-nums transition-colors duration-300 opacity-60 group-hover/bar:opacity-100",
+                                    theme === 'dark' ? "text-slate-300" : "text-slate-600"
                                   )}>
                                     {h}
                                   </span>
