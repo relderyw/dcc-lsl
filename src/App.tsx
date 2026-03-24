@@ -1564,7 +1564,7 @@ export default function App() {
                               const pts = cumulativeData
                                 .filter(d => d.index <= currentHourIndex) // Só desenha a linha até a hora atual do turno
                                 .map(d => ({
-                                  x: (d.index / 23) * 100,
+                                  x: ((d.index + 0.5) / 24) * 100,
                                   y: 100 - (d.val / yMaxLine) * 100
                                 }));
                               
@@ -1588,7 +1588,7 @@ export default function App() {
                                 }
                               
                               // Área do gráfico desce a partir do último ponto desenhado
-                              const areaD = `${d} L ${pts[pts.length - 1].x} 100 L 0 100 Z`;
+                              const areaD = `${d} L ${pts[pts.length - 1].x} 100 L ${pts[0].x} 100 Z`;
 
                               return (
                                 <g>
@@ -1620,9 +1620,9 @@ export default function App() {
                             {shiftHours.map((h, i) => {
                               const planCount = hourlyPlan[i];
                               const realCount = hourlyReal[i];
-                              // Ocupando no maximo 50%
-                              const hPercPlan = (planCount / maxHourlyVal) * 50;
-                              const hPercReal = (realCount / maxHourlyVal) * 50;
+                              // Ocupando no maximo 35%
+                              const hPercPlan = (planCount / maxHourlyVal) * 35;
+                              const hPercReal = (realCount / maxHourlyVal) * 35;
                               
                               return (
                                 <div key={i} className="flex-1 flex flex-col items-center group/bar relative h-full justify-end">
@@ -1655,8 +1655,8 @@ export default function App() {
                                     >
                                       {/* Plan Number Label */}
                                       {planCount > 0 && (
-                                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex items-center justify-center">
-                                          <span className="text-[10px] sm:text-xs font-bold tabular-nums text-slate-500 transition-all">
+                                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 flex items-center justify-center">
+                                          <span className="text-[9px] sm:text-[10px] font-bold tabular-nums text-slate-500 transition-all opacity-80">
                                             {planCount}
                                           </span>
                                         </div>
