@@ -1658,7 +1658,7 @@ export default function App() {
                                       initial={{ height: 0 }}
                                       animate={{ height: `${Math.max(1, hPercReal)}%` }}
                                       className={cn(
-                                        "absolute bottom-0 w-full rounded-t-[2px] transition-all duration-500 z-20",
+                                        "absolute bottom-0 inset-x-[35%] rounded-t-[2px] transition-all duration-500 z-20",
                                         realCount > 0 
                                           ? (theme === 'dark' ? "bg-emerald-500/85 drop-shadow-[0_0_8px_rgba(16,185,129,0.2)]" : "bg-emerald-500")
                                           : "bg-transparent"
@@ -1682,7 +1682,7 @@ export default function App() {
                                       initial={{ height: 0 }}
                                       animate={{ height: `${Math.max(1, hPercPlan)}%` }}
                                       className={cn(
-                                        "absolute bottom-0 w-full rounded-t-[2px] transition-all duration-500 z-10",
+                                        "absolute bottom-0 inset-x-[35%] rounded-t-[2px] transition-all duration-500 z-10",
                                         planCount > 0 
                                           ? (theme === 'dark' ? "border-t border-l border-r border-dashed border-slate-500 bg-transparent" : "border-t border-l border-r border-dashed border-slate-400 bg-transparent")
                                           : "bg-transparent"
