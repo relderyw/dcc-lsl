@@ -1518,13 +1518,17 @@ export default function App() {
                         return filteredRecords.filter(r => r.status === 'EMBARCADO' && r.embarkDate === todayStr && r.embarkTime?.startsWith(h.toString().padStart(2, '0'))).length;
                       });
 
-                      const maxPlan = Math.max(...hourlyPlan) || 1;
+                      const totalPlan = hourlyPlan.reduce((sum, val) => sum + val, 0) || 1;
+                      const totalReal = hourlyReal.reduce((sum, val) => sum + val, 0);
+                      const yMaxLine = Math.max(totalPlan, totalReal) || 1;
+                      const currentHour = today.getHours();
+
                       let cumulative = 0;
-                      const cumulativeData = hourlyReal.map(d => {
+                      const cumulativeData = hourlyReal.map((d, i) => {
                         cumulative += d;
-                        return cumulative;
+                        return { val: cumulative, hour: i };
                       });
-                      const totalMax = cumulativeData[cumulativeData.length - 1] || 1;
+                      const maxHourlyReal = Math.max(...hourlyReal) || 1;
 
                       return (
                         <>
@@ -1552,12 +1556,15 @@ export default function App() {
                             ))}
 
                             {(() => {
-                              const pts = cumulativeData.map((val, i) => ({
-                                x: (i / (cumulativeData.length - 1)) * 100,
-                                y: 100 - (val / totalMax) * 100
-                              }));
+                              const pts = cumulativeData
+                                .filter(d => d.hour <= currentHour) // Só desenha a linha até a hora atual
+                                .map(d => ({
+                                  x: (d.hour / 23) * 100,
+                                  y: 100 - (d.val / yMaxLine) * 100
+                                }));
                               
-                              if (pts.length < 2) return null;
+                              if (pts.length === 0) return null;
+                              if (pts.length === 1) pts.push({ ...pts[0], x: pts[0].x + 0.1 });
 
                               let d = `M ${pts[0].x} ${pts[0].y}`;
                                 for (let i = 0; i < pts.length - 1; i++) {
@@ -1575,7 +1582,8 @@ export default function App() {
                                   d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
                                 }
                               
-                              const areaD = `${d} L 100 100 L 0 100 Z`;
+                              // Área do gráfico desce a partir do último ponto desenhado
+                              const areaD = `${d} L ${pts[pts.length - 1].x} 100 L 0 100 Z`;
 
                               return (
                                 <g>
@@ -1606,22 +1614,21 @@ export default function App() {
                           <div className="flex-1 flex items-end gap-[1px] relative z-20">
                             {hourlyPlan.map((planCount, h) => {
                               const realCount = hourlyReal[h];
-                              const maxHourlyVal = Math.max(maxPlan, Math.max(...hourlyReal)) || 1;
-                              const valueToShow = Math.max(planCount, realCount);
-                              const hPerc = (valueToShow / maxHourlyVal) * 100;
+                              // Barras são proporcionais ao seu PRÓPRIO máximo, ocupando no máximo 45% da altura da tela (Dual Axis approach)
+                              const hPerc = (realCount / maxHourlyReal) * 45;
                               
                               return (
                                 <div key={h} className="flex-1 flex flex-col items-center group/bar relative h-full justify-end">
                                   <div className="absolute inset-x-[15%] bottom-0 h-full bg-indigo-500/0 group-hover/bar:bg-indigo-500/5 transition-colors duration-200" />
                                   
                                   <div className="relative w-full flex flex-col justify-end h-full px-[15%] pointer-events-none">
-                                    {/* Bar (Visible if plan or real > 0) */}
+                                    {/* Bar (Visible if real > 0) */}
                                     <motion.div 
                                       initial={{ height: 0 }}
-                                      animate={{ height: `${Math.max(2, hPerc * 0.75)}%` }}
+                                      animate={{ height: `${Math.max(2, hPerc)}%` }}
                                       className={cn(
                                         "w-full rounded-t-sm transition-all duration-500 relative",
-                                        valueToShow > 0 
+                                        realCount > 0 
                                           ? (theme === 'dark' ? "bg-gradient-to-t from-indigo-500/10 to-indigo-500/40 border-t-[2px] border-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.15)]" : "bg-gradient-to-t from-indigo-400/10 to-indigo-500/30 border-t-[2px] border-indigo-500")
                                           : "bg-transparent"
                                       )}
