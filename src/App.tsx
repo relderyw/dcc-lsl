@@ -1510,38 +1510,43 @@ export default function App() {
                       const today = new Date();
                       const todayStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
                       
-                      const hourlyPlan = Array.from({ length: 24 }).map((_, h) => {
+                      const shiftHours = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6];
+
+                      const hourlyPlan = shiftHours.map(h => {
                         return filteredRecords.filter(r => r.embarkDate === todayStr && r.embarkTime?.startsWith(h.toString().padStart(2, '0'))).length;
                       });
                       
-                      const hourlyReal = Array.from({ length: 24 }).map((_, h) => {
+                      const hourlyReal = shiftHours.map(h => {
                         return filteredRecords.filter(r => r.status === 'EMBARCADO' && r.embarkDate === todayStr && r.embarkTime?.startsWith(h.toString().padStart(2, '0'))).length;
                       });
 
                       const totalPlan = hourlyPlan.reduce((sum, val) => sum + val, 0) || 1;
                       const totalReal = hourlyReal.reduce((sum, val) => sum + val, 0);
-                      const yMaxLine = Math.max(totalPlan, totalReal) || 1;
+                      const yMaxLine = totalReal || 1;
+                      
                       const currentHour = today.getHours();
+                      const currentHourIndex = shiftHours.indexOf(currentHour) !== -1 ? shiftHours.indexOf(currentHour) : 23;
 
                       let cumulative = 0;
                       const cumulativeData = hourlyReal.map((d, i) => {
                         cumulative += d;
-                        return { val: cumulative, hour: i };
+                        return { val: cumulative, index: i };
                       });
-                      const maxHourlyReal = Math.max(...hourlyReal) || 1;
+                      
+                      const maxHourlyVal = Math.max(...hourlyPlan, ...hourlyReal) || 1;
 
                       return (
                         <>
                           <svg className="absolute inset-0 w-full h-full pointer-events-none z-10 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
                             <defs>
                               <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stopColor="#6366f1" stopOpacity="0.4" />
-                                <stop offset="50%" stopColor="#818cf8" stopOpacity="0.9" />
-                                <stop offset="100%" stopColor="#4f46e5" stopOpacity="1" />
+                                <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
+                                <stop offset="50%" stopColor="#34d399" stopOpacity="0.9" />
+                                <stop offset="100%" stopColor="#059669" stopOpacity="1" />
                               </linearGradient>
                               <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" stopColor="#4f46e5" stopOpacity="0.04" />
-                                <stop offset="100%" stopColor="#4f46e5" stopOpacity="0" />
+                                <stop offset="0%" stopColor="#10b981" stopOpacity="0.08" />
+                                <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
                               </linearGradient>
                             </defs>
                             
@@ -1557,9 +1562,9 @@ export default function App() {
 
                             {(() => {
                               const pts = cumulativeData
-                                .filter(d => d.hour <= currentHour) // Só desenha a linha até a hora atual
+                                .filter(d => d.index <= currentHourIndex) // Só desenha a linha até a hora atual do turno
                                 .map(d => ({
-                                  x: (d.hour / 23) * 100,
+                                  x: (d.index / 23) * 100,
                                   y: 100 - (d.val / yMaxLine) * 100
                                 }));
                               
@@ -1611,41 +1616,53 @@ export default function App() {
                             })()}
                           </svg>
 
-                          <div className="flex-1 flex items-end gap-[1px] relative z-20">
-                            {hourlyPlan.map((planCount, h) => {
-                              const realCount = hourlyReal[h];
-                              // Barras são proporcionais ao seu PRÓPRIO máximo, ocupando no máximo 45% da altura da tela (Dual Axis approach)
-                              const hPerc = (realCount / maxHourlyReal) * 45;
+                          <div className="flex-1 h-full w-full flex items-end gap-[1px] relative z-20">
+                            {shiftHours.map((h, i) => {
+                              const planCount = hourlyPlan[i];
+                              const realCount = hourlyReal[i];
+                              // Ocupando no maximo 50%
+                              const hPercPlan = (planCount / maxHourlyVal) * 50;
+                              const hPercReal = (realCount / maxHourlyVal) * 50;
                               
                               return (
-                                <div key={h} className="flex-1 flex flex-col items-center group/bar relative h-full justify-end">
-                                  <div className="absolute inset-x-[15%] bottom-0 h-full bg-indigo-500/0 group-hover/bar:bg-indigo-500/5 transition-colors duration-200" />
+                                <div key={i} className="flex-1 flex flex-col items-center group/bar relative h-full justify-end">
+                                  <div className="absolute inset-x-[15%] bottom-0 h-full bg-emerald-500/0 group-hover/bar:bg-emerald-500/5 transition-colors duration-200" />
                                   
                                   <div className="relative w-full flex flex-col justify-end h-full px-[15%] pointer-events-none">
-                                    {/* Bar (Visible if real > 0) */}
+                                    
+                                    {/* Real Bar (Filled Green) */}
                                     <motion.div 
                                       initial={{ height: 0 }}
-                                      animate={{ height: `${Math.max(2, hPerc)}%` }}
+                                      animate={{ height: `${Math.max(1, hPercReal)}%` }}
                                       className={cn(
-                                        "w-full rounded-t-sm transition-all duration-500 relative",
+                                        "absolute bottom-0 w-full rounded-t-sm transition-all duration-500 z-20",
                                         realCount > 0 
-                                          ? (theme === 'dark' ? "bg-gradient-to-t from-indigo-500/10 to-indigo-500/40 border-t-[2px] border-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.15)]" : "bg-gradient-to-t from-indigo-400/10 to-indigo-500/30 border-t-[2px] border-indigo-500")
+                                          ? (theme === 'dark' ? "bg-emerald-500/80 drop-shadow-[0_0_8px_rgba(16,185,129,0.2)]" : "bg-emerald-500")
+                                          : "bg-transparent"
+                                      )}
+                                    />
+
+                                    {/* Plan Bar (Dashed Outline) */}
+                                    <motion.div 
+                                      initial={{ height: 0 }}
+                                      animate={{ height: `${Math.max(1, hPercPlan)}%` }}
+                                      className={cn(
+                                        "absolute bottom-0 w-full rounded-t-sm transition-all duration-500 z-10",
+                                        planCount > 0 
+                                          ? (theme === 'dark' ? "border-t border-l border-r border-dashed border-slate-500 bg-transparent" : "border-t border-l border-r border-dashed border-slate-400 bg-transparent")
                                           : "bg-transparent"
                                       )}
                                     >
-                                      {/* Real Shipments Indicator - Labels */}
-                                      {realCount > 0 && (
-                                        <div className="absolute -top-7 left-1/2 -translate-x-1/2 flex items-center justify-center">
-                                          <span className={cn(
-                                            "text-xs sm:text-sm font-black tabular-nums transition-all drop-shadow-sm",
-                                            theme === 'dark' ? "text-indigo-400" : "text-indigo-600"
-                                          )}>
-                                            {realCount}
+                                      {/* Plan Number Label */}
+                                      {planCount > 0 && (
+                                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex items-center justify-center">
+                                          <span className="text-[10px] sm:text-xs font-bold tabular-nums text-slate-500 transition-all">
+                                            {planCount}
                                           </span>
                                         </div>
                                       )}
                                     </motion.div>
-                                    
+
                                     {/* Tooltip on Hover */}
                                     <div className="absolute opacity-0 group-hover/bar:opacity-100 bottom-full mb-8 left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-200 z-50">
                                       <div className={cn(
@@ -1660,8 +1677,8 @@ export default function App() {
                                           </div>
                                           <div className="w-px h-4 bg-bg-surface/10" />
                                           <div className="flex flex-col items-center">
-                                            <span className="text-[8px] uppercase text-indigo-400">Real</span>
-                                            <span className={cn("text-xs font-black tabular-nums", theme === 'dark' ? "text-indigo-400" : "text-indigo-600")}>{realCount}</span>
+                                            <span className="text-[8px] uppercase text-emerald-400">Real</span>
+                                            <span className={cn("text-xs font-black tabular-nums", theme === 'dark' ? "text-emerald-400" : "text-emerald-600")}>{realCount}</span>
                                           </div>
                                         </div>
                                       </div>
