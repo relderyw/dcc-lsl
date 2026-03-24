@@ -1606,22 +1606,24 @@ export default function App() {
                           <div className="flex-1 flex items-end gap-[1px] relative z-20">
                             {hourlyPlan.map((planCount, h) => {
                               const realCount = hourlyReal[h];
-                              const hPerc = (planCount / maxPlan) * 100;
+                              const maxHourlyVal = Math.max(maxPlan, Math.max(...hourlyReal)) || 1;
+                              const valueToShow = Math.max(planCount, realCount);
+                              const hPerc = (valueToShow / maxHourlyVal) * 100;
                               
                               return (
                                 <div key={h} className="flex-1 flex flex-col items-center group/bar relative h-full justify-end">
                                   <div className="absolute inset-x-[15%] bottom-0 h-full bg-indigo-500/0 group-hover/bar:bg-indigo-500/5 transition-colors duration-200" />
                                   
-                                  <div className="relative w-full flex flex-col justify-end h-full px-[20%] pointer-events-none">
-                                    {/* Plan Bar (Always Visible if > 0) */}
+                                  <div className="relative w-full flex flex-col justify-end h-full px-[15%] pointer-events-none">
+                                    {/* Bar (Visible if plan or real > 0) */}
                                     <motion.div 
                                       initial={{ height: 0 }}
-                                      animate={{ height: `${Math.max(2, hPerc * 0.7)}%` }}
+                                      animate={{ height: `${Math.max(2, hPerc * 0.75)}%` }}
                                       className={cn(
-                                        "w-full rounded-t-[1px] transition-all duration-500 relative",
-                                        planCount > 0 
-                                          ? (theme === 'dark' ? "bg-indigo-500/10 border-t border-indigo-400/30" : "bg-indigo-100 border-t border-indigo-300")
-                                          : (theme === 'dark' ? "bg-transparent" : "bg-transparent")
+                                        "w-full rounded-t-sm transition-all duration-500 relative",
+                                        valueToShow > 0 
+                                          ? (theme === 'dark' ? "bg-gradient-to-t from-indigo-500/10 to-indigo-500/40 border-t-[2px] border-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.15)]" : "bg-gradient-to-t from-indigo-400/10 to-indigo-500/30 border-t-[2px] border-indigo-500")
+                                          : "bg-transparent"
                                       )}
                                     >
                                       {/* Real Shipments Indicator - Labels */}
