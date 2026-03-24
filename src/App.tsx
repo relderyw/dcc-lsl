@@ -1565,7 +1565,8 @@ export default function App() {
                                 .filter(d => d.index <= currentHourIndex) // Só desenha a linha até a hora atual do turno
                                 .map(d => ({
                                   x: ((d.index + 0.5) / 24) * 100,
-                                  y: 100 - (d.val / yMaxLine) * 100
+                                  y: 100 - (d.val / yMaxLine) * 100,
+                                  val: d.val
                                 }));
                               
                               if (pts.length === 0) return null;
@@ -1573,18 +1574,14 @@ export default function App() {
 
                               let d = `M ${pts[0].x} ${pts[0].y}`;
                                 for (let i = 0; i < pts.length - 1; i++) {
-                                  const p0 = pts[Math.max(0, i - 1)];
                                   const p1 = pts[i];
                                   const p2 = pts[i + 1];
-                                  const p3 = pts[Math.min(pts.length - 1, i + 2)];
                                   
-                                  // Catmull-Rom Spline
-                                  const cp1x = p1.x + (p2.x - p0.x) / 6;
-                                  const cp1y = p1.y + (p2.y - p0.y) / 6;
-                                  const cp2x = p2.x - (p3.x - p1.x) / 6;
-                                  const cp2y = p2.y - (p3.y - p1.y) / 6;
+                                  // Interpolação Monotônica (evita curvas descendo abaixo de 0)
+                                  const cp1x = p1.x + (p2.x - p1.x) / 2;
+                                  const cp2x = p1.x + (p2.x - p1.x) / 2;
                                   
-                                  d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+                                  d += ` C ${cp1x} ${p1.y}, ${cp2x} ${p2.y}, ${p2.x} ${p2.y}`;
                                 }
                               
                               // Área do gráfico desce a partir do último ponto desenhado
@@ -1616,6 +1613,32 @@ export default function App() {
                             })()}
                           </svg>
 
+                          {/* Rótulo dinâmico marcando o final da linha de acumulado */}
+                          {(() => {
+                            const pts = cumulativeData
+                                .filter(d => d.index <= currentHourIndex)
+                                .map(d => ({
+                                  x: ((d.index + 0.5) / 24) * 100,
+                                  y: 100 - (d.val / yMaxLine) * 100,
+                                  val: d.val
+                                }));
+                            if (pts.length === 0) return null;
+                            const lastPt = pts[pts.length - 1];
+                            return (
+                              <div 
+                                className="absolute pointer-events-none transition-all duration-500 z-30 flex items-center justify-center transform -translate-x-1/2 -translate-y-[120%]"
+                                style={{ left: `${lastPt.x}%`, top: `${lastPt.y}%` }}
+                              >
+                                <span className={cn(
+                                  "px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black drop-shadow-md",
+                                  theme === 'dark' ? "bg-emerald-500 text-white" : "bg-emerald-600 text-white"
+                                )}>
+                                  {lastPt.val}
+                                </span>
+                              </div>
+                            );
+                          })()}
+
                           <div className="flex-1 h-full w-full flex items-end gap-[1px] relative z-20">
                             {shiftHours.map((h, i) => {
                               const planCount = hourlyPlan[i];
@@ -1626,9 +1649,9 @@ export default function App() {
                               
                               return (
                                 <div key={i} className="flex-1 flex flex-col items-center group/bar relative h-full justify-end">
-                                  <div className="absolute inset-x-[15%] bottom-0 h-full bg-emerald-500/0 group-hover/bar:bg-emerald-500/5 transition-colors duration-200" />
+                                  <div className="absolute inset-x-[25%] bottom-0 h-full bg-emerald-500/0 group-hover/bar:bg-emerald-500/5 transition-colors duration-200" />
                                   
-                                  <div className="relative w-full flex flex-col justify-end h-full px-[15%] pointer-events-none">
+                                  <div className="relative w-full flex flex-col justify-end h-full px-[25%] pointer-events-none">
                                     
                                     {/* Real Bar (Filled Green) */}
                                     <motion.div 
