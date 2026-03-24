@@ -1651,70 +1651,67 @@ export default function App() {
                                 <div key={i} className="flex-1 flex flex-col items-center group/bar relative h-full justify-end">
                                   <div className="absolute inset-x-[35%] bottom-0 h-full bg-emerald-500/0 group-hover/bar:bg-emerald-500/5 transition-colors duration-200" />
                                   
-                                  <div className="relative w-full flex flex-col justify-end h-full px-[35%] pointer-events-none">
-                                    
-                                    {/* Real Bar (Filled Green) */}
-                                    <motion.div 
-                                      initial={{ height: 0 }}
-                                      animate={{ height: `${Math.max(1, hPercReal)}%` }}
-                                      className={cn(
-                                        "absolute bottom-0 inset-x-[35%] rounded-t-[2px] transition-all duration-500 z-20",
-                                        realCount > 0 
-                                          ? (theme === 'dark' ? "bg-emerald-500/85 drop-shadow-[0_0_8px_rgba(16,185,129,0.2)]" : "bg-emerald-500")
-                                          : "bg-transparent"
-                                      )}
-                                    >
-                                      {/* Real Number Label */}
-                                      {realCount > 0 && (
-                                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 flex items-center justify-center">
-                                          <span className={cn(
-                                            "text-[8px] sm:text-[9px] font-black tabular-nums transition-all",
-                                            theme === 'dark' ? "text-emerald-300 drop-shadow-md" : "text-emerald-700"
-                                          )}>
-                                            {realCount}
-                                          </span>
-                                        </div>
-                                      )}
-                                    </motion.div>
+                                  {/* Real Bar (Filled Green) */}
+                                  <motion.div 
+                                    initial={{ height: 0 }}
+                                    animate={{ height: `${Math.max(1, hPercReal)}%` }}
+                                    className={cn(
+                                      "absolute bottom-0 inset-x-[35%] rounded-t-[2px] transition-all duration-500 z-20 pointer-events-none",
+                                      realCount > 0 
+                                        ? (theme === 'dark' ? "bg-emerald-500/85 drop-shadow-[0_0_8px_rgba(16,185,129,0.2)]" : "bg-emerald-500")
+                                        : "bg-transparent"
+                                    )}
+                                  >
+                                    {/* Real Number Label */}
+                                    {realCount > 0 && (
+                                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 flex items-center justify-center">
+                                        <span className={cn(
+                                          "text-[8px] sm:text-[9px] font-black tabular-nums transition-all",
+                                          theme === 'dark' ? "text-emerald-300 drop-shadow-md" : "text-emerald-700"
+                                        )}>
+                                          {realCount}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </motion.div>
 
-                                    {/* Plan Bar (Dashed Outline) */}
-                                    <motion.div 
-                                      initial={{ height: 0 }}
-                                      animate={{ height: `${Math.max(1, hPercPlan)}%` }}
-                                      className={cn(
-                                        "absolute bottom-0 inset-x-[35%] rounded-t-[2px] transition-all duration-500 z-10",
-                                        planCount > 0 
-                                          ? (theme === 'dark' ? "border-t border-l border-r border-dashed border-slate-500 bg-transparent" : "border-t border-l border-r border-dashed border-slate-400 bg-transparent")
-                                          : "bg-transparent"
-                                      )}
-                                    >
-                                      {/* Plan Number Label */}
-                                      {planCount > 0 && (
-                                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 flex items-center justify-center">
-                                          <span className="text-[9px] sm:text-[10px] font-bold tabular-nums text-slate-500 transition-all opacity-80">
-                                            {planCount}
-                                          </span>
-                                        </div>
-                                      )}
-                                    </motion.div>
+                                  {/* Plan Bar (Dashed Outline) */}
+                                  <motion.div 
+                                    initial={{ height: 0 }}
+                                    animate={{ height: `${Math.max(1, hPercPlan)}%` }}
+                                    className={cn(
+                                      "absolute bottom-0 inset-x-[35%] rounded-t-[2px] transition-all duration-500 z-10 pointer-events-none",
+                                      planCount > 0 
+                                        ? (theme === 'dark' ? "border-t border-l border-r border-dashed border-slate-500 bg-transparent" : "border-t border-l border-r border-dashed border-slate-400 bg-transparent")
+                                        : "bg-transparent"
+                                    )}
+                                  >
+                                    {/* Plan Number Label */}
+                                    {planCount > 0 && (
+                                      <div className="absolute -top-5 left-1/2 -translate-x-1/2 flex items-center justify-center">
+                                        <span className="text-[9px] sm:text-[10px] font-bold tabular-nums text-slate-500 transition-all opacity-80">
+                                          {planCount}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </motion.div>
 
-                                    {/* Tooltip on Hover */}
-                                    <div className="absolute opacity-0 group-hover/bar:opacity-100 bottom-full mb-8 left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-200 z-50">
-                                      <div className={cn(
-                                        "px-2.5 py-1.5 rounded border shadow-xl backdrop-blur-md flex flex-col items-center gap-0.5 whitespace-nowrap",
-                                        theme === 'dark' ? "bg-slate-900/95 border-white/10" : "bg-bg-surface border-slate-200"
-                                      )}>
-                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{h}h:00</span>
-                                        <div className="flex items-center gap-3">
-                                          <div className="flex flex-col items-center">
-                                            <span className="text-[8px] uppercase text-slate-400">Plano</span>
-                                            <span className={cn("text-xs font-black tabular-nums", theme === 'dark' ? "text-white" : "text-slate-900")}>{planCount}</span>
-                                          </div>
-                                          <div className="w-px h-4 bg-bg-surface/10" />
-                                          <div className="flex flex-col items-center">
-                                            <span className="text-[8px] uppercase text-emerald-400">Real</span>
-                                            <span className={cn("text-xs font-black tabular-nums", theme === 'dark' ? "text-emerald-400" : "text-emerald-600")}>{realCount}</span>
-                                          </div>
+                                  {/* Tooltip on Hover */}
+                                  <div className="absolute opacity-0 group-hover/bar:opacity-100 bottom-full mb-8 left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-200 z-50">
+                                    <div className={cn(
+                                      "px-2.5 py-1.5 rounded border shadow-xl backdrop-blur-md flex flex-col items-center gap-0.5 whitespace-nowrap",
+                                      theme === 'dark' ? "bg-slate-900/95 border-white/10" : "bg-bg-surface border-slate-200"
+                                    )}>
+                                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{h}h:00</span>
+                                      <div className="flex items-center gap-3">
+                                        <div className="flex flex-col items-center">
+                                          <span className="text-[8px] uppercase text-slate-400">Plano</span>
+                                          <span className={cn("text-xs font-black tabular-nums", theme === 'dark' ? "text-white" : "text-slate-900")}>{planCount}</span>
+                                        </div>
+                                        <div className="w-px h-4 bg-bg-surface/10" />
+                                        <div className="flex flex-col items-center">
+                                          <span className="text-[8px] uppercase text-emerald-400">Real</span>
+                                          <span className={cn("text-xs font-black tabular-nums", theme === 'dark' ? "text-emerald-400" : "text-emerald-600")}>{realCount}</span>
                                         </div>
                                       </div>
                                     </div>
