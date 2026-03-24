@@ -1565,7 +1565,7 @@ export default function App() {
                                 .filter(d => d.index <= currentHourIndex) // Só desenha a linha até a hora atual do turno
                                 .map(d => ({
                                   x: ((d.index + 0.5) / 24) * 100,
-                                  y: 100 - (d.val / yMaxLine) * 100,
+                                  y: 98 - (d.val / yMaxLine) * 96,
                                   val: d.val
                                 }));
                               
@@ -1619,19 +1619,19 @@ export default function App() {
                                 .filter(d => d.index <= currentHourIndex)
                                 .map(d => ({
                                   x: ((d.index + 0.5) / 24) * 100,
-                                  y: 100 - (d.val / yMaxLine) * 100,
+                                  y: 98 - (d.val / yMaxLine) * 96,
                                   val: d.val
                                 }));
                             if (pts.length === 0) return null;
                             const lastPt = pts[pts.length - 1];
                             return (
                               <div 
-                                className="absolute pointer-events-none transition-all duration-500 z-30 flex items-center justify-center transform -translate-x-1/2 -translate-y-[120%]"
+                                className="absolute pointer-events-none transition-all duration-500 z-30 flex items-center justify-center transform -translate-x-1/2 -translate-y-full pb-2"
                                 style={{ left: `${lastPt.x}%`, top: `${lastPt.y}%` }}
                               >
                                 <span className={cn(
-                                  "px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black drop-shadow-md",
-                                  theme === 'dark' ? "bg-emerald-500 text-white" : "bg-emerald-600 text-white"
+                                  "px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-black shadow-lg",
+                                  theme === 'dark' ? "bg-emerald-500 text-white shadow-emerald-500/20" : "bg-emerald-600 text-white"
                                 )}>
                                   {lastPt.val}
                                 </span>
@@ -1649,28 +1649,40 @@ export default function App() {
                               
                               return (
                                 <div key={i} className="flex-1 flex flex-col items-center group/bar relative h-full justify-end">
-                                  <div className="absolute inset-x-[25%] bottom-0 h-full bg-emerald-500/0 group-hover/bar:bg-emerald-500/5 transition-colors duration-200" />
+                                  <div className="absolute inset-x-[35%] bottom-0 h-full bg-emerald-500/0 group-hover/bar:bg-emerald-500/5 transition-colors duration-200" />
                                   
-                                  <div className="relative w-full flex flex-col justify-end h-full px-[25%] pointer-events-none">
+                                  <div className="relative w-full flex flex-col justify-end h-full px-[35%] pointer-events-none">
                                     
                                     {/* Real Bar (Filled Green) */}
                                     <motion.div 
                                       initial={{ height: 0 }}
                                       animate={{ height: `${Math.max(1, hPercReal)}%` }}
                                       className={cn(
-                                        "absolute bottom-0 w-full rounded-t-sm transition-all duration-500 z-20",
+                                        "absolute bottom-0 w-full rounded-t-[2px] transition-all duration-500 z-20",
                                         realCount > 0 
-                                          ? (theme === 'dark' ? "bg-emerald-500/80 drop-shadow-[0_0_8px_rgba(16,185,129,0.2)]" : "bg-emerald-500")
+                                          ? (theme === 'dark' ? "bg-emerald-500/85 drop-shadow-[0_0_8px_rgba(16,185,129,0.2)]" : "bg-emerald-500")
                                           : "bg-transparent"
                                       )}
-                                    />
+                                    >
+                                      {/* Real Number Label */}
+                                      {realCount > 0 && (
+                                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 flex items-center justify-center">
+                                          <span className={cn(
+                                            "text-[8px] sm:text-[9px] font-black tabular-nums transition-all",
+                                            theme === 'dark' ? "text-emerald-300 drop-shadow-md" : "text-emerald-700"
+                                          )}>
+                                            {realCount}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </motion.div>
 
                                     {/* Plan Bar (Dashed Outline) */}
                                     <motion.div 
                                       initial={{ height: 0 }}
                                       animate={{ height: `${Math.max(1, hPercPlan)}%` }}
                                       className={cn(
-                                        "absolute bottom-0 w-full rounded-t-sm transition-all duration-500 z-10",
+                                        "absolute bottom-0 w-full rounded-t-[2px] transition-all duration-500 z-10",
                                         planCount > 0 
                                           ? (theme === 'dark' ? "border-t border-l border-r border-dashed border-slate-500 bg-transparent" : "border-t border-l border-r border-dashed border-slate-400 bg-transparent")
                                           : "bg-transparent"
