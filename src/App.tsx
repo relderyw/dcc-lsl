@@ -127,7 +127,230 @@ function getCountColorClass(count: number): string {
   return "text-rose-500";
 }
 
+
+const BayCard = React.memo(({ 
+  bay, 
+  dbRecords, 
+  theme, 
+  isSelected, 
+  tempBay, 
+  isAnyFilterActive,
+  isDragging,
+  isResizing,
+  isDrawing,
+  mode,
+  setSelectedBayId,
+  setHoveredCar,
+  filters
+}: any) => {
+  const { 
+    filterModel, 
+    filterSector, 
+    filterStatus, 
+    filterExcelStatus, 
+    filterController, 
+    filterDate, 
+    filterTime, 
+    filterCarId 
+  } = filters;
+
+  const carsInBay = dbRecords
+    .filter((r: any) => r.location === bay.name)
+    .sort((a: any, b: any) => {
+      const dateA = parseExcelDate(a.embarkDate, a.embarkTime);
+      const dateB = parseExcelDate(b.embarkDate, b.embarkTime);
+      if (!dateA && !dateB) return 0;
+      if (!dateA) return 1;
+      if (!dateB) return -1;
+      return dateA.getTime() - dateB.getTime();
+    });
+
+  const visibleCarsInBay = carsInBay.filter((car: any) => {
+    let isVisible = true;
+    const slaInfo = getSlaStatus(car);
+    if (filterModel !== 'ALL' && car.model !== filterModel) isVisible = false;
+    if (filterSector !== 'ALL' && car.sectorName !== filterSector) isVisible = false;
+    if (filterExcelStatus !== 'ALL' && car.status !== filterExcelStatus) isVisible = false;
+    if (filterController !== 'ALL' && car.controller !== filterController) isVisible = false;
+    if (filterDate !== 'ALL' && car.embarkDate !== filterDate) isVisible = false;
+    if (filterTime !== 'ALL' && car.embarkTime !== filterTime) isVisible = false;
+    if (filterCarId !== '' && !car.carId.toLowerCase().includes(filterCarId.toLowerCase())) isVisible = false;
+    if (filterStatus !== 'ALL') {
+      if (filterStatus === 'LATE' && !slaInfo?.isLate) isVisible = false;
+      if (filterStatus === 'NEXT' && slaInfo?.text !== 'PRÓX. EMB.') isVisible = false;
+      if (filterStatus === 'ONTIME' && slaInfo?.text !== 'NO PRAZO') isVisible = false;
+    }
+    return isVisible;
+  });
+
+  if (isAnyFilterActive && visibleCarsInBay.length === 0) return null;
+
+  const occupancyRatio = carsInBay.length / bay.capacity;
+  const displayBay = (isSelected && tempBay) ? tempBay : bay;
+  const barCars = isAnyFilterActive ? visibleCarsInBay : carsInBay;
+  const barLoopLength = isAnyFilterActive ? barCars.length : Math.max(displayBay.capacity, carsInBay.length);
+
+  let color = 'emerald';
+  if (occupancyRatio >= 1) color = 'rose';
+  else if (occupancyRatio > 0.5) color = 'amber';
+
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-start p-1 overflow-hidden drop-shadow-sm rounded-2xl relative">
+      <div className="relative z-10 flex flex-col items-center justify-start w-full h-full">
+        <div className="flex flex-col items-center justify-center py-1.5 w-full">
+          <div className={cn(
+            "text-[15px] font-black uppercase tracking-tight truncate w-full text-center transition-colors duration-300",
+            isSelected 
+              ? (theme === 'dark' ? "text-white" : "text-slate-950") 
+              : (theme === 'dark' ? "text-slate-200" : "text-slate-900")
+          )}>
+            {displayBay.name} <span className={cn("text-[14px] font-black ml-1 transition-colors", getCountColorClass(carsInBay.length))}>({carsInBay.length})</span>
+          </div>
+          <div className={cn(
+            "text-[11px] font-bold uppercase tracking-widest truncate w-full text-center leading-none opacity-60",
+            isSelected ? "text-indigo-400" : (theme === 'dark' ? "text-slate-500" : "text-slate-600")
+          )}>
+            {displayBay.sector || 'Sem Setor'}
+          </div>
+        </div>
+
+        {/* Ruler / Capacity Indicator (Vertical Slots) */}
+        <div className={cn(
+          "flex-1 w-full flex mt-0.5 rounded-sm custom-scrollbar mb-1 relative transition-colors duration-300",
+          displayBay.orientation === 'horizontal' ? "flex-row overflow-x-auto overflow-y-hidden" : "flex-col overflow-y-auto overflow-x-hidden",
+          theme === 'dark' ? "bg-transparent" : "bg-transparent"
+        )}>
+          {Array.from({ length: barLoopLength }).map((_, i) => {
+            const isOverflow = !isAnyFilterActive && i >= displayBay.capacity; 
+            const car = barCars[i];
+            
+            // Checking Filters
+            let isVisible = true;
+            let slaInfo = car ? getSlaStatus(car) : null;
+            
+            if (car && !isAnyFilterActive) {
+              if (filterModel !== 'ALL' && car.model !== filterModel) isVisible = false;
+              if (filterSector !== 'ALL' && car.sectorName !== filterSector) isVisible = false;
+              if (filterExcelStatus !== 'ALL' && car.status !== filterExcelStatus) isVisible = false;
+              if (filterController !== 'ALL' && car.controller !== filterController) isVisible = false;
+              if (filterDate !== 'ALL' && car.embarkDate !== filterDate) isVisible = false;
+              if (filterTime !== 'ALL' && car.embarkTime !== filterTime) isVisible = false;
+              if (filterCarId !== '' && !car.carId.toLowerCase().includes(filterCarId.toLowerCase())) isVisible = false;
+              if (filterStatus !== 'ALL') {
+                if (filterStatus === 'LATE' && !slaInfo?.isLate) isVisible = false;
+                if (filterStatus === 'NEXT' && slaInfo?.text !== 'PRÓX. EMB.') isVisible = false;
+                if (filterStatus === 'ONTIME' && slaInfo?.text !== 'NO PRAZO') isVisible = false;
+              }
+            }
+            
+            const isWrongSector = car && displayBay.sector && car.sectorName !== displayBay.sector;
+            
+            return (
+              <div 
+                key={i}
+                style={displayBay.orientation === 'horizontal' ? {
+                  width: displayBay.slotHeight ? `${displayBay.slotHeight * 3}px` : `84px`, 
+                  minWidth: displayBay.slotHeight ? `${displayBay.slotHeight * 3}px` : `84px`
+                } : { 
+                  height: displayBay.slotHeight ? `${displayBay.slotHeight}px` : `28px`,
+                  minHeight: displayBay.slotHeight ? `${displayBay.slotHeight}px` : `28px` 
+                }}
+                className={cn(
+                  "flex items-center shrink-0",
+                  displayBay.orientation === 'horizontal' ? "h-full flex-col px-1.5 py-1.5 gap-1.5 mr-[3px] justify-center" : "w-full flex-row px-1.5 gap-1.5 mb-[3px]",
+                  isOverflow && "bg-rose-950/40 border border-rose-500/40 border-dashed rounded-sm",
+                  !isVisible && "opacity-[0.05] saturate-0 pointer-events-none" 
+                )}
+              >
+                <span className={cn(
+                  "text-[8px] font-bold shrink-0 drop-shadow-md",
+                  displayBay.orientation === 'horizontal' ? "w-full text-center" : "w-4 text-right",
+                  isOverflow ? "text-rose-400" : "text-slate-500"
+                )}>
+                  {i + 1}
+                </span>
+                <div className={cn(
+                  "rounded-[4px] transition-all duration-300 overflow-hidden shadow-md border flex items-center justify-center",
+                  displayBay.orientation === 'horizontal' ? "w-full flex-1" : "flex-1 h-full",
+                  car 
+                    ? (theme === 'dark'
+                        ? (isWrongSector ? "bg-gradient-to-r from-fuchsia-600/90 to-purple-600/90 border-fuchsia-500/50" : color === 'rose' ? "bg-gradient-to-r from-rose-600/90 to-red-600/90 border-rose-500/50" : color === 'amber' ? "bg-gradient-to-r from-amber-600/90 to-orange-500/90 border-amber-500/50" : "bg-gradient-to-r from-emerald-600/90 to-teal-500/90 border-emerald-500/50")
+                        : (isWrongSector 
+                            ? "bg-amber-100/60 border-amber-300 shadow-md" 
+                            : "bg-white border-slate-300 shadow-xl shadow-slate-400/30")
+                      )
+                    : "bg-transparent border-transparent", 
+                  car && "hover:scale-[1.03] hover:shadow-2xl hover:z-10 hover:brightness-110 cursor-help"
+                )}
+                onMouseEnter={(e) => {
+                  if (car) {
+                    setHoveredCar({ car, x: e.clientX, y: e.clientY });
+                  }
+                }}
+                onMouseMove={(e) => {
+                  if (car) {
+                    setHoveredCar({ car, x: e.clientX, y: e.clientY });
+                  }
+                }}
+                onMouseLeave={() => setHoveredCar(null)}
+                >
+                  {car && (
+                    <div className={cn("w-full h-full flex px-1.5 gap-1", displayBay.orientation === 'horizontal' ? "flex-col items-center justify-center py-1" : "flex-row items-center justify-between")}>
+                      <div className={cn("flex items-center min-w-0 flex-1 gap-1.5", displayBay.orientation === 'horizontal' && "justify-center mb-0.5 w-full")}>
+                        {isWrongSector ? (
+                          <AlertTriangle className={cn("shrink-0 animate-pulse", displayBay.orientation === 'horizontal' ? "w-4 h-4" : "w-3 h-3", theme === 'dark' ? "text-white" : "text-amber-500")} />
+                        ) : slaInfo?.isLate ? (
+                          <Clock className={cn("shrink-0", displayBay.orientation === 'horizontal' ? "w-4 h-4" : "w-3 h-3", theme === 'dark' ? "text-white/80" : "text-rose-400")} />
+                        ) : (
+                          <div className={cn("rounded-full shrink-0", displayBay.orientation === 'horizontal' ? "w-2.5 h-2.5" : "w-1.5 h-1.5", theme === 'dark' ? "bg-bg-surface/40" : "bg-emerald-400/60")} />
+                        )}
+                        {(!displayBay.orientation || displayBay.orientation === 'vertical') && (
+                          <span className={cn("font-mono font-bold leading-none truncate text-[14px] tracking-tight", theme === 'dark' ? "text-white drop-shadow-sm" : "text-slate-900")}>
+                            {car.carId}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {(!displayBay.slotHeight || displayBay.slotHeight >= 20 || displayBay.orientation === 'horizontal') && (
+                        <div className={cn("flex shrink-0 overflow-hidden", displayBay.orientation === 'horizontal' ? "w-full flex-col items-center gap-0.5 mt-auto" : "items-center justify-end ml-auto gap-1.5")}>
+                          <span className={cn("text-[12px] font-mono font-black tracking-tight truncate", theme === 'dark' ? "text-white/90 drop-shadow-sm" : "text-slate-600")}>
+                            {displayBay.orientation === 'horizontal' ? car.carId : car.embarkTime}
+                          </span>
+                          {(() => {
+                            const sla = slaInfo || getSlaStatus(car);
+                            return (
+                              <div className={cn("rounded-full text-[7px] font-bold uppercase whitespace-nowrap border text-center",
+                                displayBay.orientation === 'horizontal' ? "w-full px-1 py-[1px] leading-tight text-[6px]" : "px-1.5 py-[2px]",
+                                theme === 'dark' 
+                                  ? (sla.text === 'ATRASADO' ? "bg-rose-500 text-white border-rose-400/50 shadow-[0_0_8px_rgba(244,63,94,0.6)]" : sla.text === 'PRÓX. EMB.' ? "bg-amber-500 text-white border-amber-400/50 shadow-[0_0_8px_rgba(245,158,11,0.6)]" : "bg-emerald-500 text-white border-emerald-400/50 shadow-[0_0_8px_rgba(16,185,129,0.6)]")
+                                  : (sla.text === 'ATRASADO' ? "bg-rose-50 text-rose-600 border-rose-100" : sla.text === 'PRÓX. EMB.' ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-emerald-50 text-emerald-600 border-emerald-100")
+                              )}>
+                                {sla.text}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        
+        {(isResizing || isDrawing) && isSelected && (
+          <div className="absolute top-0 right-0 transform translate-x-full bg-blue-600 text-white text-[7px] px-1 rounded font-bold animate-pulse z-50">
+            {displayBay.capacity} VAGAS
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
 export default function App() {
+
 
   const [bays, setBays] = useState<Bay[]>([]);
   const [mode, setMode] = useState<Mode>('view');
@@ -215,6 +438,19 @@ export default function App() {
            filterTime !== 'ALL' || 
            (filterCarId && filterCarId.trim() !== '');
   }, [filterSector, filterModel, filterStatus, filterExcelStatus, filterController, filterDate, filterTime, filterCarId]);
+
+  const visibleBays = useMemo(() => {
+    return bays.filter(bay => {
+      // Always filter by tab group
+      if ((bay.tabGroup || 'geral') !== activeTabGroup) return false;
+      
+      // If no filter, show all in this group
+      if (!isAnyFilterActive) return true;
+      
+      // If filtering, only show bays that have matching cars
+      return filteredRecords.some(r => r.location === bay.name);
+    });
+  }, [bays, activeTabGroup, isAnyFilterActive, filteredRecords]);
 
   // Keyboard Shortcuts
   useEffect(() => {
@@ -2525,15 +2761,57 @@ export default function App() {
                 className="flex-1 overflow-auto custom-scrollbar relative w-full h-full mt-2"
                 ref={scrollContainerRef}
               >
-                <div className="min-w-[10000px] min-h-[1200px] w-full h-full relative" 
-                     ref={containerRef}
-                     onMouseDown={handleMouseDown}
-                     onMouseMove={handleMouseMove}
-                     onMouseUp={handleMouseUp}
-                     onMouseLeave={handleMouseUp}>
+                {(() => {
+                  const filters = {
+                    filterModel, filterSector, filterStatus, filterExcelStatus, 
+                    filterController, filterDate, filterTime, filterCarId
+                  };
                   
-                  {/* Interactive Overlay */}
-                  <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible" style={{ zIndex: 10 }}>
+                  if (isAnyFilterActive) {
+                    return (
+                      <div className="flex flex-wrap items-start justify-center p-8 sm:p-12 gap-8 sm:gap-14 min-h-full w-full max-w-[1800px] mx-auto pb-24 transition-all duration-500">
+                        {visibleBays.map(bay => (
+                          <motion.div 
+                            key={bay.id} 
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            className={cn(
+                              "flex-none w-[340px] h-[520px] rounded-[2.5rem] border transition-all duration-500 shadow-2xl relative overflow-hidden",
+                              selectedBayId === bay.id
+                                ? "ring-2 ring-emerald-500 shadow-emerald-500/20 z-10 scale-[1.02]" 
+                                : (theme === 'dark' ? "bg-slate-900/60 border-white/10 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-xl shadow-slate-200/40")
+                            )}
+                          >
+                             <BayCard 
+                               bay={bay}
+                               dbRecords={dbRecords}
+                               theme={theme}
+                               isSelected={selectedBayId === bay.id}
+                               tempBay={tempBay}
+                               isAnyFilterActive={isAnyFilterActive}
+                               isDragging={false}
+                               isResizing={false}
+                               isDrawing={false}
+                               mode={mode}
+                               setSelectedBayId={setSelectedBayId}
+                               setHoveredCar={setHoveredCar}
+                               filters={filters}
+                             />
+                          </motion.div>
+                        ))}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="min-w-[10000px] min-h-[1200px] w-full h-full relative" 
+                         ref={containerRef}
+                         onMouseDown={handleMouseDown}
+                         onMouseMove={handleMouseMove}
+                         onMouseUp={handleMouseUp}
+                         onMouseLeave={handleMouseUp}>
+                      
+                      <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible" style={{ zIndex: 10 }}>
                     {/* Visual Scale Ruler */}
                     {(isDrawing || isResizing) && (
                       <g className="opacity-50">
@@ -2582,279 +2860,109 @@ export default function App() {
                     </g>
                   )}
 
-                  {bays.filter(bay => (bay.tabGroup || 'geral') === activeTabGroup).map(bay => {
-                    const isSelected = selectedBayId === bay.id;
-                    const carsInBay = dbRecords
-                      .filter(r => r.location === bay.name)
-                      .sort((a, b) => {
-                        const dateA = parseExcelDate(a.embarkDate, a.embarkTime);
-                        const dateB = parseExcelDate(b.embarkDate, b.embarkTime);
-                        if (!dateA && !dateB) return 0;
-                        if (!dateA) return 1;
-                        if (!dateB) return -1;
-                        return dateA.getTime() - dateB.getTime();
-                      });
-
-                    // New logic: Filter cars inside the bay first
-                    const visibleCarsInBay = carsInBay.filter(car => {
-                      let isVisible = true;
-                      const slaInfo = getSlaStatus(car);
-                      if (filterModel !== 'ALL' && car.model !== filterModel) isVisible = false;
-                      if (filterSector !== 'ALL' && car.sectorName !== filterSector) isVisible = false;
-                      if (filterExcelStatus !== 'ALL' && car.status !== filterExcelStatus) isVisible = false;
-                      if (filterController !== 'ALL' && car.controller !== filterController) isVisible = false;
-                      if (filterDate !== 'ALL' && car.embarkDate !== filterDate) isVisible = false;
-                      if (filterTime !== 'ALL' && car.embarkTime !== filterTime) isVisible = false;
-                      if (filterCarId !== '' && !car.carId.toLowerCase().includes(filterCarId.toLowerCase())) isVisible = false;
-                      if (filterStatus !== 'ALL') {
-                        if (filterStatus === 'LATE' && !slaInfo?.isLate) isVisible = false;
-                        if (filterStatus === 'NEXT' && slaInfo?.text !== 'PRÓX. EMB.') isVisible = false;
-                        if (filterStatus === 'ONTIME' && slaInfo?.text !== 'NO PRAZO') isVisible = false;
-                      }
-                      return isVisible;
-                    });
-
-                    // If filter active and no cars match in this bay, hide the entire bay
-                    if (isAnyFilterActive && visibleCarsInBay.length === 0) return null;
-
-                    const occupancyRatio = carsInBay.length / bay.capacity;
-                    const displayBay = (isSelected && tempBay) ? tempBay : bay;
-                    
-                    const barCars = isAnyFilterActive ? visibleCarsInBay : carsInBay;
-                    const barLoopLength = isAnyFilterActive ? barCars.length : Math.max(displayBay.capacity, carsInBay.length);
-                    
-                    let color = 'emerald';
-                    if (occupancyRatio >= 1) color = 'rose';
-                    else if (occupancyRatio > 0.5) color = 'amber';
-
-                    return (
-                      <g 
-                        key={bay.id} 
-                        className={cn(
-                          "pointer-events-auto cursor-pointer group",
-                          (isDragging || isResizing || isDrawing) && "pointer-events-none"
-                        )}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedBayId(bay.id);
-                        }}
-                      >
-                        <rect
-                          x={`${displayBay.x}%`}
-                          y={`${displayBay.y}%`}
-                          width={`${displayBay.width}%`}
-                          height={`${displayBay.height}%`}
-                          className={cn(
-                            "transition-all duration-300",
-                            isSelected ? "stroke-2" : "stroke-0", // No stroke by default
-                            "fill-transparent",
-                            isSelected && (theme === 'dark' ? "fill-white/5 stroke-white" : "fill-emerald-500/5 stroke-emerald-500")
-                          )}
-                        />
-                        <foreignObject
-                          x={`${displayBay.x}%`}
-                          y={`${displayBay.y}%`}
-                          width={`${displayBay.width}%`}
-                          height={`${displayBay.height}%`}
-                        >
-                          <div className="w-full h-full flex flex-col items-center justify-start p-1 overflow-hidden drop-shadow-sm rounded-2xl relative">
-                            <div className="relative z-10 flex flex-col items-center justify-start w-full h-full">
-                              <div className="flex flex-col items-center justify-center py-1.5 w-full">
-                                <div className={cn(
-                                  "text-[15px] font-black uppercase tracking-tight truncate w-full text-center transition-colors duration-300",
-                                  isSelected 
-                                    ? (theme === 'dark' ? "text-white" : "text-slate-950") 
-                                    : (theme === 'dark' ? "text-slate-200" : "text-slate-900")
-                                )}>
-                                  {displayBay.name} <span className={cn("text-[14px] font-black ml-1 transition-colors", getCountColorClass(carsInBay.length))}>({carsInBay.length})</span>
-                                </div>
-                                <div className={cn(
-                                  "text-[11px] font-bold uppercase tracking-widest truncate w-full text-center leading-none opacity-60",
-                                  isSelected ? "text-indigo-400" : (theme === 'dark' ? "text-slate-500" : "text-slate-600")
-                                )}>
-                                  {displayBay.sector || 'Sem Setor'}
-                                </div>
-                              </div>
-
-                              {/* Ruler / Capacity Indicator (Vertical Slots) */}
-                            <div className={cn(
-                              "flex-1 w-full flex mt-0.5 rounded-sm custom-scrollbar mb-1 relative transition-colors duration-300",
-                              displayBay.orientation === 'horizontal' ? "flex-row overflow-x-auto overflow-y-hidden" : "flex-col overflow-y-auto overflow-x-hidden",
-                              theme === 'dark' 
-                                ? "bg-transparent" 
-                                : "bg-transparent"
-                            )}>
-                              {Array.from({ length: barLoopLength }).map((_, i) => {
-                                const isOverflow = !isAnyFilterActive && i >= displayBay.capacity; 
-                                const car = barCars[i];
-                                
-                                // Checking Filters
-                                let isVisible = true;
-                                let slaInfo = car ? getSlaStatus(car) : null;
-                                
-                                if (car && !isAnyFilterActive) {
-                                  if (filterModel !== 'ALL' && car.model !== filterModel) isVisible = false;
-                                  if (filterSector !== 'ALL' && car.sectorName !== filterSector) isVisible = false;
-                                  if (filterExcelStatus !== 'ALL' && car.status !== filterExcelStatus) isVisible = false;
-                                  if (filterController !== 'ALL' && car.controller !== filterController) isVisible = false;
-                                  if (filterDate !== 'ALL' && car.embarkDate !== filterDate) isVisible = false;
-                                  if (filterTime !== 'ALL' && car.embarkTime !== filterTime) isVisible = false;
-                                  if (filterCarId !== '' && !car.carId.toLowerCase().includes(filterCarId.toLowerCase())) isVisible = false;
-                                  if (filterStatus !== 'ALL') {
-                                    if (filterStatus === 'LATE' && !slaInfo?.isLate) isVisible = false;
-                                    if (filterStatus === 'NEXT' && slaInfo?.text !== 'PRÓX. EMB.') isVisible = false;
-                                    if (filterStatus === 'ONTIME' && slaInfo?.text !== 'NO PRAZO') isVisible = false;
-                                  }
-                                }
-                                
-                                const isWrongSector = car && displayBay.sector && car.sectorName !== displayBay.sector;
-                                
-                                return (
-                                  <div 
-                                    key={i}
-                                    style={displayBay.orientation === 'horizontal' ? {
-                                      width: displayBay.slotHeight ? `${displayBay.slotHeight * 3}px` : `84px`, // roughly aspect ratio
-                                      minWidth: displayBay.slotHeight ? `${displayBay.slotHeight * 3}px` : `84px`
-                                    } : { 
-                                      height: displayBay.slotHeight ? `${displayBay.slotHeight}px` : `28px`,
-                                      minHeight: displayBay.slotHeight ? `${displayBay.slotHeight}px` : `28px` 
-                                    }}
-                                    className={cn(
-                                      "flex items-center shrink-0",
-                                      displayBay.orientation === 'horizontal' ? "h-full flex-col px-1.5 py-1.5 gap-1.5 mr-[3px] justify-center" : "w-full flex-row px-1.5 gap-1.5 mb-[3px]",
-                                      isOverflow && "bg-rose-950/40 border border-rose-500/40 border-dashed rounded-sm",
-                                      !isVisible && "opacity-[0.05] saturate-0 pointer-events-none" 
-                                    )}
-                                  >
-                                    <span className={cn(
-                                      "text-[8px] font-bold shrink-0 drop-shadow-md",
-                                      displayBay.orientation === 'horizontal' ? "w-full text-center" : "w-4 text-right",
-                                      isOverflow ? "text-rose-400" : "text-slate-500"
-                                    )}>
-                                      {i + 1}
-                                    </span>
-                                    <div className={cn(
-                                      "rounded-[4px] transition-all duration-300 overflow-hidden shadow-md border flex items-center justify-center",
-                                      displayBay.orientation === 'horizontal' ? "w-full flex-1" : "flex-1 h-full",
-                                      car 
-                                        ? (theme === 'dark'
-                                            ? (isWrongSector ? "bg-gradient-to-r from-fuchsia-600/90 to-purple-600/90 border-fuchsia-500/50" : color === 'rose' ? "bg-gradient-to-r from-rose-600/90 to-red-600/90 border-rose-500/50" : color === 'amber' ? "bg-gradient-to-r from-amber-600/90 to-orange-500/90 border-amber-500/50" : "bg-gradient-to-r from-emerald-600/90 to-teal-500/90 border-emerald-500/50")
-                                            : (isWrongSector 
-                                                ? "bg-amber-100/60 border-amber-300 shadow-md" 
-                                                : "bg-white border-slate-300 shadow-xl shadow-slate-400/30")
-                                          )
-                                        : "bg-transparent border-transparent", // Clean empty slots
-                                      car && "hover:scale-[1.03] hover:shadow-2xl hover:z-10 hover:brightness-110 cursor-help"
-                                    )}
-                                    onMouseEnter={(e) => {
-                                      if (car) {
-                                        setHoveredCar({ car, x: e.clientX, y: e.clientY });
-                                      }
-                                    }}
-                                    onMouseMove={(e) => {
-                                      if (car) {
-                                        setHoveredCar({ car, x: e.clientX, y: e.clientY });
-                                      }
-                                    }}
-                                    onMouseLeave={() => setHoveredCar(null)}
-                                    >
-                                      {car && (
-                                        <div className={cn("w-full h-full flex px-1.5 gap-1", displayBay.orientation === 'horizontal' ? "flex-col items-center justify-center py-1" : "flex-row items-center justify-between")}>
-                                          <div className={cn("flex items-center min-w-0 flex-1 gap-1.5", displayBay.orientation === 'horizontal' && "justify-center mb-0.5 w-full")}>
-                                            {isWrongSector ? (
-                                              <AlertTriangle className={cn("shrink-0 animate-pulse", displayBay.orientation === 'horizontal' ? "w-4 h-4" : "w-3 h-3", theme === 'dark' ? "text-white" : "text-amber-500")} />
-                                            ) : slaInfo?.isLate ? (
-                                              <Clock className={cn("shrink-0", displayBay.orientation === 'horizontal' ? "w-4 h-4" : "w-3 h-3", theme === 'dark' ? "text-white/80" : "text-rose-400")} />
-                                            ) : (
-                                              <div className={cn("rounded-full shrink-0", displayBay.orientation === 'horizontal' ? "w-2.5 h-2.5" : "w-1.5 h-1.5", theme === 'dark' ? "bg-bg-surface/40" : "bg-emerald-400/60")} />
-                                            )}
-                                            {(!displayBay.orientation || displayBay.orientation === 'vertical') && (
-                                              <span className={cn("font-mono font-bold leading-none truncate text-[14px] tracking-tight", theme === 'dark' ? "text-white drop-shadow-sm" : "text-slate-900")}>
-                                                {car.carId}
-                                              </span>
-                                            )}
-                                          </div>
-                                          
-                                          {/* SLA & Time Indicator */}
-                                          {(!displayBay.slotHeight || displayBay.slotHeight >= 20 || displayBay.orientation === 'horizontal') && (
-                                            <div className={cn("flex shrink-0 overflow-hidden", displayBay.orientation === 'horizontal' ? "w-full flex-col items-center gap-0.5 mt-auto" : "items-center justify-end ml-auto gap-1.5")}>
-                                              <span className={cn("text-[12px] font-mono font-black tracking-tight truncate", theme === 'dark' ? "text-white/90 drop-shadow-sm" : "text-slate-600")}>
-                                                {displayBay.orientation === 'horizontal' ? car.carId : car.embarkTime}
-                                              </span>
-                                              {(() => {
-                                                const sla = slaInfo || getSlaStatus(car);
-                                                return (
-                                                  <div className={cn("rounded-full text-[7px] font-bold uppercase whitespace-nowrap border text-center",
-                                                    displayBay.orientation === 'horizontal' ? "w-full px-1 py-[1px] leading-tight text-[6px]" : "px-1.5 py-[2px]",
-                                                    theme === 'dark' 
-                                                      ? (sla.text === 'ATRASADO' ? "bg-rose-500 text-white border-rose-400/50 shadow-[0_0_8px_rgba(244,63,94,0.6)]" : sla.text === 'PRÓX. EMB.' ? "bg-amber-500 text-white border-amber-400/50 shadow-[0_0_8px_rgba(245,158,11,0.6)]" : "bg-emerald-500 text-white border-emerald-400/50 shadow-[0_0_8px_rgba(16,185,129,0.6)]")
-                                                      : (sla.text === 'ATRASADO' ? "bg-rose-50 text-rose-600 border-rose-100" : sla.text === 'PRÓX. EMB.' ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-emerald-50 text-emerald-600 border-emerald-100")
-                                                  )}>
-                                                    {sla.text}
-                                                  </div>
-                                                );
-                                              })()}
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                                })}
-                              </div>
-                              
-                              {(isResizing || isDrawing) && isSelected && (
-                                <div className="absolute top-0 right-0 transform translate-x-full bg-blue-600 text-white text-[7px] px-1 rounded font-bold animate-pulse z-50">
-                                  {displayBay.capacity} VAGAS
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </foreignObject>
+                      {visibleBays.map(bay => {
+                        const isSelected = selectedBayId === bay.id;
+                        const displayBay = (isSelected && tempBay) ? tempBay : bay;
                         
-                        {isSelected && mode === 'edit' && (
-                          <rect
-                            x={`${displayBay.x + displayBay.width - 2}%`}
-                            y={`${displayBay.y + displayBay.height - 2}%`}
-                            width="2%"
-                            height="2%"
-                            className="fill-white stroke-blue-500 stroke-[0.5] cursor-nwse-resize hover:fill-blue-500 transition-colors pointer-events-auto"
-                          />
-                        )}
-                      </g>
+                        return (
+                          <g 
+                            key={bay.id} 
+                            className={cn(
+                              "pointer-events-auto cursor-pointer group",
+                              (isDragging || isResizing || isDrawing) && "pointer-events-none"
+                            )}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedBayId(bay.id);
+                            }}
+                          >
+                            <rect
+                              x={`${displayBay.x}%`}
+                              y={`${displayBay.y}%`}
+                              width={`${displayBay.width}%`}
+                              height={`${displayBay.height}%`}
+                              className={cn(
+                                "transition-all duration-300",
+                                isSelected ? "stroke-2" : "stroke-0", 
+                                "fill-transparent",
+                                isSelected ? (theme === 'dark' ? "stroke-white shadow-xl" : "stroke-emerald-500 shadow-xl") : (theme === 'dark' ? "stroke-white/10" : "stroke-slate-200")
+                              )}
+                              rx="2.5%"
+                            />
+                            
+                            <foreignObject
+                              x={`${displayBay.x}%`}
+                              y={`${displayBay.y}%`}
+                              width={`${displayBay.width}%`}
+                              height={`${displayBay.height}%`}
+                              className="overflow-visible"
+                            >
+                              <div className={cn(
+                                "w-full h-full p-2 transition-all duration-500",
+                                isSelected ? "scale-[1.02] z-50 shadow-2xl" : "scale-100"
+                              )}>
+                                <div className={cn(
+                                  "w-full h-full rounded-2xl shadow-2xl border transition-all duration-500 overflow-hidden",
+                                  theme === 'dark' ? "bg-slate-900/80 border-white/10" : "bg-white border-slate-200"
+                                )}>
+                                  <BayCard 
+                                    bay={bay}
+                                    dbRecords={dbRecords}
+                                    theme={theme}
+                                    isSelected={isSelected}
+                                    tempBay={tempBay}
+                                    isAnyFilterActive={isAnyFilterActive}
+                                    isDragging={isDragging}
+                                    isResizing={isResizing}
+                                    isDrawing={isDrawing}
+                                    mode={mode}
+                                    setSelectedBayId={setSelectedBayId}
+                                    setHoveredCar={setHoveredCar}
+                                    filters={filters}
+                                  />
+                                </div>
+                              </div>
+                            </foreignObject>
+                            
+                            {isSelected && mode === 'edit' && (
+                              <rect
+                                x={`${displayBay.x + displayBay.width - 2}%`}
+                                y={`${displayBay.y + displayBay.height - 2}%`}
+                                width="2%"
+                                height="2%"
+                                className="fill-white stroke-blue-500 stroke-[0.5] cursor-nwse-resize hover:fill-blue-500 transition-colors pointer-events-auto"
+                              />
+                            )}
+                          </g>
                         );
-                  })}
+                      })}
 
-                  {currentRect && (
-                    <g>
-                      <rect
-                        x={`${currentRect.x}%`}
-                        y={`${currentRect.y}%`}
-                        width={`${currentRect.w}%`}
-                        height={`${currentRect.h}%`}
-                        className="fill-emerald-500/20 stroke-emerald-500 stroke-2 stroke-dasharray-[4,4] animate-[dash_1s_linear_infinite]"
-                      />
-                      <foreignObject
-                        x={`${currentRect.x}%`}
-                        y={`${currentRect.y}%`}
-                        width={`${currentRect.w}%`}
-                        height={`${currentRect.h}%`}
-                      >
-                        <div className="w-full h-full flex items-center justify-center">
-                          <div className="bg-emerald-600 text-white text-[8px] px-1.5 py-0.5 rounded font-bold shadow-lg">
-                            {Math.max(1, Math.floor(currentRect.h / 2.5))} VAGAS
-                          </div>
-                        </div>
-                      </foreignObject>
-                    </g>
-                  )}
-                </svg>
+                      {currentRect && (
+                        <g>
+                          <rect
+                            x={`${currentRect.x}%`}
+                            y={`${currentRect.y}%`}
+                            width={`${currentRect.w}%`}
+                            height={`${currentRect.h}%`}
+                            className="fill-emerald-500/20 stroke-emerald-500 stroke-2 stroke-dasharray-[4,4] animate-[dash_1s_linear_infinite]"
+                          />
+                          <foreignObject x={`${currentRect.x}%`} y={`${currentRect.y}%`} width={`${currentRect.w}%`} height={`${currentRect.h}%`}>
+                            <div className="w-full h-full flex items-center justify-center">
+                              <div className="bg-emerald-600 text-white text-[8px] px-1.5 py-0.5 rounded font-bold shadow-lg">
+                                {Math.max(1, Math.floor(currentRect.h / 2.5))} VAGAS
+                              </div>
+                            </div>
+                          </foreignObject>
+                        </g>
+                      )}
+                    </svg>
+                    </div>
+                  );
+                })()}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
             {/* Hover Tooltip */}
             <AnimatePresence>
                 {hoveredCar && (
