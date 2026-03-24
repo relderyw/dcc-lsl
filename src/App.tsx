@@ -1588,6 +1588,7 @@ export default function App() {
                                     strokeWidth="3" 
                                     strokeLinecap="round" 
                                     strokeLinejoin="round" 
+                                    vectorEffect="non-scaling-stroke"
                                     initial={{ pathLength: 0 }}
                                     animate={{ pathLength: 1 }}
                                     transition={{ duration: 1.5, ease: "easeOut" }}
