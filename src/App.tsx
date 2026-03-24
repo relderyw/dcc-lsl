@@ -1560,19 +1560,16 @@ export default function App() {
                               if (pts.length < 2) return null;
 
                               let d = `M ${pts[0].x} ${pts[0].y}`;
-                              for (let i = 0; i < pts.length - 1; i++) {
-                                const p0 = pts[Math.max(0, i - 1)];
-                                const p1 = pts[i];
-                                const p2 = pts[i + 1];
-                                const p3 = pts[Math.min(pts.length - 1, i + 2)];
-                                
-                                const cp1x = p1.x + (p2.x - p0.x) / 6;
-                                const cp1y = p1.y + (p2.y - p0.y) / 6;
-                                const cp2x = p2.x - (p3.x - p1.x) / 6;
-                                const cp2y = p2.y - (p3.y - p1.y) / 6;
-                                
-                                d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
-                              }
+                                for (let i = 0; i < pts.length - 1; i++) {
+                                  const p1 = pts[i];
+                                  const p2 = pts[i + 1];
+                                  
+                                  // Monotonic easing prevents overshoots
+                                  const cp1x = p1.x + (p2.x - p1.x) / 2;
+                                  const cp2x = p1.x + (p2.x - p1.x) / 2;
+                                  
+                                  d += ` C ${cp1x} ${p1.y}, ${cp2x} ${p2.y}, ${p2.x} ${p2.y}`;
+                                }
                               
                               const areaD = `${d} L 100 100 L 0 100 Z`;
 
@@ -1588,10 +1585,9 @@ export default function App() {
                                     d={d} 
                                     fill="none" 
                                     stroke="url(#lineGradient)" 
-                                    strokeWidth="3.5" 
+                                    strokeWidth="3" 
                                     strokeLinecap="round" 
                                     strokeLinejoin="round" 
-                                    style={{ filter: "drop-shadow(0px 8px 12px rgba(99, 102, 241, 0.6))" }}
                                     initial={{ pathLength: 0 }}
                                     animate={{ pathLength: 1 }}
                                     transition={{ duration: 1.5, ease: "easeOut" }}
@@ -1618,13 +1614,13 @@ export default function App() {
                                       className={cn(
                                         "w-full rounded-t-[1px] transition-all duration-500 relative",
                                         planCount > 0 
-                                          ? (theme === 'dark' ? "bg-indigo-500/20 border-t-2 border-indigo-400/40" : "bg-indigo-100 border-t-2 border-indigo-300")
+                                          ? (theme === 'dark' ? "bg-indigo-500/10 border-t border-indigo-400/30" : "bg-indigo-100 border-t border-indigo-300")
                                           : (theme === 'dark' ? "bg-transparent" : "bg-transparent")
                                       )}
                                     >
                                       {/* Real Shipments Indicator - Labels */}
                                       {realCount > 0 && (
-                                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex items-center justify-center">
+                                        <div className="absolute -top-7 left-1/2 -translate-x-1/2 flex items-center justify-center">
                                           <span className={cn(
                                             "text-xs sm:text-sm font-black tabular-nums transition-all drop-shadow-sm",
                                             theme === 'dark' ? "text-indigo-400" : "text-indigo-600"
