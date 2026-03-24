@@ -205,6 +205,17 @@ export default function App() {
     });
   }, [dbRecords, filterModel, filterSector, filterStatus, filterExcelStatus, filterCarId, filterController, filterDate, filterTime]);
 
+  const isAnyFilterActive = useMemo(() => {
+    return filterSector !== 'ALL' || 
+           filterModel !== 'ALL' || 
+           filterStatus !== 'ALL' || 
+           filterExcelStatus !== 'ALL' || 
+           filterController !== 'ALL' || 
+           filterDate !== 'ALL' || 
+           filterTime !== 'ALL' || 
+           (filterCarId && filterCarId.trim() !== '');
+  }, [filterSector, filterModel, filterStatus, filterExcelStatus, filterController, filterDate, filterTime, filterCarId]);
+
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1630,7 +1641,7 @@ export default function App() {
                                 style={{ left: `${lastPt.x}%`, top: `${lastPt.y}%` }}
                               >
                                 <span className={cn(
-                                  "px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-black shadow-lg",
+                                  "px-2 py-0.5 rounded-md text-xs sm:text-sm font-black shadow-lg",
                                   theme === 'dark' ? "bg-emerald-500 text-white shadow-emerald-500/20" : "bg-emerald-600 text-white"
                                 )}>
                                   {lastPt.val}
@@ -1666,7 +1677,7 @@ export default function App() {
                                     {realCount > 0 && (
                                       <div className="absolute -top-4 left-1/2 -translate-x-1/2 flex items-center justify-center">
                                         <span className={cn(
-                                          "text-[8px] sm:text-[9px] font-black tabular-nums transition-all",
+                                          "text-[10px] sm:text-[11px] font-black tabular-nums transition-all",
                                           theme === 'dark' ? "text-emerald-300 drop-shadow-md" : "text-emerald-700"
                                         )}>
                                           {realCount}
@@ -1689,7 +1700,7 @@ export default function App() {
                                     {/* Plan Number Label */}
                                     {planCount > 0 && (
                                       <div className="absolute -top-5 left-1/2 -translate-x-1/2 flex items-center justify-center">
-                                        <span className="text-[9px] sm:text-[10px] font-bold tabular-nums text-slate-500 transition-all opacity-80">
+                                        <span className="text-[11px] sm:text-[12px] font-bold tabular-nums text-slate-500 transition-all opacity-80">
                                           {planCount}
                                         </span>
                                       </div>
@@ -1702,23 +1713,23 @@ export default function App() {
                                       "px-2.5 py-1.5 rounded border shadow-xl backdrop-blur-md flex flex-col items-center gap-0.5 whitespace-nowrap",
                                       theme === 'dark' ? "bg-slate-900/95 border-white/10" : "bg-bg-surface border-slate-200"
                                     )}>
-                                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{h}h:00</span>
+                                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tighter">{h}h:00</span>
                                       <div className="flex items-center gap-3">
                                         <div className="flex flex-col items-center">
-                                          <span className="text-[8px] uppercase text-slate-400">Plano</span>
-                                          <span className={cn("text-xs font-black tabular-nums", theme === 'dark' ? "text-white" : "text-slate-900")}>{planCount}</span>
+                                          <span className="text-[9px] uppercase text-slate-400">Plano</span>
+                                          <span className={cn("text-sm font-black tabular-nums", theme === 'dark' ? "text-white" : "text-slate-900")}>{planCount}</span>
                                         </div>
                                         <div className="w-px h-4 bg-bg-surface/10" />
                                         <div className="flex flex-col items-center">
-                                          <span className="text-[8px] uppercase text-emerald-400">Real</span>
-                                          <span className={cn("text-xs font-black tabular-nums", theme === 'dark' ? "text-emerald-400" : "text-emerald-600")}>{realCount}</span>
+                                          <span className="text-[9px] uppercase text-emerald-400">Real</span>
+                                          <span className={cn("text-sm font-black tabular-nums", theme === 'dark' ? "text-emerald-400" : "text-emerald-600")}>{realCount}</span>
                                         </div>
                                       </div>
                                     </div>
                                   </div>
 
                                   <span className={cn(
-                                    "mt-3 text-[10px] sm:text-xs font-bold tabular-nums transition-colors duration-300 opacity-60 group-hover/bar:opacity-100",
+                                    "mt-3 text-xs sm:text-sm font-bold tabular-nums transition-colors duration-300 opacity-60 group-hover/bar:opacity-100",
                                     theme === 'dark' ? "text-slate-300" : "text-slate-600"
                                   )}>
                                     {h}
@@ -2402,7 +2413,6 @@ export default function App() {
             </div>
             
             {/* Map Area */}
-            {/* Map Area */}
             <div className={cn(
               "flex-1 relative w-full h-full overflow-hidden flex flex-col transition-colors duration-300",
               theme === 'dark' ? "bg-slate-950" : "bg-bg-main"
@@ -2585,8 +2595,33 @@ export default function App() {
                         return dateA.getTime() - dateB.getTime();
                       });
 
+                    // New logic: Filter cars inside the bay first
+                    const visibleCarsInBay = carsInBay.filter(car => {
+                      let isVisible = true;
+                      const slaInfo = getSlaStatus(car);
+                      if (filterModel !== 'ALL' && car.model !== filterModel) isVisible = false;
+                      if (filterSector !== 'ALL' && car.sectorName !== filterSector) isVisible = false;
+                      if (filterExcelStatus !== 'ALL' && car.status !== filterExcelStatus) isVisible = false;
+                      if (filterController !== 'ALL' && car.controller !== filterController) isVisible = false;
+                      if (filterDate !== 'ALL' && car.embarkDate !== filterDate) isVisible = false;
+                      if (filterTime !== 'ALL' && car.embarkTime !== filterTime) isVisible = false;
+                      if (filterCarId !== '' && !car.carId.toLowerCase().includes(filterCarId.toLowerCase())) isVisible = false;
+                      if (filterStatus !== 'ALL') {
+                        if (filterStatus === 'LATE' && !slaInfo?.isLate) isVisible = false;
+                        if (filterStatus === 'NEXT' && slaInfo?.text !== 'PRÓX. EMB.') isVisible = false;
+                        if (filterStatus === 'ONTIME' && slaInfo?.text !== 'NO PRAZO') isVisible = false;
+                      }
+                      return isVisible;
+                    });
+
+                    // If filter active and no cars match in this bay, hide the entire bay
+                    if (isAnyFilterActive && visibleCarsInBay.length === 0) return null;
+
                     const occupancyRatio = carsInBay.length / bay.capacity;
                     const displayBay = (isSelected && tempBay) ? tempBay : bay;
+                    
+                    const barCars = isAnyFilterActive ? visibleCarsInBay : carsInBay;
+                    const barLoopLength = isAnyFilterActive ? barCars.length : Math.max(displayBay.capacity, carsInBay.length);
                     
                     let color = 'emerald';
                     if (occupancyRatio >= 1) color = 'rose';
@@ -2649,17 +2684,15 @@ export default function App() {
                                 ? "bg-transparent" 
                                 : "bg-transparent"
                             )}>
-                              {Array.from({ length: Math.max(displayBay.capacity, carsInBay.length) }).map((_, i, arr) => {
-                                const totalSlots = arr.length;
-                                const isOverflow = i >= displayBay.capacity; // Slots extras além da capacidade física
-                                const carIndex = i; // Stack from top down
-                                const car = carsInBay[carIndex];
+                              {Array.from({ length: barLoopLength }).map((_, i) => {
+                                const isOverflow = !isAnyFilterActive && i >= displayBay.capacity; 
+                                const car = barCars[i];
                                 
                                 // Checking Filters
                                 let isVisible = true;
                                 let slaInfo = car ? getSlaStatus(car) : null;
                                 
-                                if (car) {
+                                if (car && !isAnyFilterActive) {
                                   if (filterModel !== 'ALL' && car.model !== filterModel) isVisible = false;
                                   if (filterSector !== 'ALL' && car.sectorName !== filterSector) isVisible = false;
                                   if (filterExcelStatus !== 'ALL' && car.status !== filterExcelStatus) isVisible = false;
@@ -2790,7 +2823,7 @@ export default function App() {
                           />
                         )}
                       </g>
-                    );
+                        );
                   })}
 
                   {currentRect && (
