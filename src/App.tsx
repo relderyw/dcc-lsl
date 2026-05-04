@@ -2216,7 +2216,6 @@ export default function App() {
                                 <span className="text-xs font-black text-emerald-400">
                                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(stats.value || 0)}
                                 </span>
-                                <span className="t-caption text-slate-500">{stats.count}u</span>
                               </div>
                             </div>
                             <div className={cn("h-1.5 w-full rounded-full overflow-hidden", theme === 'dark' ? "bg-slate-800" : "bg-slate-100")}>
@@ -2303,7 +2302,6 @@ export default function App() {
                               <span className="text-xs font-black text-rose-400">
                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(stats.value || 0)}
                               </span>
-                              <span className="t-caption text-slate-500">{stats.count}u</span>
                             </div>
                           </div>
                           <div className={cn("h-1.5 w-full rounded-full overflow-hidden", theme === 'dark' ? "bg-slate-800" : "bg-slate-100")}>
