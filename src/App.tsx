@@ -962,14 +962,14 @@ export default function App() {
             )}
           >
             <div className={cn(
-              "p-8 border-b flex flex-col gap-6 transition-colors duration-300 relative overflow-hidden",
+              "px-6 py-8 border-b flex flex-col gap-6 transition-colors duration-300 relative overflow-hidden",
               theme === 'dark' ? "border-white/5" : "border-slate-200"
             )}>
               {/* Decorative background glow for sidebar header */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[60px] rounded-full -mr-16 -mt-16" />
               
               <div className="flex items-center justify-between relative z-10">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
                   <div className={cn(
                     "w-12 h-12 rounded-full overflow-hidden flex items-center justify-center border transition-all duration-500 bg-white shrink-0",
                     theme === 'dark' 
@@ -986,18 +986,18 @@ export default function App() {
                       Logística
                     </span>
                     <h1 className={cn(
-                      "font-black text-xl tracking-tight leading-none transition-colors duration-300",
+                      "font-black text-[19px] tracking-tight leading-none transition-colors duration-300",
                       theme === 'dark' ? "text-white" : "text-slate-900"
                     )}>
                       DCC <span className="text-indigo-600">Picking</span>
                     </h1>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 shrink-0 ml-1">
                   <button 
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                     className={cn(
-                      "p-2.5 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95",
+                      "p-2 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95",
                       theme === 'dark' 
                         ? "bg-bg-surface/5 hover:bg-bg-surface/10 text-amber-400 border border-white/10" 
                         : "bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200"
@@ -1008,7 +1008,7 @@ export default function App() {
                   <button 
                     onClick={() => setSidebarOpen(false)}
                     className={cn(
-                      "p-2.5 rounded-xl transition-all hover:scale-110 active:scale-95 group/collapse",
+                      "p-2 rounded-xl transition-all hover:scale-110 active:scale-95 group/collapse",
                       theme === 'dark' ? "bg-bg-surface/5 hover:bg-bg-surface/10 text-slate-400 hover:text-white border border-white/10" : "bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 border border-slate-200"
                     )}
                     title="Retrair Painel"
