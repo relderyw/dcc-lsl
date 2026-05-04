@@ -55,10 +55,6 @@ class DataService {
     return this.records;
   }
 
-    this.records = newRecords;
-    return this.records;
-  }
-
   importCSV(csvText: string) {
     const lines = csvText.split('\n');
     const headers = lines[0].split('\t'); // Assuming tab-separated from Excel copy-paste
@@ -71,8 +67,7 @@ class DataService {
         'CARRO': 'carId',
         'CRRMOD': 'model',
         'STATUS': 'status',
-        'SETOR': 'sectorId',
-        'DSC_SETOR': 'sectorName',
+        'SETOR': 'sectorName',
         'LOC_FISICA': 'location',
         'CAR_FISICO': 'carPhysical',
         'DT_EMB': 'embarkDate',

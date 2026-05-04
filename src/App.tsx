@@ -930,10 +930,8 @@ export default function App() {
 
   return (
     <div className={cn(
-      "flex h-screen w-screen font-sans overflow-hidden transition-colors duration-500 relative",
-      theme === 'dark' 
-        ? "bg-slate-950 text-slate-200" 
-        : "bg-bg-main text-slate-900"
+      "flex h-screen w-screen font-sans overflow-hidden relative",
+      theme === 'dark' ? "dark-theme bg-slate-950 text-slate-200" : "bg-bg-main text-slate-900"
     )}>
       {/* Mobile Backdrop */}
       <AnimatePresence>
@@ -956,11 +954,11 @@ export default function App() {
             exit={{ x: -450 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className={cn(
-              "w-[320px] xs:w-[380px] sm:w-[420px] shrink-0 h-full border-r flex flex-col z-50 shadow-2xl transition-[background-color,border-color] duration-300",
+              "w-80 shrink-0 h-full border-r flex flex-col z-50 transition-colors duration-300",
               "fixed lg:relative inset-y-0 left-0",
-              theme === 'dark' 
-                ? "bg-slate-900 border-slate-800" 
-                : "bg-bg-surface border-slate-100 shadow-sm"
+              theme === 'dark'
+                ? "bg-slate-900 border-white/5 shadow-2xl shadow-black/40"
+                : "bg-white border-slate-200 shadow-xl shadow-slate-200/60"
             )}
           >
             <div className={cn(
@@ -1659,7 +1657,7 @@ export default function App() {
               </div>
 
               {/* KPI Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
                   { label: 'Total de Carros', value: filteredRecords.length, icon: <Car className="w-5 h-5" />, color: 'indigo' },
                   { label: 'Embarcados', value: filteredRecords.filter(r => r.status === 'EMBARCADO').length, icon: <CheckCircle2 className="w-5 h-5" />, color: 'blue' },
@@ -1673,17 +1671,19 @@ export default function App() {
                 ].map((kpi, idx) => (
                   <motion.div
                     key={idx}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.1 }}
+                    transition={{ delay: idx * 0.08 }}
                     className={cn(
-                      "p-4 sm:p-5 rounded-[1.5rem] border backdrop-blur-3xl flex flex-col gap-3 group transition-all duration-300 shadow-sm",
-                      theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-xl shadow-slate-200/40"
+                      "p-5 rounded-[var(--radius-card)] border flex flex-col gap-4 group transition-all duration-200",
+                      theme === 'dark'
+                        ? "bg-slate-900/60 border-white/5 hover:border-white/10"
+                        : "bg-white border-slate-200 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)]"
                     )}
                   >
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between">
                       <div className={cn(
-                        "p-3 rounded-2xl",
+                        "ds-icon",
                         kpi.color === 'indigo' ? "bg-indigo-500/10 text-indigo-400" :
                         kpi.color === 'blue' ? "bg-blue-500/10 text-blue-400" :
                         kpi.color === 'rose' ? "bg-rose-500/10 text-rose-400" :
@@ -1691,11 +1691,22 @@ export default function App() {
                       )}>
                         {kpi.icon}
                       </div>
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <div className={cn(
+                        "w-2 h-2 rounded-full",
+                        kpi.color === 'rose' && filteredRecords.filter(r => getSlaStatus(r).isLate).length > 0
+                          ? "bg-rose-500 animate-pulse"
+                          : "bg-emerald-500"
+                      )} />
                     </div>
-                    <div className="space-y-0.5">
-                      <h3 className={cn("text-[9px] font-bold uppercase tracking-wider", theme === 'dark' ? "text-slate-500" : "text-slate-400")}>{kpi.label}</h3>
-                      <p className={cn("text-2xl font-black tabular-nums", theme === 'dark' ? "text-white" : "text-slate-900")}>
+                    <div>
+                      <p className="t-label text-slate-500 mb-1.5">{kpi.label}</p>
+                      <p className={cn(
+                        "t-metric",
+                        kpi.color === 'indigo' ? "text-indigo-400" :
+                        kpi.color === 'blue' ? "text-blue-400" :
+                        kpi.color === 'rose' ? "text-rose-400" :
+                        "text-emerald-400"
+                      )}>
                         {kpi.value}
                       </p>
                     </div>
@@ -1703,44 +1714,40 @@ export default function App() {
                 ))}
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 {/* Advanced Operational Health Chart */}
                 <div className={cn(
-                  "lg:col-span-3 p-8 rounded-[2rem] border transition-all duration-300 relative overflow-hidden shadow-sm",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-white border-slate-200 shadow-2xl shadow-slate-200/40"
+                  "xl:col-span-3 p-6 rounded-[var(--radius-card)] border transition-all duration-200 relative overflow-hidden",
+                  theme === 'dark' ? "bg-slate-900/60 border-white/5" : "bg-white border-slate-200 shadow-[var(--shadow-card)]"
                 )}>
                   {/* Subtle Accent Gradient for Chart */}
                   {theme === 'light' && (
                     <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-[100px] pointer-events-none" />
                   )}
 
-                  <div className="flex items-center justify-between relative z-10 mb-8">
+                  <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl">
+                      <div className="ds-icon bg-indigo-500/10 text-indigo-400">
                         <TrendingUp className="w-5 h-5" />
                       </div>
-                      <div className="flex flex-col">
-                        <h3 className={cn("text-lg font-bold tracking-tight", theme === 'dark' ? "text-white" : "text-slate-800")}>Saúde Operacional</h3>
-                        <p className={cn("text-[10px] font-bold uppercase tracking-widest opacity-60", theme === 'dark' ? "text-slate-400" : "text-slate-500")}>Performance de Embarques</p>
+                      <div>
+                        <h3 className="t-heading" style={{color: theme === 'dark' ? '#f1f5f9' : '#0f172a'}}>Saúde Operacional</h3>
+                        <p className="t-label text-slate-500">Performance de Embarques</p>
                       </div>
                     </div>
-                    
-                    <div className="hidden sm:flex items-center gap-6">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full bg-indigo-500/20 border border-indigo-200" />
-                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Embarques/Hora</span>
+                    <div className="hidden sm:flex items-center gap-4">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-slate-400/30 border border-slate-400" />
+                        <span className="t-caption text-slate-500">Plano/h</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.4)]" />
-                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Progresso Acumulado</span>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                        <span className="t-caption text-slate-500">Acumulado Real</span>
                       </div>
                     </div>
                   </div>
                   
-                  <p className={cn("text-xs mb-8 leading-relaxed", theme === 'dark' ? "text-slate-400" : "text-slate-500")}>
-                    Análise comparativa entre o volume de embarques por hora e a curva de progresso total do dia.
-                  </p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4 relative z-10">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-6 border-b border-slate-800/10">
                     {(() => {
                       const today = new Date();
                       const todayStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
@@ -1776,10 +1783,10 @@ export default function App() {
                         { label: 'Retroativo', value: retroativo.length, color: 'text-amber-500', desc: 'Pendentes de dias anteriores' },
                         { label: 'Atrasados', value: atrasados.length, color: 'text-rose-500', desc: 'Hoje — previsão vencida' },
                       ].map((stat, i) => (
-                        <div key={i} className="space-y-1">
-                          <span className="text-[10px] sm:text-xs font-black text-slate-500 uppercase tracking-[0.15em]">{stat.label}</span>
-                          <p className={cn("text-2xl sm:text-3xl font-black tabular-nums", stat.color)}>{stat.value}</p>
-                          <span className="text-[9px] sm:text-[11px] text-slate-400 font-medium">{stat.desc}</span>
+                        <div key={i}>
+                          <p className="t-label text-slate-500 mb-2">{stat.label}</p>
+                          <p className={cn("t-metric", stat.color)}>{stat.value}</p>
+                          <p className="t-caption text-slate-500 mt-1">{stat.desc}</p>
                         </div>
                       ));
                     })()}
@@ -2020,23 +2027,21 @@ export default function App() {
 
                 {/* Late by Model & Sector */}
                 <div className={cn(
-                  "lg:col-span-2 p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-bg-surface border-slate-200/60 shadow-lg shadow-slate-200/50"
+                  "xl:col-span-2 p-6 rounded-[var(--radius-card)] border flex flex-col gap-5 transition-all duration-200",
+                  theme === 'dark' ? "bg-slate-900/60 border-white/5" : "bg-white border-slate-200 shadow-[var(--shadow-card)]"
                 )}>
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-rose-500/10 text-rose-400 rounded-xl">
+                    <div className="ds-icon bg-rose-500/10 text-rose-400">
                       <AlertTriangle className="w-5 h-5" />
                     </div>
-                    <h3 className={cn("text-lg font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
-                      Atrasos Críticos
-                    </h3>
+                    <h3 className="t-heading" style={{color: theme === 'dark' ? '#f1f5f9' : '#0f172a'}}>Atrasos Críticos</h3>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between px-1">
-                        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Por Modelo</h4>
-                        <div className="w-1 h-1 rounded-full bg-rose-500 animate-pulse" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="t-label text-slate-500">Por Modelo</p>
+                        <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse-dot" />
                       </div>
                       <div className="space-y-2">
                         {(() => {
@@ -2060,10 +2065,10 @@ export default function App() {
                         })()}
                       </div>
                     </div>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between px-1">
-                        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Por Setor</h4>
-                        <div className="w-1 h-1 rounded-full bg-rose-500 animate-pulse" />
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="t-label text-slate-500">Por Setor</p>
+                        <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse-dot" />
                       </div>
                       <div className="space-y-2">
                         {(() => {
@@ -2095,12 +2100,10 @@ export default function App() {
                   theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-bg-surface border-slate-200 shadow-sm shadow-slate-200/20"
                 )}>
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl">
+                    <div className="ds-icon bg-indigo-500/10 text-indigo-400">
                       <Layout className="w-5 h-5" />
                     </div>
-                    <h3 className={cn("text-lg font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
-                      Categorização Picking
-                    </h3>
+                    <h3 className="t-heading" style={{color: theme === 'dark' ? '#f1f5f9' : '#0f172a'}}>Categorização Picking</h3>
                   </div>
 
                   <div className="space-y-4">
@@ -2146,17 +2149,15 @@ export default function App() {
 
                 {/* Top Pickings */}
                 <div className={cn(
-                  "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-bg-surface border-slate-200 shadow-sm shadow-slate-200/20"
+                  "p-6 rounded-[var(--radius-card)] border flex flex-col gap-5 transition-all duration-200",
+                  theme === 'dark' ? "bg-slate-900/60 border-white/5" : "bg-white border-slate-200 shadow-[var(--shadow-card)]"
                 )}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl">
+                      <div className="ds-icon bg-indigo-500/10 text-indigo-400">
                         <BarChart3 className="w-5 h-5" />
                       </div>
-                      <h3 className={cn("text-xl font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
-                        Pickings Mais Cheios
-                      </h3>
+                      <h3 className="t-heading" style={{color: theme === 'dark' ? '#f1f5f9' : '#0f172a'}}>Pickings Mais Cheios</h3>
                     </div>
                     <div className="flex bg-slate-500/10 p-1 rounded-xl">
                       <button 
@@ -2225,17 +2226,15 @@ export default function App() {
 
                 {/* Controller Activity - Line Chart Style */}
                 <div className={cn(
-                  "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-bg-surface border-slate-200 shadow-sm shadow-slate-200/20"
+                  "p-6 rounded-[var(--radius-card)] border flex flex-col gap-5 transition-all duration-200",
+                  theme === 'dark' ? "bg-slate-900/60 border-white/5" : "bg-white border-slate-200 shadow-[var(--shadow-card)]"
                 )}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-rose-500/10 text-rose-400 rounded-xl">
+                      <div className="ds-icon bg-rose-500/10 text-rose-400">
                         <Users className="w-5 h-5" />
                       </div>
-                      <h3 className={cn("text-xl font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
-                        Atividade por Controlador
-                      </h3>
+                      <h3 className="t-heading" style={{color: theme === 'dark' ? '#f1f5f9' : '#0f172a'}}>Atividade por Controlador</h3>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="flex bg-slate-500/10 p-1 rounded-xl">
