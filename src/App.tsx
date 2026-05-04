@@ -2354,6 +2354,7 @@ export default function App() {
                     { label: 'Setor', value: filterSector, setter: setFilterSector, options: availableSectors },
                     { label: 'Modelo', value: filterModel, setter: setFilterModel, options: availableModels },
                     { label: 'Data', value: filterDate, setter: setFilterDate, options: availableDates },
+                    { label: 'Situação', value: filterExcelStatus, setter: setFilterExcelStatus, options: availableExcelStatuses },
                     { label: 'Status SLA', value: filterStatus, setter: setFilterStatus, options: ['LATE', 'NEXT', 'ONTIME'], isSla: true },
                   ].map(f => {
                     const options = f.isSla ? [
@@ -2397,6 +2398,7 @@ export default function App() {
                       <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Locação</th>
                       <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Setor</th>
                       <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Status</th>
+                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Valor</th>
                       <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 text-right">Embarque</th>
                     </tr>
                   </thead>
@@ -2440,6 +2442,14 @@ export default function App() {
                               {record.status}
                             </span>
                           </div>
+                        </td>
+                        <td className="px-8 py-5">
+                          <span className={cn(
+                            "text-sm font-black transition-colors duration-300",
+                            theme === 'dark' ? "text-emerald-400" : "text-emerald-600"
+                          )}>
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(record.VALOR_TOTAL_CARRO || 0)}
+                          </span>
                         </td>
                         <td className="px-8 py-5 text-[11px] font-black text-slate-500/60 tabular-nums text-right">
                           {record.embarkDate} <span className="opacity-40 mx-0.5">•</span> {record.embarkTime}
