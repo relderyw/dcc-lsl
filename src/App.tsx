@@ -2146,36 +2146,37 @@ export default function App() {
                     })()}
                   </div>
                 </div>
+              </div>
+
+
+              {/* ---- Second Row: Pickings + Controller + Stagnant ---- */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
 
                 {/* Top Pickings */}
                 <div className={cn(
-                  "p-6 rounded-[var(--radius-card)] border flex flex-col gap-5 transition-all duration-200",
+                  "p-6 rounded-[var(--radius-card)] border flex flex-col gap-4 transition-all duration-200",
                   theme === 'dark' ? "bg-slate-900/60 border-white/5" : "bg-white border-slate-200 shadow-[var(--shadow-card)]"
                 )}>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2.5">
                       <div className="ds-icon bg-indigo-500/10 text-indigo-400">
                         <BarChart3 className="w-5 h-5" />
                       </div>
-                      <h3 className="t-heading" style={{color: theme === 'dark' ? '#f1f5f9' : '#0f172a'}}>Pickings Mais Cheios</h3>
+                      <h3 className="t-heading" style={{color: theme === 'dark' ? '#f1f5f9' : '#0f172a'}}>Pickings Cheios</h3>
                     </div>
-                    <div className="flex bg-slate-500/10 p-1 rounded-xl">
-                      <button 
+                    <div className="flex bg-slate-500/10 p-1 rounded-xl shrink-0">
+                      <button
                         onClick={() => setPickingSortMode('count')}
-                        className={cn("px-3 py-1 rounded-lg text-[10px] font-black transition-all", pickingSortMode === 'count' ? "bg-indigo-500 text-white shadow-lg" : "text-slate-500")}
-                      >
-                        VOLUME
-                      </button>
-                      <button 
+                        className={cn("px-2.5 py-1 rounded-lg text-[10px] font-black transition-all", pickingSortMode === 'count' ? "bg-indigo-500 text-white shadow-lg" : "text-slate-500")}
+                      >VOLUME</button>
+                      <button
                         onClick={() => setPickingSortMode('value')}
-                        className={cn("px-3 py-1 rounded-lg text-[10px] font-black transition-all", pickingSortMode === 'value' ? "bg-indigo-500 text-white shadow-lg" : "text-slate-500")}
-                      >
-                        REAIS
-                      </button>
+                        className={cn("px-2.5 py-1 rounded-lg text-[10px] font-black transition-all", pickingSortMode === 'value' ? "bg-indigo-500 text-white shadow-lg" : "text-slate-500")}
+                      >REAIS</button>
                     </div>
                   </div>
 
-                  <div className="space-y-5">
+                  <div className="space-y-3 overflow-y-auto custom-scrollbar max-h-72 pr-1">
                     {(() => {
                       const locationStats = filteredRecords
                         .filter(r => r.location && r.location.includes('-'))
@@ -2193,28 +2194,31 @@ export default function App() {
                       
                       const maxVal = Math.max(...Object.values(locationStats).map(v => pickingSortMode === 'count' ? v.count : v.value), 1);
 
+                      if (sortedLocations.length === 0) return (
+                        <div className="py-8 text-center opacity-40">
+                          <BarChart3 className="w-8 h-8 mx-auto mb-2" />
+                          <p className="t-caption text-slate-500">Sem dados</p>
+                        </div>
+                      );
+
                       return sortedLocations.map(([loc, stats], idx) => {
                         const percent = Math.round(((pickingSortMode === 'count' ? stats.count : stats.value) / maxVal) * 100);
-                        
                         return (
-                          <div key={loc} className="space-y-1.5">
-                            <div className="flex justify-between items-end px-1">
-                              <span className="text-[13px] font-black text-slate-300 uppercase tracking-widest truncate mr-2">{loc}</span>
-                              <div className="flex flex-col items-end">
-                                <span className="text-[12px] font-black text-emerald-400">
+                          <div key={loc} className="space-y-1">
+                            <div className="flex justify-between items-baseline">
+                              <span className="t-label text-slate-400 truncate mr-2">{loc}</span>
+                              <div className="flex items-baseline gap-2 shrink-0">
+                                <span className="text-xs font-black text-emerald-400">
                                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(stats.value || 0)}
                                 </span>
-                                <span className="text-[10px] font-bold text-slate-500 tabular-nums">{stats.count} u.</span>
+                                <span className="t-caption text-slate-500">{stats.count}u</span>
                               </div>
                             </div>
-                            <div className={cn("h-1.5 w-full rounded-full overflow-hidden", theme === 'dark' ? "bg-bg-surface/5" : "bg-slate-100")}>
-                              <motion.div 
+                            <div className={cn("h-1.5 w-full rounded-full overflow-hidden", theme === 'dark' ? "bg-slate-800" : "bg-slate-100")}>
+                              <motion.div
                                 initial={{ width: 0 }}
                                 animate={{ width: `${percent}%` }}
-                                className={cn(
-                                  "h-full rounded-full transition-all duration-1000",
-                                  idx < 3 ? "bg-rose-500/60 shadow-[0_0_8px_rgba(244,63,94,0.3)]" : "bg-indigo-500/40"
-                                )}
+                                className={cn("h-full rounded-full", idx < 3 ? "bg-rose-500/70" : "bg-indigo-500/40")}
                               />
                             </div>
                           </div>
@@ -2224,52 +2228,44 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Controller Activity - Line Chart Style */}
+                {/* Controller Activity */}
                 <div className={cn(
-                  "p-6 rounded-[var(--radius-card)] border flex flex-col gap-5 transition-all duration-200",
+                  "p-6 rounded-[var(--radius-card)] border flex flex-col gap-4 transition-all duration-200",
                   theme === 'dark' ? "bg-slate-900/60 border-white/5" : "bg-white border-slate-200 shadow-[var(--shadow-card)]"
                 )}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="ds-icon bg-rose-500/10 text-rose-400">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="ds-icon bg-rose-500/10 text-rose-400 shrink-0">
                         <Users className="w-5 h-5" />
                       </div>
-                      <h3 className="t-heading" style={{color: theme === 'dark' ? '#f1f5f9' : '#0f172a'}}>Atividade por Controlador</h3>
+                      <h3 className="t-heading truncate" style={{color: theme === 'dark' ? '#f1f5f9' : '#0f172a'}}>Controladores</h3>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 shrink-0">
                       <div className="flex bg-slate-500/10 p-1 rounded-xl">
-                        <button 
+                        <button
                           onClick={() => setControllerSortMode('count')}
-                          className={cn("px-3 py-1 rounded-lg text-[10px] font-black transition-all", controllerSortMode === 'count' ? "bg-rose-500 text-white shadow-lg" : "text-slate-500")}
-                        >
-                          VOLUME
-                        </button>
-                        <button 
+                          className={cn("px-2.5 py-1 rounded-lg text-[10px] font-black transition-all", controllerSortMode === 'count' ? "bg-rose-500 text-white shadow-lg" : "text-slate-500")}
+                        >VOL</button>
+                        <button
                           onClick={() => setControllerSortMode('value')}
-                          className={cn("px-3 py-1 rounded-lg text-[10px] font-black transition-all", controllerSortMode === 'value' ? "bg-rose-500 text-white shadow-lg" : "text-slate-500")}
-                        >
-                          REAIS
-                        </button>
+                          className={cn("px-2.5 py-1 rounded-lg text-[10px] font-black transition-all", controllerSortMode === 'value' ? "bg-rose-500 text-white shadow-lg" : "text-slate-500")}
+                        >R$</button>
                       </div>
                       <div className="flex gap-1">
-                        <button 
+                        <button
                           disabled={controllerPageIndex === 0}
                           onClick={() => setControllerPageIndex(prev => Math.max(0, prev - 1))}
-                          className="p-1.5 rounded-lg bg-bg-surface/5 text-slate-400 disabled:opacity-20 hover:bg-bg-surface/10"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        <button 
+                          className="p-1.5 rounded-lg bg-slate-500/10 text-slate-400 disabled:opacity-20 hover:bg-slate-500/20 transition-all"
+                        ><ChevronLeft className="w-3.5 h-3.5" /></button>
+                        <button
                           onClick={() => setControllerPageIndex(prev => prev + 1)}
-                          className="p-1.5 rounded-lg bg-bg-surface/5 text-slate-400 hover:bg-bg-surface/10"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
+                          className="p-1.5 rounded-lg bg-slate-500/10 text-slate-400 hover:bg-slate-500/20 transition-all"
+                        ><ChevronRight className="w-3.5 h-3.5" /></button>
                       </div>
                     </div>
                   </div>
 
-                  <div className="relative min-h-[400px] w-full mt-4">
+                  <div className="space-y-3 overflow-y-auto custom-scrollbar max-h-72 pr-1">
                     {(() => {
                       const controllerStats = filteredRecords
                         .filter(r => getLocationCategory(r.location) === 'Controlador')
@@ -2285,91 +2281,79 @@ export default function App() {
                         .sort((a, b) => controllerSortMode === 'count' ? b[1].count - a[1].count : b[1].value - a[1].value);
 
                       const displayControllers = sortedControllers.slice(controllerPageIndex * 10, (controllerPageIndex * 10) + 10);
-
                       const maxVal = Math.max(...Object.values(controllerStats).map(v => controllerSortMode === 'count' ? v.count : v.value), 1);
 
-                      if (sortedControllers.length === 0) {
-                        return (
-                          <div className="flex-1 flex flex-col items-center justify-center opacity-40 h-full">
-                            <Users className="w-8 h-8 mb-3" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nenhum controlador identificado</span>
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div className="flex flex-col gap-4 h-full overflow-y-auto custom-scrollbar pr-1 py-2">
-                          {displayControllers.map(([ctrl, stats]) => (
-                            <div key={ctrl} className="flex flex-col gap-1.5 group">
-                              <div className="flex justify-between items-end px-1">
-                                <span className="text-[13px] font-black text-slate-300 uppercase truncate max-w-[200px] transition-colors">{ctrl}</span>
-                                <div className="flex flex-col items-end">
-                                  <span className="text-[12px] font-black text-rose-400">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(stats.value || 0)}
-                                  </span>
-                                  <span className="text-[10px] font-bold text-slate-500 tabular-nums">{stats.count} u.</span>
-                                </div>
-                              </div>
-                              <div className={cn(
-                                "h-2.5 w-full rounded-full relative bg-bg-surface/5 overflow-hidden ring-1 ring-white/5",
-                                theme === 'light' && "bg-slate-100 ring-slate-200"
-                              )}>
-                                <motion.div 
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${((controllerSortMode === 'count' ? stats.count : stats.value) / maxVal) * 100}%` }}
-                                  className="h-full bg-gradient-to-r from-rose-500 to-rose-400 rounded-full shadow-[0_0_15px_rgba(244,63,94,0.3)] transition-all duration-1000"
-                                />
-                              </div>
-                            </div>
-                          ))}
+                      if (sortedControllers.length === 0) return (
+                        <div className="py-8 text-center opacity-40">
+                          <Users className="w-8 h-8 mx-auto mb-2" />
+                          <p className="t-caption text-slate-500">Nenhum controlador</p>
                         </div>
                       );
+
+                      return displayControllers.map(([ctrl, stats]) => (
+                        <div key={ctrl} className="space-y-1 group">
+                          <div className="flex justify-between items-baseline">
+                            <span className="t-label text-slate-400 truncate mr-2">{ctrl}</span>
+                            <div className="flex items-baseline gap-2 shrink-0">
+                              <span className="text-xs font-black text-rose-400">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(stats.value || 0)}
+                              </span>
+                              <span className="t-caption text-slate-500">{stats.count}u</span>
+                            </div>
+                          </div>
+                          <div className={cn("h-1.5 w-full rounded-full overflow-hidden", theme === 'dark' ? "bg-slate-800" : "bg-slate-100")}>
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${((controllerSortMode === 'count' ? stats.count : stats.value) / maxVal) * 100}%` }}
+                              className="h-full bg-gradient-to-r from-rose-500 to-rose-400 rounded-full"
+                            />
+                          </div>
+                        </div>
+                      ));
                     })()}
                   </div>
                 </div>
+
                 {/* Stagnant Vehicles */}
                 <div className={cn(
-                  "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-bg-surface border-slate-200 shadow-xl"
+                  "p-6 rounded-[var(--radius-card)] border flex flex-col gap-4 transition-all duration-200",
+                  theme === 'dark' ? "bg-slate-900/60 border-white/5" : "bg-white border-slate-200 shadow-[var(--shadow-card)]"
                 )}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-amber-500/10 text-amber-400 rounded-xl">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="ds-icon bg-amber-500/10 text-amber-400 shrink-0">
                         <Clock className="w-5 h-5" />
                       </div>
-                      <h3 className={cn("text-xl font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
-                        Carros sem movimentação
-                      </h3>
+                      <h3 className="t-heading truncate" style={{color: theme === 'dark' ? '#f1f5f9' : '#0f172a'}}>Sem Moviment.</h3>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 shrink-0">
                       <div className="flex bg-slate-500/10 p-1 rounded-xl">
-                        <button 
+                        <button
                           onClick={() => setStagnantSortMode('days')}
-                          className={cn("px-3 py-1 rounded-lg text-[10px] font-black transition-all", stagnantSortMode === 'days' ? "bg-amber-500 text-white shadow-lg" : "text-slate-500")}
-                        >
-                          DIAS
-                        </button>
-                        <button 
+                          className={cn("px-2.5 py-1 rounded-lg text-[10px] font-black transition-all", stagnantSortMode === 'days' ? "bg-amber-500 text-white shadow-lg" : "text-slate-500")}
+                        >DIAS</button>
+                        <button
                           onClick={() => setStagnantSortMode('value')}
-                          className={cn("px-3 py-1 rounded-lg text-[10px] font-black transition-all", stagnantSortMode === 'value' ? "bg-amber-500 text-white shadow-lg" : "text-slate-500")}
-                        >
-                          REAIS
-                        </button>
+                          className={cn("px-2.5 py-1 rounded-lg text-[10px] font-black transition-all", stagnantSortMode === 'value' ? "bg-amber-500 text-white shadow-lg" : "text-slate-500")}
+                        >R$</button>
                       </div>
-                      <select 
+                      <select
                         value={stagnantMinDays}
                         onChange={(e) => setStagnantMinDays(Number(e.target.value))}
-                        className="bg-slate-500/10 border-0 rounded-xl text-[10px] font-black text-slate-400 px-3 py-1.5 focus:ring-0"
+                        className={cn(
+                          "rounded-xl text-[10px] font-black px-2.5 py-1.5 border focus:ring-0 focus:outline-none transition-all",
+                          theme === 'dark' ? "bg-slate-800 border-white/5 text-slate-400" : "bg-slate-100 border-slate-200 text-slate-600"
+                        )}
                       >
                         <option value={0}>TODOS</option>
-                        {[5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100].map(d => (
-                          <option key={d} value={d}>+{d} DIAS</option>
+                        {[5, 10, 15, 20, 30, 45, 60, 90].map(d => (
+                          <option key={d} value={d}>+{d}d</option>
                         ))}
                       </select>
                     </div>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 -mr-1 space-y-3 min-h-[400px]">
+                  <div className="overflow-y-auto custom-scrollbar max-h-72 space-y-2 pr-1">
                     {dbRecords
                       .filter(r => r.status !== 'EMBARCADO')
                       .map(r => {
@@ -2388,34 +2372,34 @@ export default function App() {
                       .sort((a, b) => stagnantSortMode === 'days' ? b.daysLate - a.daysLate : (b.VALOR_TOTAL_CARRO || 0) - (a.VALOR_TOTAL_CARRO || 0))
                       .slice(0, 30)
                       .map(r => (
-                        <div key={r.carId} className="flex items-center gap-3 p-4 rounded-[1.5rem] bg-bg-surface/5 border border-white/5 group hover:border-amber-500/30 transition-all">
-                          <div className="flex flex-col items-center justify-center w-14 h-14 bg-amber-500/10 rounded-2xl group-hover:bg-amber-500/20 transition-colors border border-amber-500/20">
-                            <span className="text-[16px] font-black text-amber-500">+{r.daysLate}</span>
-                            <span className="text-[8px] font-black text-amber-500/60 uppercase">Dias</span>
+                        <div key={r.carId} className={cn(
+                          "flex items-center gap-3 p-3 rounded-[var(--radius-inner)] border group hover:border-amber-500/30 transition-all",
+                          theme === 'dark' ? "bg-slate-800/40 border-white/5" : "bg-slate-50 border-slate-200"
+                        )}>
+                          <div className="flex flex-col items-center justify-center w-12 h-12 bg-amber-500/10 rounded-xl border border-amber-500/20 shrink-0">
+                            <span className="text-sm font-black text-amber-500 leading-none">+{r.daysLate}</span>
+                            <span className="text-[8px] font-black text-amber-500/60 uppercase leading-none mt-0.5">dias</span>
                           </div>
-                          <div className="flex flex-col flex-1 overflow-hidden">
-                            <div className="flex justify-between items-start">
-                              <span className={cn("text-sm font-black truncate transition-colors", theme === 'dark' ? "text-white" : "text-slate-900")}>{r.carId}</span>
-                              <span className="text-[11px] font-black text-emerald-400">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(r.VALOR_TOTAL_CARRO || 0)}
+                          <div className="flex flex-col flex-1 min-w-0">
+                            <div className="flex justify-between items-center">
+                              <span className={cn("text-xs font-black truncate", theme === 'dark' ? "text-slate-200" : "text-slate-800")}>{r.carId}</span>
+                              <span className="text-[10px] font-black text-emerald-400 shrink-0 ml-2">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(r.VALOR_TOTAL_CARRO || 0)}
                               </span>
                             </div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{r.location || 'Sem Loc.'}</span>
-                              <span className="text-[8px] text-slate-600 font-bold">•</span>
-                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{r.model}</span>
-                            </div>
+                            <p className="t-caption text-slate-500 truncate">{r.location || '—'} · {r.model}</p>
                           </div>
                         </div>
                       ))}
-                    {dbRecords.filter(r => r.status !== 'EMBARCADO' && parseExcelDate(r.embarkDate, r.embarkTime) && new Date() > parseExcelDate(r.embarkDate, r.embarkTime)!).length === 0 && (
-                      <div className="py-12 text-center opacity-40">
-                        <CheckCircle2 className="w-8 h-8 mx-auto mb-3 text-emerald-500" />
-                        <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Nenhum veículo atrasado</span>
+                    {dbRecords.filter(r => r.status !== 'EMBARCADO').length === 0 && (
+                      <div className="py-8 text-center opacity-40">
+                        <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-emerald-500" />
+                        <p className="t-caption">Nenhum veículo atrasado</p>
                       </div>
                     )}
                   </div>
                 </div>
+
               </div>
             </div>
           </div>
