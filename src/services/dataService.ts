@@ -34,29 +34,26 @@ class DataService {
   }
 
   importJSON(data: any[]) {
-    const mapping: Record<string, keyof CarRecord> = {
-      'CARRO': 'carId',
-      'CRRMOD': 'model',
-      'STATUS': 'status',
-      'SETOR': 'sectorId',
-      'DSC_SETOR': 'sectorName',
-      'LOC_FISICA': 'location',
-      'CAR_FISICO': 'carPhysical',
-      'DT_EMB': 'embarkDate',
-      'HORAEMB': 'embarkTime',
-      'CADASTRO': 'registrationDate',
-      'HORA_CA': 'registrationTime',
-      'VALOR_TOTAL_CARRO': 'VALOR_TOTAL_CARRO'
-    };
-
     const newRecords: CarRecord[] = data.map(item => {
-      const record: any = {};
-      Object.keys(mapping).forEach(excelKey => {
-        const appKey = mapping[excelKey];
-        record[appKey] = item[excelKey]?.toString().trim() || '';
-      });
-      return record as CarRecord;
+      return {
+        carId: (item['CARRO'] || '').toString(),
+        model: (item['CRRMOD'] || '').toString(),
+        status: (item['STATUS'] || '').toString(),
+        sectorId: (item['SETOR'] || '').toString(),
+        sectorName: (item['SETOR'] || '').toString(), // Map both to SETOR for safety
+        location: (item['LOC_FISICA'] || '').toString(),
+        carPhysical: (item['CAR_FISICO'] || '').toString(),
+        embarkDate: (item['DT_EMB'] || '').toString(),
+        embarkTime: (item['HORAEMB'] || '').toString(),
+        registrationDate: (item['CADASTRO'] || '').toString(),
+        registrationTime: (item['HORA_CA'] || '').toString(),
+        VALOR_TOTAL_CARRO: parseFloat(item['VALOR_TOTAL_CARRO']) || 0
+      };
     });
+
+    this.records = newRecords;
+    return this.records;
+  }
 
     this.records = newRecords;
     return this.records;

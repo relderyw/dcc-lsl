@@ -32,7 +32,7 @@ def sync_data():
                 "CARRO": car_id,
                 "CRRMOD": str(row.get('CRRMOD', '')),
                 "STATUS": str(row.get('STATUS', '')),
-                "SETOR": str(row.get('DSC_SETOR', '')),
+                "SETOR": str(row.get('SETOR', row.get('DSC_SETOR', ''))),
                 "CONTROLADOR": loc_val if is_ctrl else "",
                 "LOC_FISICA": loc_val, # Mantendo o original para não quebrar categorias
                 "DT_EMB": str(row.get('DT_EMB', '')),
