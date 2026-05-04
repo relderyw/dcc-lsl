@@ -2227,9 +2227,9 @@ export default function App() {
                   <div className="relative h-72 w-full mt-4">
                     {(() => {
                       const controllerStats = filteredRecords
-                        .filter(r => r.controller && !r.controller.includes('-')) // Apenas o que NÃO tem '-'
+                        .filter(r => r.controller) // Qualquer um que tenha o campo preenchido pelo script
                         .reduce((acc, r) => {
-                          const c = r.controller;
+                          const c = r.controller || 'NÃO IDENTIFICADO';
                           if (!acc[c]) acc[c] = { count: 0, value: 0 };
                           acc[c].count += 1;
                           acc[c].value += (Number(r.VALOR_TOTAL_CARRO) || 0);
@@ -2242,6 +2242,15 @@ export default function App() {
                       const displayControllers = sortedControllers.slice(controllerPageIndex * 8, (controllerPageIndex * 8) + 8);
 
                       const max = Math.max(...Object.values(controllerStats).map(v => v.count), 1);
+
+                      if (sortedControllers.length === 0) {
+                        return (
+                          <div className="flex-1 flex flex-col items-center justify-center opacity-40 h-full">
+                            <Users className="w-8 h-8 mb-3" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nenhum controlador identificado</span>
+                          </div>
+                        );
+                      }
 
                       return (
                         <div className="flex flex-col gap-4 h-full overflow-y-auto custom-scrollbar pr-1 py-2">
@@ -2293,9 +2302,9 @@ export default function App() {
                       className="bg-slate-500/10 border-0 rounded-xl text-[10px] font-black text-slate-400 px-3 py-1.5 focus:ring-0"
                     >
                       <option value={0}>TODOS</option>
-                      <option value={10}>+10 DIAS</option>
-                      <option value={30}>+30 DIAS</option>
-                      <option value={90}>+90 DIAS</option>
+                      {[5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100].map(d => (
+                        <option key={d} value={d}>+{d} DIAS</option>
+                      ))}
                     </select>
                   </div>
 

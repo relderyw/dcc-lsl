@@ -6,7 +6,7 @@ file_path = 'w:\\PYTHON\\PICKING\\PICKING_v1.xlsb'
 url = 'https://dcc-lsl.vercel.app/api/sync'
 
 def sync_data():
-    print("--- Sincronização Final: Ajustando campos de Setor e Controlador ---")
+    print("--- Sincronização: Preservando campos para o Dashboard ---")
     try:
         with pd.ExcelFile(file_path, engine='pyxlsb') as xls:
             df_exped = pd.read_excel(xls, sheet_name='RW_EXPED')
@@ -25,16 +25,16 @@ def sync_data():
             car_id = str(row.get('CARRO', '')).strip()
             loc_val = str(row.get('LOC_FISICA', '')).strip()
             
-            # Nova Lógica Robusta
-            is_location = '-' in loc_val
-            
+            # Se não tem '-', é um controlador
+            is_ctrl = '-' not in loc_val and loc_val.lower() != 'nan' and loc_val != ""
+
             record = {
                 "CARRO": car_id,
                 "CRRMOD": str(row.get('CRRMOD', '')),
                 "STATUS": str(row.get('STATUS', '')),
-                "SETOR": str(row.get('DSC_SETOR', '')), # Nome do Setor
-                "CONTROLADOR": "" if is_location else loc_val,
-                "LOC_FISICA": loc_val if is_location else "",
+                "SETOR": str(row.get('DSC_SETOR', '')),
+                "CONTROLADOR": loc_val if is_ctrl else "",
+                "LOC_FISICA": loc_val, # Mantendo o original para não quebrar categorias
                 "DT_EMB": str(row.get('DT_EMB', '')),
                 "HORAEMB": str(row.get('HORAEMB', '')),
                 "HORA_CA": str(row.get('HORA_CAD', '')),
@@ -43,11 +43,8 @@ def sync_data():
             }
             records.append(record)
 
-        response = requests.post(url, json={"records": records})
-        if response.status_code == 200:
-            print(f"--- Sucesso! {len(records)} registros sincronizados. ---")
-        else:
-            print(f"--- Erro: {response.text} ---")
+        requests.post(url, json={"records": records})
+        print(f"--- Sucesso! {len(records)} registros sincronizados. ---")
 
     except Exception as e:
         print(f"--- Erro: {str(e)} ---")
