@@ -2009,16 +2009,25 @@ export default function App() {
                         <div className="w-1 h-1 rounded-full bg-rose-500 animate-pulse" />
                       </div>
                       <div className="space-y-2">
-                        {Array.from(new Set(filteredRecords.map(r => r.model))).filter(Boolean).map(model => {
-                          const late = filteredRecords.filter(r => r.model === model && getSlaStatus(r).isLate).length;
-                          if (late === 0) return null;
-                          return (
-                            <div key={model} className="flex items-center justify-between text-[11px] font-bold p-3 rounded-2xl bg-bg-surface/5 border border-white/5 hover:border-rose-500/20 transition-colors group">
-                              <span className="text-slate-400 group-hover:text-slate-200 transition-colors">{model}</span>
-                              <span className="text-rose-500 tabular-nums bg-rose-500/10 px-2 py-0.5 rounded-lg">{late}</span>
-                            </div>
-                          );
-                        }).filter(Boolean).sort((a, b) => (b?.props.children[1].props.children || 0) - (a?.props.children[1].props.children || 0)).slice(0, 5)}
+                        {(() => {
+                          const modelStats = filteredRecords
+                            .reduce((acc, r) => {
+                              if (getSlaStatus(r).isLate) {
+                                acc[r.model] = (acc[r.model] || 0) + 1;
+                              }
+                              return acc;
+                            }, {} as Record<string, number>);
+
+                          return Object.entries(modelStats)
+                            .sort((a, b) => b[1] - a[1])
+                            .slice(0, 5)
+                            .map(([model, count]) => (
+                              <div key={model} className="flex items-center justify-between text-[11px] font-bold p-3 rounded-2xl bg-bg-surface/5 border border-white/5 hover:border-rose-500/20 transition-colors group">
+                                <span className="text-slate-400 group-hover:text-slate-200 transition-colors">{model}</span>
+                                <span className="text-rose-500 tabular-nums bg-rose-500/10 px-2 py-0.5 rounded-lg">{count}</span>
+                              </div>
+                            ));
+                        })()}
                       </div>
                     </div>
                     <div className="space-y-4">
@@ -2027,16 +2036,25 @@ export default function App() {
                         <div className="w-1 h-1 rounded-full bg-rose-500 animate-pulse" />
                       </div>
                       <div className="space-y-2">
-                        {Array.from(new Set(filteredRecords.map(r => r.sectorName))).filter(Boolean).map(sector => {
-                          const late = filteredRecords.filter(r => r.sectorName === sector && getSlaStatus(r).isLate).length;
-                          if (late === 0) return null;
-                          return (
-                            <div key={sector} className="flex items-center justify-between text-[11px] font-bold p-3 rounded-2xl bg-bg-surface/5 border border-white/5 hover:border-rose-500/20 transition-colors group">
-                              <span className="text-slate-400 group-hover:text-slate-200 transition-colors">{sector}</span>
-                              <span className="text-rose-500 tabular-nums bg-rose-500/10 px-2 py-0.5 rounded-lg">{late}</span>
-                            </div>
-                          );
-                        }).filter(Boolean).sort((a, b) => (b?.props.children[1].props.children || 0) - (a?.props.children[1].props.children || 0)).slice(0, 5)}
+                        {(() => {
+                          const sectorStats = filteredRecords
+                            .reduce((acc, r) => {
+                              if (getSlaStatus(r).isLate) {
+                                acc[r.sectorName] = (acc[r.sectorName] || 0) + 1;
+                              }
+                              return acc;
+                            }, {} as Record<string, number>);
+
+                          return Object.entries(sectorStats)
+                            .sort((a, b) => b[1] - a[1])
+                            .slice(0, 5)
+                            .map(([sector, count]) => (
+                              <div key={sector} className="flex items-center justify-between text-[11px] font-bold p-3 rounded-2xl bg-bg-surface/5 border border-white/5 hover:border-rose-500/20 transition-colors group">
+                                <span className="text-slate-400 group-hover:text-slate-200 transition-colors">{sector}</span>
+                                <span className="text-rose-500 tabular-nums bg-rose-500/10 px-2 py-0.5 rounded-lg">{count}</span>
+                              </div>
+                            ));
+                        })()}
                       </div>
                     </div>
                   </div>
