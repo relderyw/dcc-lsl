@@ -15,6 +15,7 @@ export interface CarRecord {
   embarkTime: string; // HORAEMB
   registrationDate: string; // CADASTRO
   registrationTime: string; // HORA_CA
+  VALOR_TOTAL_CARRO: number;
 }
 
 class DataService {
@@ -66,7 +67,8 @@ class DataService {
       'DT_EMB': 'embarkDate',
       'HORAEMB': 'embarkTime',
       'CADASTRO': 'registrationDate',
-      'HORA_CA': 'registrationTime'
+      'HORA_CA': 'registrationTime',
+      'VALOR_TOTAL_CARRO': 'VALOR_TOTAL_CARRO'
     };
 
     const newRecords: CarRecord[] = data.map(item => {
@@ -101,7 +103,8 @@ class DataService {
         'DT_EMB': 'embarkDate',
         'HORAEMB': 'embarkTime',
         'CADASTRO': 'registrationDate',
-        'HORA_CA': 'registrationTime'
+        'HORA_CA': 'registrationTime',
+        'VALOR_TOTAL_CARRO': 'VALOR_TOTAL_CARRO'
       };
 
       headers.forEach((header, index) => {
