@@ -364,6 +364,8 @@ export default function App() {
   const [currentRect, setCurrentRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [tempBay, setTempBay] = useState<Bay | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [pickingSortMode, setPickingSortMode] = useState<'count' | 'value'>('count');
+  const [stagnantMinDays, setStagnantMinDays] = useState<number>(0);
   const [dbRecords, setDbRecords] = useState<CarRecord[]>(dataService.getRecords());
   const [importText, setImportText] = useState('');
   const [localExcelPath, setLocalExcelPath] = useState(localStorage.getItem(EXCEL_PATH_KEY) || 'C:\\PICKING.xlsb');
@@ -2095,23 +2097,35 @@ export default function App() {
                 </div>
 
                 {/* Top Pickings */}
-                <div className={cn(
-                  "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-bg-surface border-slate-200 shadow-sm shadow-slate-200/20"
-                )}>
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl">
-                      <BarChart3 className="w-5 h-5" />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl">
+                        <BarChart3 className="w-5 h-5" />
+                      </div>
+                      <h3 className={cn("text-xl font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
+                        Pickings Mais Cheios
+                      </h3>
                     </div>
-                    <h3 className={cn("text-lg font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
-                      Pickings Mais Cheios
-                    </h3>
+                    <div className="flex bg-slate-500/10 p-1 rounded-xl">
+                      <button 
+                        onClick={() => setPickingSortMode('count')}
+                        className={cn("px-3 py-1 rounded-lg text-[10px] font-black transition-all", pickingSortMode === 'count' ? "bg-indigo-500 text-white shadow-lg" : "text-slate-500")}
+                      >
+                        VOLUME
+                      </button>
+                      <button 
+                        onClick={() => setPickingSortMode('value')}
+                        className={cn("px-3 py-1 rounded-lg text-[10px] font-black transition-all", pickingSortMode === 'value' ? "bg-indigo-500 text-white shadow-lg" : "text-slate-500")}
+                      >
+                        REAIS
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-5">
                     {(() => {
                       const locationStats = filteredRecords
-                        .filter(r => r.location && r.location.includes('-')) // Apenas o que tem '-'
+                        .filter(r => r.location && r.location.includes('-'))
                         .reduce((acc, r) => {
                           const c = r.location;
                           if (!acc[c]) acc[c] = { count: 0, value: 0 };
@@ -2121,13 +2135,13 @@ export default function App() {
                         }, {} as Record<string, { count: number, value: number }>);
 
                       const sortedLocations = Object.entries(locationStats)
-                        .sort((a, b) => b[1].count - a[1].count)
-                        .slice(0, 7);
+                        .sort((a, b) => pickingSortMode === 'count' ? b[1].count - a[1].count : b[1].value - a[1].value)
+                        .slice(0, 10);
                       
-                      const maxLoc = Math.max(...Object.values(locationStats).map(v => v.count), 1);
+                      const maxVal = Math.max(...Object.values(locationStats).map(v => pickingSortMode === 'count' ? v.count : v.value), 1);
 
                       return sortedLocations.map(([loc, stats], idx) => {
-                        const percent = Math.round((stats.count / maxLoc) * 100);
+                        const percent = Math.round(((pickingSortMode === 'count' ? stats.count : stats.value) / maxVal) * 100);
                         
                         return (
                           <div key={loc} className="space-y-1.5">
@@ -2238,18 +2252,25 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Stagnant Vehicles */}
-                <div className={cn(
-                  "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
-                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-bg-surface border-slate-200 shadow-xl"
-                )}>
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-amber-500/10 text-amber-400 rounded-xl">
-                      <Clock className="w-5 h-5" />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-amber-500/10 text-amber-400 rounded-xl">
+                        <Clock className="w-5 h-5" />
+                      </div>
+                      <h3 className={cn("text-xl font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
+                        Carros sem movimentação
+                      </h3>
                     </div>
-                    <h3 className={cn("text-lg font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
-                      Carros sem movimentação
-                    </h3>
+                    <select 
+                      value={stagnantMinDays}
+                      onChange={(e) => setStagnantMinDays(Number(e.target.value))}
+                      className="bg-slate-500/10 border-0 rounded-xl text-[10px] font-black text-slate-400 px-3 py-1.5 focus:ring-0"
+                    >
+                      <option value={0}>TODOS</option>
+                      <option value={10}>+10 DIAS</option>
+                      <option value={30}>+30 DIAS</option>
+                      <option value={90}>+90 DIAS</option>
+                    </select>
                   </div>
 
                   <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 -mr-1 space-y-3 max-h-[450px]">
@@ -2257,7 +2278,6 @@ export default function App() {
                       .filter(r => r.status !== 'EMBARCADO')
                       .map(r => {
                         let regDate = r.registrationDate;
-                        // Converter serial do Excel se necessário
                         if (!isNaN(Number(regDate))) {
                           const date = new Date((Number(regDate) - 25569) * 86400 * 1000);
                           regDate = date.toLocaleDateString('pt-BR');
@@ -2268,7 +2288,7 @@ export default function App() {
                         const daysLate = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
                         return { ...r, daysLate };
                       })
-                      .filter(r => r.daysLate > 0)
+                      .filter(r => r.daysLate >= stagnantMinDays)
                       .sort((a, b) => b.daysLate - a.daysLate)
                       .slice(0, 30)
                       .map(r => (
