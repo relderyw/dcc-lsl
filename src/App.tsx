@@ -971,22 +971,22 @@ export default function App() {
               <div className="flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-3">
                   <div className={cn(
-                    "w-14 h-14 rounded-2xl flex items-center justify-center border transition-all duration-500 bg-white",
+                    "w-12 h-12 rounded-full overflow-hidden flex items-center justify-center border transition-all duration-500 bg-white shrink-0",
                     theme === 'dark' 
-                      ? "border-white/10 shadow-2xl shadow-indigo-500/10" 
-                      : "border-slate-200 shadow-xl shadow-slate-200/50"
+                      ? "border-white/10 shadow-xl shadow-indigo-500/10" 
+                      : "border-slate-200 shadow-lg shadow-slate-200/50"
                   )}>
-                    <img src={LOGO_URL} alt="Logo" className="w-11 h-11 object-contain" referrerPolicy="no-referrer" />
+                    <img src={LOGO_URL} alt="Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
                   </div>
-                  <div className="flex flex-col">
+                  <div className="flex flex-col shrink-0">
                     <span className={cn(
-                      "font-black text-[13px] uppercase tracking-[0.2em] leading-none mb-1",
+                      "font-black text-[9px] uppercase tracking-[0.25em] leading-none mb-0.5",
                       theme === 'dark' ? "text-slate-400" : "text-slate-500"
                     )}>
                       Logística
                     </span>
                     <h1 className={cn(
-                      "font-black text-2xl tracking-tighter leading-none transition-colors duration-300",
+                      "font-black text-xl tracking-tight leading-none transition-colors duration-300",
                       theme === 'dark' ? "text-white" : "text-slate-900"
                     )}>
                       DCC <span className="text-indigo-600">Picking</span>
