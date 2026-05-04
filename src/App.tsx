@@ -370,6 +370,9 @@ export default function App() {
   const [controllerSortMode, setControllerSortMode] = useState<'count' | 'value'>('count');
   const [stagnantSortMode, setStagnantSortMode] = useState<'days' | 'value'>('days');
   const [stagnantMinDays, setStagnantMinDays] = useState<number>(0);
+  const [kanbanShift, setKanbanShift] = useState<string>('all');
+  const [kanbanSector, setKanbanSector] = useState<string>('all');
+  const [kanbanModel, setKanbanModel] = useState<string>('all');
   const [kanbanAssignments, setKanbanAssignments] = useState<Record<string, string[]>>({
     'Operador 1': [],
     'Operador 2': [],
@@ -2422,41 +2425,111 @@ export default function App() {
             "flex-1 p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
             theme === 'dark' ? "bg-slate-950" : "bg-bg-main"
           )}>
-            <div className="max-w-[1600px] mx-auto space-y-8">
-              <div className="flex justify-between items-center">
+            <div className="max-w-[1600px] mx-auto space-y-6">
+              <div className="flex justify-between items-start">
                 <div>
                   <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
                     <Trello className="w-8 h-8 text-indigo-500" />
-                    Kanban de Coleta Inteligente
+                    Kanban Logístico Inteligente
                   </h1>
-                  <p className="text-slate-400 mt-1">Otimização linear para 3 rebocadores (432m de rota).</p>
+                  <p className="text-slate-400 mt-1">Simulação de coleta por turnos e roteirização linear.</p>
                 </div>
                 <div className="flex gap-2">
                   <button 
                     onClick={() => {
-                      const allAssigned = Object.values(kanbanAssignments).flat();
-                      const unassigned = filteredRecords
-                        .filter(r => r.location && r.location.includes('-') && !allAssigned.includes(r.carId))
-                        .slice(0, 30);
-                      
-                      const newAssignments = { ...kanbanAssignments };
-                      unassigned.forEach((r, i) => {
+                      const pool = dbRecords.filter(r => {
+                        if (r.status === 'EMBARCADO') return false;
+                        if (kanbanSector !== 'all' && r.sectorName !== kanbanSector) return false;
+                        if (kanbanModel !== 'all' && r.model !== kanbanModel) return false;
+                        
+                        const hour = parseInt((r.embarkTime || '0').split(':')[0]);
+                        let shift = '3';
+                        if (hour >= 7 && hour <= 16) shift = '1';
+                        else if (hour >= 17 || hour <= 2) shift = '2';
+                        
+                        if (kanbanShift !== 'all' && shift !== kanbanShift) return false;
+                        return true;
+                      });
+
+                      const newAssignments = { 'Operador 1': [], 'Operador 2': [], 'Operador 3': [] } as Record<string, string[]>;
+                      pool.forEach((r, i) => {
                         const op = `Operador ${(i % 3) + 1}`;
-                        newAssignments[op] = [...newAssignments[op], r.carId];
+                        newAssignments[op].push(r.carId);
                       });
                       setKanbanAssignments(newAssignments);
                     }}
                     className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-sm flex items-center gap-2 shadow-xl shadow-indigo-500/20 transition-all active:scale-95"
                   >
                     <Zap className="w-4 h-4" />
-                    DISTRIBUIÇÃO INTELIGENTE
+                    GERAR SIMULAÇÃO
                   </button>
-                  <button 
-                    onClick={() => setKanbanAssignments({ 'Operador 1': [], 'Operador 2': [], 'Operador 3': [] })}
-                    className="px-6 py-3 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 rounded-2xl font-black text-sm transition-all"
+                </div>
+              </div>
+
+              {/* Kanban Filters */}
+              <div className={cn(
+                "p-4 rounded-[2rem] border backdrop-blur-md flex flex-wrap gap-4 items-center",
+                theme === 'dark' ? "bg-slate-900/40 border-white/5" : "bg-white border-slate-200 shadow-sm"
+              )}>
+                <div className="flex flex-col gap-1.5 min-w-[150px]">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Turno de Embarque</label>
+                  <select 
+                    value={kanbanShift}
+                    onChange={(e) => setKanbanShift(e.target.value)}
+                    className="bg-slate-500/10 border-0 rounded-xl text-xs font-black text-slate-400 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500/20"
                   >
-                    LIMPAR TUDO
-                  </button>
+                    <option value="all">TODOS OS TURNOS</option>
+                    <option value="1">1º TURNO (07h-16h)</option>
+                    <option value="2">2º TURNO (17h-02h)</option>
+                    <option value="3">3º TURNO (03h-06h)</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5 min-w-[200px]">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Setor de Origem</label>
+                  <select 
+                    value={kanbanSector}
+                    onChange={(e) => setKanbanSector(e.target.value)}
+                    className="bg-slate-500/10 border-0 rounded-xl text-xs font-black text-slate-400 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500/20"
+                  >
+                    <option value="all">TODOS OS SETORES</option>
+                    {Array.from(new Set(dbRecords.map(r => r.sectorName))).sort().map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5 min-w-[150px]">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Modelo</label>
+                  <select 
+                    value={kanbanModel}
+                    onChange={(e) => setKanbanModel(e.target.value)}
+                    className="bg-slate-500/10 border-0 rounded-xl text-xs font-black text-slate-400 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500/20"
+                  >
+                    <option value="all">TODOS OS MODELOS</option>
+                    {Array.from(new Set(dbRecords.map(r => r.model))).sort().map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="ml-auto flex items-center gap-4 px-6 py-2 bg-indigo-500/10 rounded-2xl border border-indigo-500/20">
+                   <div className="flex flex-col">
+                      <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Total Candidatos</span>
+                      <span className="text-lg font-black text-white tabular-nums">
+                        {dbRecords.filter(r => {
+                          if (r.status === 'EMBARCADO') return false;
+                          if (kanbanSector !== 'all' && r.sectorName !== kanbanSector) return false;
+                          if (kanbanModel !== 'all' && r.model !== kanbanModel) return false;
+                          const hour = parseInt((r.embarkTime || '0').split(':')[0]);
+                          let shift = '3';
+                          if (hour >= 7 && hour <= 16) shift = '1';
+                          else if (hour >= 17 || hour <= 2) shift = '2';
+                          if (kanbanShift !== 'all' && shift !== kanbanShift) return false;
+                          return true;
+                        }).length}
+                      </span>
+                   </div>
                 </div>
               </div>
 
