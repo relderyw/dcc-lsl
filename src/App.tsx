@@ -2111,12 +2111,12 @@ export default function App() {
                   <div className="space-y-4">
                     {(() => {
                       const locationStats = filteredRecords
-                        .filter(r => getLocationCategory(r.location).includes('Picking') && r.location)
+                        .filter(r => r.location && r.location.includes('-')) // Apenas o que tem '-'
                         .reduce((acc, r) => {
                           const c = r.location;
                           if (!acc[c]) acc[c] = { count: 0, value: 0 };
                           acc[c].count += 1;
-                          acc[c].value += (r.VALOR_TOTAL_CARRO || 0);
+                          acc[c].value += (Number(r.VALOR_TOTAL_CARRO) || 0);
                           return acc;
                         }, {} as Record<string, { count: number, value: number }>);
 
@@ -2134,8 +2134,8 @@ export default function App() {
                             <div className="flex justify-between items-end px-1">
                               <span className="text-[13px] font-black text-slate-300 uppercase tracking-widest truncate mr-2">{loc}</span>
                               <div className="flex flex-col items-end">
-                                <span className="text-[11px] font-black text-emerald-400">
-                                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(stats.value)}
+                                <span className="text-[12px] font-black text-emerald-400">
+                                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(stats.value || 0)}
                                 </span>
                                 <span className="text-[10px] font-bold text-slate-500 tabular-nums">{stats.count} u.</span>
                               </div>
@@ -2191,11 +2191,12 @@ export default function App() {
                   <div className="relative h-72 w-full mt-4">
                     {(() => {
                       const controllerStats = filteredRecords
+                        .filter(r => r.controller && !r.controller.includes('-')) // Apenas o que NÃO tem '-'
                         .reduce((acc, r) => {
-                          const c = r.controller || 'NÃO IDENTIFICADO';
+                          const c = r.controller;
                           if (!acc[c]) acc[c] = { count: 0, value: 0 };
                           acc[c].count += 1;
-                          acc[c].value += (r.VALOR_TOTAL_CARRO || 0);
+                          acc[c].value += (Number(r.VALOR_TOTAL_CARRO) || 0);
                           return acc;
                         }, {} as Record<string, { count: number, value: number }>);
 
@@ -2214,7 +2215,7 @@ export default function App() {
                                 <span className="text-[13px] font-black text-slate-300 uppercase truncate max-w-[200px] transition-colors">{ctrl}</span>
                                 <div className="flex flex-col items-end">
                                   <span className="text-[12px] font-black text-rose-400">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(stats.value)}
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(stats.value || 0)}
                                   </span>
                                   <span className="text-[10px] font-bold text-slate-500 tabular-nums">{stats.count} u.</span>
                                 </div>
