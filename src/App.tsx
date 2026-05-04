@@ -1081,6 +1081,24 @@ export default function App() {
                   </button>
 
                   <button
+                    onClick={() => setMode('kanban')}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-[11px] font-bold transition-all",
+                      mode === 'kanban' 
+                        ? (theme === 'dark' ? "bg-slate-800 text-white shadow-lg ring-1 ring-white/10" : "bg-white text-slate-900 shadow-xl shadow-slate-200/60 ring-1 ring-slate-100") 
+                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40" : "text-slate-600 hover:text-slate-900 hover:bg-white/60")
+                    )}
+                  >
+                    <div className={cn(
+                      "p-2 rounded-xl transition-colors",
+                      mode === 'kanban' ? "bg-indigo-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500")
+                    )}>
+                      <Trello className="w-4 h-4" />
+                    </div>
+                    Kanban Logístico
+                  </button>
+
+                  <button
                     onClick={() => setMode('edit')}
                     className={cn(
                       "flex items-center gap-3 px-4 py-3 rounded-2xl text-[11px] font-bold transition-all",
