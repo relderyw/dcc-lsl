@@ -365,6 +365,8 @@ export default function App() {
   const [tempBay, setTempBay] = useState<Bay | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [pickingSortMode, setPickingSortMode] = useState<'count' | 'value'>('count');
+  const [controllerSortMode, setControllerSortMode] = useState<'count' | 'value'>('count');
+  const [stagnantSortMode, setStagnantSortMode] = useState<'days' | 'value'>('days');
   const [stagnantMinDays, setStagnantMinDays] = useState<number>(0);
   const [dbRecords, setDbRecords] = useState<CarRecord[]>(dataService.getRecords());
   const [importText, setImportText] = useState('');
@@ -2203,28 +2205,44 @@ export default function App() {
                       <div className="p-2.5 bg-rose-500/10 text-rose-400 rounded-xl">
                         <Users className="w-5 h-5" />
                       </div>
-                      <h3 className={cn("text-lg font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
+                      <h3 className={cn("text-xl font-black tracking-tight", theme === 'dark' ? "text-white" : "text-slate-900")}>
                         Atividade por Controlador
                       </h3>
                     </div>
-                    <div className="flex gap-1">
-                      <button 
-                        disabled={controllerPageIndex === 0}
-                        onClick={() => setControllerPageIndex(prev => Math.max(0, prev - 1))}
-                        className="p-1.5 rounded-lg bg-bg-surface/5 text-slate-400 disabled:opacity-20 hover:bg-bg-surface/10"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => setControllerPageIndex(prev => prev + 1)}
-                        className="p-1.5 rounded-lg bg-bg-surface/5 text-slate-400 hover:bg-bg-surface/10"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
+                    <div className="flex items-center gap-4">
+                      <div className="flex bg-slate-500/10 p-1 rounded-xl">
+                        <button 
+                          onClick={() => setControllerSortMode('count')}
+                          className={cn("px-3 py-1 rounded-lg text-[10px] font-black transition-all", controllerSortMode === 'count' ? "bg-rose-500 text-white shadow-lg" : "text-slate-500")}
+                        >
+                          VOLUME
+                        </button>
+                        <button 
+                          onClick={() => setControllerSortMode('value')}
+                          className={cn("px-3 py-1 rounded-lg text-[10px] font-black transition-all", controllerSortMode === 'value' ? "bg-rose-500 text-white shadow-lg" : "text-slate-500")}
+                        >
+                          REAIS
+                        </button>
+                      </div>
+                      <div className="flex gap-1">
+                        <button 
+                          disabled={controllerPageIndex === 0}
+                          onClick={() => setControllerPageIndex(prev => Math.max(0, prev - 1))}
+                          className="p-1.5 rounded-lg bg-bg-surface/5 text-slate-400 disabled:opacity-20 hover:bg-bg-surface/10"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => setControllerPageIndex(prev => prev + 1)}
+                          className="p-1.5 rounded-lg bg-bg-surface/5 text-slate-400 hover:bg-bg-surface/10"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="relative h-72 w-full mt-4">
+                  <div className="relative min-h-[400px] w-full mt-4">
                     {(() => {
                       const controllerStats = filteredRecords
                         .filter(r => getLocationCategory(r.location) === 'Controlador')
@@ -2237,11 +2255,11 @@ export default function App() {
                         }, {} as Record<string, { count: number, value: number }>);
 
                       const sortedControllers = Object.entries(controllerStats)
-                        .sort((a, b) => b[1].count - a[1].count);
+                        .sort((a, b) => controllerSortMode === 'count' ? b[1].count - a[1].count : b[1].value - a[1].value);
 
-                      const displayControllers = sortedControllers.slice(controllerPageIndex * 8, (controllerPageIndex * 8) + 8);
+                      const displayControllers = sortedControllers.slice(controllerPageIndex * 10, (controllerPageIndex * 10) + 10);
 
-                      const max = Math.max(...Object.values(controllerStats).map(v => v.count), 1);
+                      const maxVal = Math.max(...Object.values(controllerStats).map(v => controllerSortMode === 'count' ? v.count : v.value), 1);
 
                       if (sortedControllers.length === 0) {
                         return (
@@ -2271,7 +2289,7 @@ export default function App() {
                               )}>
                                 <motion.div 
                                   initial={{ width: 0 }}
-                                  animate={{ width: `${(stats.count / max) * 100}%` }}
+                                  animate={{ width: `${((controllerSortMode === 'count' ? stats.count : stats.value) / maxVal) * 100}%` }}
                                   className="h-full bg-gradient-to-r from-rose-500 to-rose-400 rounded-full shadow-[0_0_15px_rgba(244,63,94,0.3)] transition-all duration-1000"
                                 />
                               </div>
@@ -2296,19 +2314,35 @@ export default function App() {
                         Carros sem movimentação
                       </h3>
                     </div>
-                    <select 
-                      value={stagnantMinDays}
-                      onChange={(e) => setStagnantMinDays(Number(e.target.value))}
-                      className="bg-slate-500/10 border-0 rounded-xl text-[10px] font-black text-slate-400 px-3 py-1.5 focus:ring-0"
-                    >
-                      <option value={0}>TODOS</option>
-                      {[5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100].map(d => (
-                        <option key={d} value={d}>+{d} DIAS</option>
-                      ))}
-                    </select>
+                    <div className="flex items-center gap-4">
+                      <div className="flex bg-slate-500/10 p-1 rounded-xl">
+                        <button 
+                          onClick={() => setStagnantSortMode('days')}
+                          className={cn("px-3 py-1 rounded-lg text-[10px] font-black transition-all", stagnantSortMode === 'days' ? "bg-amber-500 text-white shadow-lg" : "text-slate-500")}
+                        >
+                          DIAS
+                        </button>
+                        <button 
+                          onClick={() => setStagnantSortMode('value')}
+                          className={cn("px-3 py-1 rounded-lg text-[10px] font-black transition-all", stagnantSortMode === 'value' ? "bg-amber-500 text-white shadow-lg" : "text-slate-500")}
+                        >
+                          REAIS
+                        </button>
+                      </div>
+                      <select 
+                        value={stagnantMinDays}
+                        onChange={(e) => setStagnantMinDays(Number(e.target.value))}
+                        className="bg-slate-500/10 border-0 rounded-xl text-[10px] font-black text-slate-400 px-3 py-1.5 focus:ring-0"
+                      >
+                        <option value={0}>TODOS</option>
+                        {[5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100].map(d => (
+                          <option key={d} value={d}>+{d} DIAS</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 -mr-1 space-y-3 max-h-[450px]">
+                  <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 -mr-1 space-y-3 min-h-[400px]">
                     {dbRecords
                       .filter(r => r.status !== 'EMBARCADO')
                       .map(r => {
@@ -2324,7 +2358,7 @@ export default function App() {
                         return { ...r, daysLate };
                       })
                       .filter(r => r.daysLate >= stagnantMinDays)
-                      .sort((a, b) => b.daysLate - a.daysLate)
+                      .sort((a, b) => stagnantSortMode === 'days' ? b.daysLate - a.daysLate : (b.VALOR_TOTAL_CARRO || 0) - (a.VALOR_TOTAL_CARRO || 0))
                       .slice(0, 30)
                       .map(r => (
                         <div key={r.carId} className="flex items-center gap-3 p-4 rounded-[1.5rem] bg-bg-surface/5 border border-white/5 group hover:border-amber-500/30 transition-all">
