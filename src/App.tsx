@@ -379,6 +379,9 @@ export default function App() {
     sectorName: true,
     embarkDate: true,
     embarkTime: true,
+    registrationDate: true,
+    registrationTime: true,
+    VALOR_TOTAL_CARRO: true,
     carPhysical: false,
     sectorId: false
   });
@@ -1143,6 +1146,9 @@ export default function App() {
                     { id: 'sectorName', label: 'Setor' },
                     { id: 'embarkDate', label: 'Data Embarque' },
                     { id: 'embarkTime', label: 'Hora Embarque' },
+                    { id: 'registrationDate', label: 'Data Cadastro' },
+                    { id: 'registrationTime', label: 'Hora Cadastro' },
+                    { id: 'VALOR_TOTAL_CARRO', label: 'Valor Total Carro' },
                     { id: 'carPhysical', label: 'Carro Físico' },
                     { id: 'sectorId', label: 'ID Setor' },
                   ].map(field => (
@@ -2247,7 +2253,7 @@ export default function App() {
                     {dbRecords
                       .filter(r => r.status !== 'EMBARCADO')
                       .map(r => {
-                        const targetDate = parseExcelDate(r.embarkDate, r.embarkTime);
+                        const targetDate = parseExcelDate(r.registrationDate, r.registrationTime);
                         if (!targetDate) return { ...r, daysLate: 0 };
                         const diffMs = new Date().getTime() - targetDate.getTime();
                         const daysLate = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
@@ -2997,8 +3003,11 @@ export default function App() {
                           { id: 'model', label: 'Modelo', icon: <Box className="w-3 h-3" /> },
                           { id: 'status', label: 'Status', icon: <Activity className="w-3 h-3" /> },
                           { id: 'sectorName', label: 'Setor', icon: <MapPin className="w-3 h-3" /> },
-                          { id: 'embarkDate', label: 'Data', icon: <Calendar className="w-3 h-3" /> },
-                          { id: 'embarkTime', label: 'Hora', icon: <Clock className="w-3 h-3" /> },
+                          { id: 'embarkDate', label: 'Data Emb.', icon: <Calendar className="w-3 h-3" /> },
+                          { id: 'embarkTime', label: 'Hora Emb.', icon: <Clock className="w-3 h-3" /> },
+                          { id: 'registrationDate', label: 'Data Cad.', icon: <Calendar className="w-3 h-3" /> },
+                          { id: 'registrationTime', label: 'Hora Cad.', icon: <Clock className="w-3 h-3" /> },
+                          { id: 'VALOR_TOTAL_CARRO', label: 'Valor Carro', icon: <Hash className="w-3 h-3" /> },
                           { id: 'carPhysical', label: 'Físico', icon: <Truck className="w-3 h-3" /> },
                           { id: 'sectorId', label: 'ID Setor', icon: <Database className="w-3 h-3" /> },
                         ].filter(f => hoverConfig[f.id]).map(field => (

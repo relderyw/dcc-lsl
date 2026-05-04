@@ -13,6 +13,8 @@ export interface CarRecord {
   carPhysical: string;// CAR_FISICO
   embarkDate: string; // DT_EMB
   embarkTime: string; // HORAEMB
+  registrationDate: string; // CADASTRO
+  registrationTime: string; // HORA_CA
 }
 
 class DataService {
@@ -62,7 +64,9 @@ class DataService {
       'LOC_FISICA': 'location',
       'CAR_FISICO': 'carPhysical',
       'DT_EMB': 'embarkDate',
-      'HORAEMB': 'embarkTime'
+      'HORAEMB': 'embarkTime',
+      'CADASTRO': 'registrationDate',
+      'HORA_CA': 'registrationTime'
     };
 
     const newRecords: CarRecord[] = data.map(item => {
@@ -95,7 +99,9 @@ class DataService {
         'LOC_FISICA': 'location',
         'CAR_FISICO': 'carPhysical',
         'DT_EMB': 'embarkDate',
-        'HORAEMB': 'embarkTime'
+        'HORAEMB': 'embarkTime',
+        'CADASTRO': 'registrationDate',
+        'HORA_CA': 'registrationTime'
       };
 
       headers.forEach((header, index) => {

@@ -145,11 +145,13 @@ async function startServer() {
 
   // ─── GET /api/data (local Excel) ──────────────────────────────────────────
   app.get("/api/data", (req, res) => {
-    let filePath = process.env.EXCEL_FILE_PATH || "PICKING.xlsb";
+    let filePath = process.env.EXCEL_FILE_PATH || "PICKING_v1.xlsb";
 
     if (req.query.path && typeof req.query.path === 'string') {
       filePath = req.query.path.replace(/\\/g, '/');
     }
+
+    console.log(`[Excel] Reading file: ${filePath}`);
 
     try {
       if (!fs.existsSync(filePath)) {
@@ -161,6 +163,49 @@ async function startServer() {
       const utilsObj = XLSX.utils || (XLSX as any).default?.utils;
 
       const workbook = readFn(fileBuffer, { type: 'buffer' });
+      const sheetNames = workbook.SheetNames;
+
+      // Logic to merge multiple sheets if they exist
+      if (sheetNames.includes('RW_EXPED') && sheetNames.includes('RW_EXPED2') && sheetNames.includes('PROJRSITEM')) {
+        console.log('[Excel] Multi-sheet mode detected. Merging data...');
+        
+        const exped = utilsObj.sheet_to_json(workbook.Sheets['RW_EXPED']);
+        const exped2 = utilsObj.sheet_to_json(workbook.Sheets['RW_EXPED2']) as any[];
+        const items = utilsObj.sheet_to_json(workbook.Sheets['PROJRSITEM']) as any[];
+
+        // 1. Map item costs
+        const itemCosts: Record<string, number> = {};
+        items.forEach(item => {
+          if (item.ITEM) {
+            itemCosts[String(item.ITEM).trim()] = Number(item.CUSTO) || 0;
+          }
+        });
+
+        // 2. Calculate car values from RW_EXPED2
+        const carValues: Record<string, number> = {};
+        exped2.forEach(row => {
+          const carId = String(row.CARRO || '').trim();
+          const itemCode = String(row.ITEM || '').trim();
+          const qty = Number(row.QTDE) || 0;
+          const cost = itemCosts[itemCode] || 0;
+          const lineValue = qty * cost;
+          
+          if (carId) {
+            carValues[carId] = (carValues[carId] || 0) + lineValue;
+          }
+        });
+
+        // 3. Merge into main base
+        const mergedData = exped.map((row: any) => ({
+          ...row,
+          VALOR_TOTAL_CARRO: carValues[String(row.CARRO || '').trim()] || 0
+        }));
+
+        console.log(`[Excel] Successfully merged ${mergedData.length} records with car values.`);
+        return res.json({ records: mergedData });
+      }
+
+      // Fallback: Just return the first sheet if the specialized sheets aren't found
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const data = utilsObj.sheet_to_json(worksheet);
