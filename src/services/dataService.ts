@@ -8,7 +8,7 @@ export interface CarRecord {
   model: string;      // CRRMOD
   status: string;     // STATUS
   sectorId: string;   // SETOR
-  sectorName: string; // DSC_SETOR
+  sectorName: string; // SETOR
   location: string;   // LOC_FISICA
   carPhysical: string;// CAR_FISICO
   embarkDate: string; // DT_EMB

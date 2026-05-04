@@ -372,7 +372,7 @@ export default function App() {
   const [stagnantMinDays, setStagnantMinDays] = useState<number>(0);
   const [kanbanShift, setKanbanShift] = useState<string>('all');
   const [kanbanSector, setKanbanSector] = useState<string>('all');
-  const [kanbanModel, setKanbanModel] = useState<string>('all');
+  const [kanbanModels, setKanbanModels] = useState<string[]>([]);
   const [kanbanAssignments, setKanbanAssignments] = useState<Record<string, string[]>>({
     'Operador 1': [],
     'Operador 2': [],
@@ -2425,102 +2425,26 @@ export default function App() {
             "flex-1 p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
             theme === 'dark' ? "bg-slate-950" : "bg-bg-main"
           )}>
-            <div className="max-w-[1600px] mx-auto space-y-6">
-              <div className="flex justify-between items-start">
+            <div className="max-w-5xl mx-auto space-y-8">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
-                  <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
-                    <Trello className="w-8 h-8 text-indigo-500" />
-                    Kanban Logístico Inteligente
+                  <h1 className="text-4xl font-black tracking-tight flex items-center gap-4">
+                    <div className="p-3 bg-indigo-500 rounded-2xl shadow-lg shadow-indigo-500/20">
+                      <Trello className="w-8 h-8 text-white" />
+                    </div>
+                    Lista de Coleta
                   </h1>
-                  <p className="text-slate-400 mt-1">Simulação de coleta por turnos e roteirização linear.</p>
+                  <p className="text-slate-400 mt-2 font-medium">Otimização linear para percurso de 432 metros.</p>
                 </div>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => {
-                      const pool = dbRecords.filter(r => {
-                        if (r.status === 'EMBARCADO') return false;
-                        if (kanbanSector !== 'all' && r.sectorName !== kanbanSector) return false;
-                        if (kanbanModel !== 'all' && r.model !== kanbanModel) return false;
-                        
-                        const hour = parseInt((r.embarkTime || '0').split(':')[0]);
-                        let shift = '3';
-                        if (hour >= 7 && hour <= 16) shift = '1';
-                        else if (hour >= 17 || hour <= 2) shift = '2';
-                        
-                        if (kanbanShift !== 'all' && shift !== kanbanShift) return false;
-                        return true;
-                      });
-
-                      const newAssignments = { 'Operador 1': [], 'Operador 2': [], 'Operador 3': [] } as Record<string, string[]>;
-                      pool.forEach((r, i) => {
-                        const op = `Operador ${(i % 3) + 1}`;
-                        newAssignments[op].push(r.carId);
-                      });
-                      setKanbanAssignments(newAssignments);
-                    }}
-                    className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-sm flex items-center gap-2 shadow-xl shadow-indigo-500/20 transition-all active:scale-95"
-                  >
-                    <Zap className="w-4 h-4" />
-                    GERAR SIMULAÇÃO
-                  </button>
-                </div>
-              </div>
-
-              {/* Kanban Filters */}
-              <div className={cn(
-                "p-4 rounded-[2rem] border backdrop-blur-md flex flex-wrap gap-4 items-center",
-                theme === 'dark' ? "bg-slate-900/40 border-white/5" : "bg-white border-slate-200 shadow-sm"
-              )}>
-                <div className="flex flex-col gap-1.5 min-w-[150px]">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Turno de Embarque</label>
-                  <select 
-                    value={kanbanShift}
-                    onChange={(e) => setKanbanShift(e.target.value)}
-                    className="bg-slate-500/10 border-0 rounded-xl text-xs font-black text-slate-400 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500/20"
-                  >
-                    <option value="all">TODOS OS TURNOS</option>
-                    <option value="1">1º TURNO (07h-16h)</option>
-                    <option value="2">2º TURNO (17h-02h)</option>
-                    <option value="3">3º TURNO (03h-06h)</option>
-                  </select>
-                </div>
-
-                <div className="flex flex-col gap-1.5 min-w-[200px]">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Setor de Origem</label>
-                  <select 
-                    value={kanbanSector}
-                    onChange={(e) => setKanbanSector(e.target.value)}
-                    className="bg-slate-500/10 border-0 rounded-xl text-xs font-black text-slate-400 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500/20"
-                  >
-                    <option value="all">TODOS OS SETORES</option>
-                    {Array.from(new Set(dbRecords.map(r => r.sectorName))).sort().map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex flex-col gap-1.5 min-w-[150px]">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Modelo</label>
-                  <select 
-                    value={kanbanModel}
-                    onChange={(e) => setKanbanModel(e.target.value)}
-                    className="bg-slate-500/10 border-0 rounded-xl text-xs font-black text-slate-400 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500/20"
-                  >
-                    <option value="all">TODOS OS MODELOS</option>
-                    {Array.from(new Set(dbRecords.map(r => r.model))).sort().map(m => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="ml-auto flex items-center gap-4 px-6 py-2 bg-indigo-500/10 rounded-2xl border border-indigo-500/20">
+                
+                <div className="flex items-center gap-4 px-8 py-4 bg-indigo-500/10 rounded-[2rem] border border-indigo-500/20">
                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Total Candidatos</span>
-                      <span className="text-lg font-black text-white tabular-nums">
+                      <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Veículos na Lista</span>
+                      <span className="text-3xl font-black text-white tabular-nums">
                         {dbRecords.filter(r => {
                           if (r.status === 'EMBARCADO') return false;
                           if (kanbanSector !== 'all' && r.sectorName !== kanbanSector) return false;
-                          if (kanbanModel !== 'all' && r.model !== kanbanModel) return false;
+                          if (kanbanModels.length > 0 && !kanbanModels.includes(r.model)) return false;
                           const hour = parseInt((r.embarkTime || '0').split(':')[0]);
                           let shift = '3';
                           if (hour >= 7 && hour <= 16) shift = '1';
@@ -2533,86 +2457,183 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                {Object.entries(kanbanAssignments).map(([op, carIds]) => {
-                  const assignedRecords = dbRecords
-                    .filter(r => carIds.includes(r.carId))
-                    .sort((a, b) => (a.location || '').localeCompare(b.location || '')); // ORDENAÇÃO LINEAR
-
-                  const totalValue = assignedRecords.reduce((acc, r) => acc + (r.VALOR_TOTAL_CARRO || 0), 0);
-
-                  return (
-                    <div key={op} className={cn(
-                      "flex flex-col gap-6 p-6 rounded-[2.5rem] border backdrop-blur-3xl transition-all h-[calc(100vh-250px)]",
-                      theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-bg-surface border-slate-200 shadow-xl"
-                    )}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            "w-12 h-12 rounded-2xl flex items-center justify-center font-black",
-                            op === 'Operador 1' ? "bg-blue-500/20 text-blue-400" : 
-                            op === 'Operador 2' ? "bg-emerald-500/20 text-emerald-400" : "bg-purple-500/20 text-purple-400"
-                          )}>
-                            {op.split(' ')[1]}
+              {/* Advanced Filter Bar */}
+              <div className={cn(
+                "p-8 rounded-[3rem] border backdrop-blur-3xl shadow-2xl space-y-8 transition-all",
+                theme === 'dark' ? "bg-slate-900/60 border-white/5 ring-1 ring-white/10" : "bg-white border-slate-200 shadow-slate-200/50"
+              )}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Configuração do Turno</label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { id: 'all', label: 'TODOS', icon: <Activity className="w-4 h-4" /> },
+                        { id: '1', label: '1º TURNO', sub: '07h-16h' },
+                        { id: '2', label: '2º TURNO', sub: '17h-02h' },
+                        { id: '3', label: '3º TURNO', sub: '03h-06h' }
+                      ].map(s => (
+                        <button
+                          key={s.id}
+                          onClick={() => setKanbanShift(s.id)}
+                          className={cn(
+                            "flex-1 min-w-[120px] p-4 rounded-2xl border transition-all text-left group",
+                            kanbanShift === s.id 
+                              ? "bg-indigo-600 border-indigo-500 text-white shadow-xl shadow-indigo-500/20" 
+                              : "bg-bg-surface/5 border-white/5 text-slate-400 hover:border-indigo-500/30"
+                          )}
+                        >
+                          <div className="flex flex-col">
+                            <span className="text-xs font-black uppercase tracking-widest">{s.label}</span>
+                            {s.sub && <span className={cn("text-[9px] font-bold opacity-60", kanbanShift === s.id ? "text-white" : "text-slate-500")}>{s.sub}</span>}
                           </div>
-                          <div>
-                            <h2 className="text-xl font-black tracking-tight">{op}</h2>
-                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{assignedRecords.length} CARROS • {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(totalValue)}</p>
-                          </div>
-                        </div>
-                        <div className="p-2 bg-slate-500/10 rounded-lg">
-                          <Truck className="w-5 h-5 text-slate-400" />
-                        </div>
-                      </div>
-
-                      <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 -mr-2 space-y-4">
-                        {assignedRecords.map((r, idx) => (
-                          <motion.div 
-                            layoutId={r.carId}
-                            key={r.carId}
-                            className="p-4 rounded-2xl bg-bg-surface/5 border border-white/5 group hover:border-indigo-500/30 transition-all relative overflow-hidden"
-                          >
-                            {/* Sequence Indicator */}
-                            <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500/20 group-hover:bg-indigo-500 transition-colors" />
-                            
-                            <div className="flex justify-between items-start mb-2 pl-2">
-                              <span className="text-sm font-black text-white">{r.carId}</span>
-                              <span className="text-[10px] font-black text-emerald-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(r.VALOR_TOTAL_CARRO || 0)}</span>
-                            </div>
-                            
-                            <div className="flex items-center justify-between pl-2">
-                              <div className="flex items-center gap-2">
-                                <MapPin className="w-3 h-3 text-indigo-400" />
-                                <span className="text-[11px] font-black text-slate-300 uppercase">{r.location || 'N/D'}</span>
-                              </div>
-                              <button 
-                                onClick={() => {
-                                  const newAssignments = { ...kanbanAssignments };
-                                  newAssignments[op] = newAssignments[op].filter(id => id !== r.carId);
-                                  setKanbanAssignments(newAssignments);
-                                }}
-                                className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-rose-500/10 text-rose-500 rounded-lg transition-all"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                            
-                            {/* Linear Route Progress */}
-                            <div className="mt-3 h-1 w-full bg-slate-500/10 rounded-full overflow-hidden">
-                              <div className="h-full bg-indigo-500/40" style={{ width: `${((idx + 1) / assignedRecords.length) * 100}%` }} />
-                            </div>
-                          </motion.div>
-                        ))}
-                        {assignedRecords.length === 0 && (
-                          <div className="h-full flex flex-col items-center justify-center opacity-20 border-2 border-dashed border-slate-500/20 rounded-3xl">
-                            <Box className="w-12 h-12 mb-4" />
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em]">Sem tarefas</p>
-                          </div>
-                        )}
-                      </div>
+                        </button>
+                      ))}
                     </div>
-                  );
-                })}
+                  </div>
+
+                  <div className="space-y-4">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Setor de Origem</label>
+                    <select 
+                      value={kanbanSector}
+                      onChange={(e) => setKanbanSector(e.target.value)}
+                      className={cn(
+                        "w-full p-4 rounded-2xl border-2 transition-all text-sm font-black focus:ring-4",
+                        theme === 'dark' ? "bg-slate-950 border-white/5 text-slate-200 focus:ring-indigo-500/20" : "bg-slate-50 border-slate-200 text-slate-900"
+                      )}
+                    >
+                      <option value="all">TODOS OS SETORES</option>
+                      {Array.from(new Set(dbRecords.map(r => r.sectorName))).filter(Boolean).sort().map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-4 border-t border-white/5">
+                  <div className="flex justify-between items-center px-2">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-[0.2em]">Seleção de Modelos (Múltiplo)</label>
+                    <button 
+                      onClick={() => setKanbanModels([])}
+                      className="text-[10px] font-black text-rose-500 hover:text-rose-400 uppercase tracking-widest"
+                    >
+                      Limpar Seleção
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto custom-scrollbar p-1">
+                    {Array.from(new Set(dbRecords.map(r => r.model))).filter(Boolean).sort().map(m => (
+                      <button
+                        key={m}
+                        onClick={() => {
+                          setKanbanModels(prev => 
+                            prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m]
+                          );
+                        }}
+                        className={cn(
+                          "px-4 py-2 rounded-xl text-[10px] font-black transition-all border",
+                          kanbanModels.includes(m)
+                            ? "bg-emerald-500 border-emerald-400 text-white shadow-lg shadow-emerald-500/20"
+                            : "bg-bg-surface/5 border-white/5 text-slate-500 hover:border-emerald-500/30"
+                        )}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Unified Intelligent Collection List */}
+              <div className={cn(
+                "p-8 rounded-[3rem] border backdrop-blur-3xl shadow-2xl transition-all",
+                theme === 'dark' ? "bg-slate-900/40 border-white/5" : "bg-bg-surface border-slate-200 shadow-xl"
+              )}>
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-1.5 h-8 bg-indigo-500 rounded-full" />
+                    <h2 className="text-2xl font-black tracking-tight">Sequência de Coleta Otimizada</h2>
+                  </div>
+                  <div className="p-3 bg-slate-500/10 rounded-2xl">
+                    <MapPin className="w-6 h-6 text-indigo-400" />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {dbRecords
+                    .filter(r => {
+                      if (r.status === 'EMBARCADO') return false;
+                      if (kanbanSector !== 'all' && r.sectorName !== kanbanSector) return false;
+                      if (kanbanModels.length > 0 && !kanbanModels.includes(r.model)) return false;
+                      const hour = parseInt((r.embarkTime || '0').split(':')[0]);
+                      let shift = '3';
+                      if (hour >= 7 && hour <= 16) shift = '1';
+                      else if (hour >= 17 || hour <= 2) shift = '2';
+                      if (kanbanShift !== 'all' && shift !== kanbanShift) return false;
+                      return true;
+                    })
+                    .sort((a, b) => (a.location || '').localeCompare(b.location || '')) // LINEAR SORTING
+                    .map((r, idx) => (
+                      <motion.div 
+                        key={r.carId}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.03 }}
+                        className="group flex items-center gap-6 p-5 rounded-2xl bg-bg-surface/5 border border-white/5 hover:border-indigo-500/30 transition-all relative"
+                      >
+                        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 font-black text-sm">
+                          {idx + 1}
+                        </div>
+                        
+                        <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Veículo</span>
+                            <span className="text-sm font-black text-white">{r.carId}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Modelo</span>
+                            <span className="text-sm font-black text-slate-300">{r.model}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Localização</span>
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-3.5 h-3.5 text-indigo-400" />
+                              <span className="text-sm font-black text-indigo-400 uppercase tracking-widest">{r.location || 'SEM LOC.'}</span>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end">
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Valor</span>
+                            <span className="text-sm font-black text-emerald-400">
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(r.VALOR_TOTAL_CARRO || 0)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="h-4 w-px bg-white/5 mx-2" />
+                        
+                        <div className="flex items-center gap-2">
+                           <div className="px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-black text-indigo-400 uppercase">
+                              {r.embarkTime}
+                           </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  
+                  {dbRecords.filter(r => {
+                      if (r.status === 'EMBARCADO') return false;
+                      if (kanbanSector !== 'all' && r.sectorName !== kanbanSector) return false;
+                      if (kanbanModels.length > 0 && !kanbanModels.includes(r.model)) return false;
+                      const hour = parseInt((r.embarkTime || '0').split(':')[0]);
+                      let shift = '3';
+                      if (hour >= 7 && hour <= 16) shift = '1';
+                      else if (hour >= 17 || hour <= 2) shift = '2';
+                      if (kanbanShift !== 'all' && shift !== kanbanShift) return false;
+                      return true;
+                    }).length === 0 && (
+                      <div className="py-20 text-center opacity-30">
+                        <Box className="w-16 h-16 mx-auto mb-4" />
+                        <p className="text-sm font-black uppercase tracking-[0.3em]">Nenhum carro para as condições filtradas</p>
+                      </div>
+                    )}
+                </div>
               </div>
             </div>
           </div>
