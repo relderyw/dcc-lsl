@@ -2114,24 +2114,31 @@ export default function App() {
                         .filter(r => getLocationCategory(r.location).includes('Picking') && r.location)
                         .reduce((acc, r) => {
                           const c = r.location;
-                          acc[c] = (acc[c] || 0) + 1;
+                          if (!acc[c]) acc[c] = { count: 0, value: 0 };
+                          acc[c].count += 1;
+                          acc[c].value += (r.VALOR_TOTAL_CARRO || 0);
                           return acc;
-                        }, {} as Record<string, number>);
+                        }, {} as Record<string, { count: number, value: number }>);
 
-                      const sortedLocations = (Object.entries(locationStats) as [string, number][])
-                        .sort((a, b) => b[1] - a[1])
-                        .slice(0, 7); // Top 7 to match Categorização Picking elements length
+                      const sortedLocations = Object.entries(locationStats)
+                        .sort((a, b) => b[1].count - a[1].count)
+                        .slice(0, 7);
                       
-                      const maxLoc = Math.max(...(Object.values(locationStats) as number[]), 1);
+                      const maxLoc = Math.max(...Object.values(locationStats).map(v => v.count), 1);
 
-                      return sortedLocations.map(([loc, count], idx) => {
-                        const percent = Math.round((count / maxLoc) * 100);
+                      return sortedLocations.map(([loc, stats], idx) => {
+                        const percent = Math.round((stats.count / maxLoc) * 100);
                         
                         return (
                           <div key={loc} className="space-y-1.5">
                             <div className="flex justify-between items-end px-1">
-                              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate mr-2" title={loc}>{loc}</span>
-                              <span className="text-[11px] font-bold text-slate-400 tabular-nums shrink-0">{count}</span>
+                              <span className="text-[13px] font-black text-slate-300 uppercase tracking-widest truncate mr-2">{loc}</span>
+                              <div className="flex flex-col items-end">
+                                <span className="text-[11px] font-black text-emerald-400">
+                                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(stats.value)}
+                                </span>
+                                <span className="text-[10px] font-bold text-slate-500 tabular-nums">{stats.count} u.</span>
+                              </div>
                             </div>
                             <div className={cn("h-1.5 w-full rounded-full overflow-hidden", theme === 'dark' ? "bg-bg-surface/5" : "bg-slate-100")}>
                               <motion.div 
@@ -2139,7 +2146,7 @@ export default function App() {
                                 animate={{ width: `${percent}%` }}
                                 className={cn(
                                   "h-full rounded-full transition-all duration-1000",
-                                  idx < 3 ? "bg-rose-500/40" : "bg-indigo-500/40" // Top 3 gets red indicating high utilization
+                                  idx < 3 ? "bg-rose-500/60 shadow-[0_0_8px_rgba(244,63,94,0.3)]" : "bg-indigo-500/40"
                                 )}
                               />
                             </div>
@@ -2184,32 +2191,33 @@ export default function App() {
                   <div className="relative h-72 w-full mt-4">
                     {(() => {
                       const controllerStats = filteredRecords
-                        .filter(r => getLocationCategory(r.location) === 'Controlador')
                         .reduce((acc, r) => {
-                          const c = r.location || 'NÃO IDENTIFICADO';
-                          acc[c] = (acc[c] || 0) + 1;
+                          const c = r.controller || 'NÃO IDENTIFICADO';
+                          if (!acc[c]) acc[c] = { count: 0, value: 0 };
+                          acc[c].count += 1;
+                          acc[c].value += (r.VALOR_TOTAL_CARRO || 0);
                           return acc;
-                        }, {} as Record<string, number>);
+                        }, {} as Record<string, { count: number, value: number }>);
 
-                      const sortedControllers = (Object.entries(controllerStats) as [string, number][])
-                        .sort((a, b) => b[1] - a[1]);
+                      const sortedControllers = Object.entries(controllerStats)
+                        .sort((a, b) => b[1].count - a[1].count);
 
                       const displayControllers = sortedControllers.slice(controllerPageIndex * 8, (controllerPageIndex * 8) + 8);
 
-                      if (displayControllers.length === 0 && controllerPageIndex > 0) {
-                        setControllerPageIndex(0);
-                        return null;
-                      }
-
-                      const max = Math.max(...(Object.values(controllerStats) as number[]), 1);
+                      const max = Math.max(...Object.values(controllerStats).map(v => v.count), 1);
 
                       return (
                         <div className="flex flex-col gap-4 h-full overflow-y-auto custom-scrollbar pr-1 py-2">
-                          {displayControllers.map(([ctrl, count]) => (
+                          {displayControllers.map(([ctrl, stats]) => (
                             <div key={ctrl} className="flex flex-col gap-1.5 group">
                               <div className="flex justify-between items-end px-1">
-                                <span className="text-[11px] font-black text-slate-400 group-hover:text-slate-200 uppercase truncate max-w-[150px] transition-colors">{ctrl}</span>
-                                <span className="text-[12px] font-black text-rose-500 tabular-nums">{count}</span>
+                                <span className="text-[13px] font-black text-slate-300 uppercase truncate max-w-[200px] transition-colors">{ctrl}</span>
+                                <div className="flex flex-col items-end">
+                                  <span className="text-[12px] font-black text-rose-400">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(stats.value)}
+                                  </span>
+                                  <span className="text-[10px] font-bold text-slate-500 tabular-nums">{stats.count} u.</span>
+                                </div>
                               </div>
                               <div className={cn(
                                 "h-2.5 w-full rounded-full relative bg-bg-surface/5 overflow-hidden ring-1 ring-white/5",
@@ -2217,18 +2225,12 @@ export default function App() {
                               )}>
                                 <motion.div 
                                   initial={{ width: 0 }}
-                                  animate={{ width: `${(count / max) * 100}%` }}
+                                  animate={{ width: `${(stats.count / max) * 100}%` }}
                                   className="h-full bg-gradient-to-r from-rose-500 to-rose-400 rounded-full shadow-[0_0_15px_rgba(244,63,94,0.3)] transition-all duration-1000"
                                 />
                               </div>
                             </div>
                           ))}
-                          {sortedControllers.length === 0 && (
-                            <div className="flex-1 flex flex-col items-center justify-center opacity-40">
-                              <Users className="w-6 h-6 mb-2" />
-                              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nenhum dado de controlador</span>
-                            </div>
-                          )}
                         </div>
                       );
                     })()}
