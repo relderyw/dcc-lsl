@@ -2249,11 +2249,17 @@ export default function App() {
                     </h3>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 -mr-1 space-y-3 max-h-[400px]">
+                  <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 -mr-1 space-y-3 max-h-[450px]">
                     {dbRecords
                       .filter(r => r.status !== 'EMBARCADO')
                       .map(r => {
-                        const targetDate = parseExcelDate(r.registrationDate, r.registrationTime);
+                        let regDate = r.registrationDate;
+                        // Converter serial do Excel se necessário
+                        if (!isNaN(Number(regDate))) {
+                          const date = new Date((Number(regDate) - 25569) * 86400 * 1000);
+                          regDate = date.toLocaleDateString('pt-BR');
+                        }
+                        const targetDate = parseExcelDate(regDate, r.registrationTime);
                         if (!targetDate) return { ...r, daysLate: 0 };
                         const diffMs = new Date().getTime() - targetDate.getTime();
                         const daysLate = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
@@ -2261,19 +2267,24 @@ export default function App() {
                       })
                       .filter(r => r.daysLate > 0)
                       .sort((a, b) => b.daysLate - a.daysLate)
-                      .slice(0, 20)
+                      .slice(0, 30)
                       .map(r => (
                         <div key={r.carId} className="flex items-center gap-3 p-4 rounded-[1.5rem] bg-bg-surface/5 border border-white/5 group hover:border-amber-500/30 transition-all">
-                          <div className="flex flex-col items-center justify-center w-12 h-12 bg-amber-500/10 rounded-2xl group-hover:bg-amber-500/20 transition-colors border border-amber-500/20">
-                            <span className="text-[14px] font-bold text-amber-500">+{r.daysLate}</span>
-                            <span className="text-[7px] font-bold text-amber-500/60 uppercase">Dias</span>
+                          <div className="flex flex-col items-center justify-center w-14 h-14 bg-amber-500/10 rounded-2xl group-hover:bg-amber-500/20 transition-colors border border-amber-500/20">
+                            <span className="text-[16px] font-black text-amber-500">+{r.daysLate}</span>
+                            <span className="text-[8px] font-black text-amber-500/60 uppercase">Dias</span>
                           </div>
                           <div className="flex flex-col flex-1 overflow-hidden">
-                            <span className={cn("text-xs font-bold truncate transition-colors", theme === 'dark' ? "text-white" : "text-slate-900")}>{r.carId}</span>
+                            <div className="flex justify-between items-start">
+                              <span className={cn("text-sm font-black truncate transition-colors", theme === 'dark' ? "text-white" : "text-slate-900")}>{r.carId}</span>
+                              <span className="text-[11px] font-black text-emerald-400">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(r.VALOR_TOTAL_CARRO || 0)}
+                              </span>
+                            </div>
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{r.location}</span>
+                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{r.location || 'Sem Loc.'}</span>
                               <span className="text-[8px] text-slate-600 font-bold">•</span>
-                              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{r.model}</span>
+                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{r.model}</span>
                             </div>
                           </div>
                         </div>
@@ -3020,24 +3031,40 @@ export default function App() {
                           { id: 'VALOR_TOTAL_CARRO', label: 'Valor Carro', icon: <Hash className="w-3 h-3" /> },
                           { id: 'carPhysical', label: 'Físico', icon: <Truck className="w-3 h-3" /> },
                           { id: 'sectorId', label: 'ID Setor', icon: <Database className="w-3 h-3" /> },
-                        ].filter(f => hoverConfig[f.id]).map(field => (
-                          <div key={field.id} className="flex items-start gap-2">
-                            <div className="mt-0.5 text-slate-500">
-                              {field.icon}
+                        ].filter(f => hoverConfig[f.id]).map(field => {
+                          let displayValue = (hoveredCar.car as any)[field.id] || '---';
+                          
+                          // Formatação especial para Valor
+                          if (field.id === 'VALOR_TOTAL_CARRO') {
+                            displayValue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(displayValue) || 0);
+                          }
+                          
+                          // Conversão de data do Excel (Serial para String)
+                          if (field.id === 'registrationDate' && !isNaN(Number(displayValue))) {
+                            const date = new Date((Number(displayValue) - 25569) * 86400 * 1000);
+                            displayValue = date.toLocaleDateString('pt-BR');
+                          }
+
+                          return (
+                            <div key={field.id} className="flex items-start gap-3 py-1 border-b border-slate-700/10 last:border-0">
+                              <div className="mt-1 text-slate-400">
+                                {field.icon}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">
+                                  {field.label}
+                                </span>
+                                <span className={cn(
+                                  "text-[14px] font-mono font-black transition-colors duration-300",
+                                  theme === 'dark' ? "text-white" : "text-slate-900",
+                                  field.id === 'VALOR_TOTAL_CARRO' && "text-emerald-400"
+                                )}>
+                                  {displayValue}
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex flex-col">
-                              <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter leading-none mb-0.5">
-                                {field.label}
-                              </span>
-                              <span className={cn(
-                                "text-[10px] font-mono font-bold transition-colors duration-300",
-                                theme === 'dark' ? "text-white" : "text-slate-900"
-                              )}>
-                                {(hoveredCar.car as any)[field.id] || '---'}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   </motion.div>
