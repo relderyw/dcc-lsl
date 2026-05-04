@@ -22,24 +22,20 @@ import {
   Zap,
   Truck,
   MapPin,
-  Box,
   X,
   Database,
   Search,
   RefreshCw,
   FileSpreadsheet,
   Clock,
-  MapPin,
   Upload,
   Sun,
   Moon,
   Hash,
   Activity,
   Calendar,
-  Truck,
   Copy,
   AlertTriangle,
-  X,
   PieChart,
   BarChart3,
   TrendingUp,
@@ -2399,6 +2395,10 @@ export default function App() {
                       </div>
                     )}
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
         ) : mode === 'kanban' ? (
           <div className={cn(
             "flex-1 p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
