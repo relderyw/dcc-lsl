@@ -18,6 +18,12 @@ import {
   MousePointer2,
   Box,
   Info,
+  Trello,
+  Zap,
+  Truck,
+  MapPin,
+  Box,
+  X,
   Database,
   Search,
   RefreshCw,
@@ -368,6 +374,11 @@ export default function App() {
   const [controllerSortMode, setControllerSortMode] = useState<'count' | 'value'>('count');
   const [stagnantSortMode, setStagnantSortMode] = useState<'days' | 'value'>('days');
   const [stagnantMinDays, setStagnantMinDays] = useState<number>(0);
+  const [kanbanAssignments, setKanbanAssignments] = useState<Record<string, string[]>>({
+    'Operador 1': [],
+    'Operador 2': [],
+    'Operador 3': []
+  });
   const [dbRecords, setDbRecords] = useState<CarRecord[]>(dataService.getRecords());
   const [importText, setImportText] = useState('');
   const [localExcelPath, setLocalExcelPath] = useState(localStorage.getItem(EXCEL_PATH_KEY) || 'C:\\PICKING.xlsb');
@@ -2388,7 +2399,129 @@ export default function App() {
                       </div>
                     )}
                   </div>
+        ) : mode === 'kanban' ? (
+          <div className={cn(
+            "flex-1 p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
+            theme === 'dark' ? "bg-slate-950" : "bg-bg-main"
+          )}>
+            <div className="max-w-[1600px] mx-auto space-y-8">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
+                    <Trello className="w-8 h-8 text-indigo-500" />
+                    Kanban de Coleta Inteligente
+                  </h1>
+                  <p className="text-slate-400 mt-1">Otimização linear para 3 rebocadores (432m de rota).</p>
                 </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => {
+                      const allAssigned = Object.values(kanbanAssignments).flat();
+                      const unassigned = filteredRecords
+                        .filter(r => r.location && r.location.includes('-') && !allAssigned.includes(r.carId))
+                        .slice(0, 30);
+                      
+                      const newAssignments = { ...kanbanAssignments };
+                      unassigned.forEach((r, i) => {
+                        const op = `Operador ${(i % 3) + 1}`;
+                        newAssignments[op] = [...newAssignments[op], r.carId];
+                      });
+                      setKanbanAssignments(newAssignments);
+                    }}
+                    className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-sm flex items-center gap-2 shadow-xl shadow-indigo-500/20 transition-all active:scale-95"
+                  >
+                    <Zap className="w-4 h-4" />
+                    DISTRIBUIÇÃO INTELIGENTE
+                  </button>
+                  <button 
+                    onClick={() => setKanbanAssignments({ 'Operador 1': [], 'Operador 2': [], 'Operador 3': [] })}
+                    className="px-6 py-3 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 rounded-2xl font-black text-sm transition-all"
+                  >
+                    LIMPAR TUDO
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                {Object.entries(kanbanAssignments).map(([op, carIds]) => {
+                  const assignedRecords = dbRecords
+                    .filter(r => carIds.includes(r.carId))
+                    .sort((a, b) => (a.location || '').localeCompare(b.location || '')); // ORDENAÇÃO LINEAR
+
+                  const totalValue = assignedRecords.reduce((acc, r) => acc + (r.VALOR_TOTAL_CARRO || 0), 0);
+
+                  return (
+                    <div key={op} className={cn(
+                      "flex flex-col gap-6 p-6 rounded-[2.5rem] border backdrop-blur-3xl transition-all h-[calc(100vh-250px)]",
+                      theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-bg-surface border-slate-200 shadow-xl"
+                    )}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "w-12 h-12 rounded-2xl flex items-center justify-center font-black",
+                            op === 'Operador 1' ? "bg-blue-500/20 text-blue-400" : 
+                            op === 'Operador 2' ? "bg-emerald-500/20 text-emerald-400" : "bg-purple-500/20 text-purple-400"
+                          )}>
+                            {op.split(' ')[1]}
+                          </div>
+                          <div>
+                            <h2 className="text-xl font-black tracking-tight">{op}</h2>
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{assignedRecords.length} CARROS • {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(totalValue)}</p>
+                          </div>
+                        </div>
+                        <div className="p-2 bg-slate-500/10 rounded-lg">
+                          <Truck className="w-5 h-5 text-slate-400" />
+                        </div>
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 -mr-2 space-y-4">
+                        {assignedRecords.map((r, idx) => (
+                          <motion.div 
+                            layoutId={r.carId}
+                            key={r.carId}
+                            className="p-4 rounded-2xl bg-bg-surface/5 border border-white/5 group hover:border-indigo-500/30 transition-all relative overflow-hidden"
+                          >
+                            {/* Sequence Indicator */}
+                            <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500/20 group-hover:bg-indigo-500 transition-colors" />
+                            
+                            <div className="flex justify-between items-start mb-2 pl-2">
+                              <span className="text-sm font-black text-white">{r.carId}</span>
+                              <span className="text-[10px] font-black text-emerald-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(r.VALOR_TOTAL_CARRO || 0)}</span>
+                            </div>
+                            
+                            <div className="flex items-center justify-between pl-2">
+                              <div className="flex items-center gap-2">
+                                <MapPin className="w-3 h-3 text-indigo-400" />
+                                <span className="text-[11px] font-black text-slate-300 uppercase">{r.location || 'N/D'}</span>
+                              </div>
+                              <button 
+                                onClick={() => {
+                                  const newAssignments = { ...kanbanAssignments };
+                                  newAssignments[op] = newAssignments[op].filter(id => id !== r.carId);
+                                  setKanbanAssignments(newAssignments);
+                                }}
+                                className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-rose-500/10 text-rose-500 rounded-lg transition-all"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                            
+                            {/* Linear Route Progress */}
+                            <div className="mt-3 h-1 w-full bg-slate-500/10 rounded-full overflow-hidden">
+                              <div className="h-full bg-indigo-500/40" style={{ width: `${((idx + 1) / assignedRecords.length) * 100}%` }} />
+                            </div>
+                          </motion.div>
+                        ))}
+                        {assignedRecords.length === 0 && (
+                          <div className="h-full flex flex-col items-center justify-center opacity-20 border-2 border-dashed border-slate-500/20 rounded-3xl">
+                            <Box className="w-12 h-12 mb-4" />
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em]">Sem tarefas</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
