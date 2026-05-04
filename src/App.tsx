@@ -2097,6 +2097,10 @@ export default function App() {
                 </div>
 
                 {/* Top Pickings */}
+                <div className={cn(
+                  "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-bg-surface border-slate-200 shadow-sm shadow-slate-200/20"
+                )}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl">
@@ -2251,7 +2255,11 @@ export default function App() {
                     })()}
                   </div>
                 </div>
-
+                {/* Stagnant Vehicles */}
+                <div className={cn(
+                  "p-8 rounded-[2.5rem] border backdrop-blur-3xl flex flex-col gap-6 transition-all duration-300",
+                  theme === 'dark' ? "bg-slate-900/40 border-white/5 ring-1 ring-white/5" : "bg-bg-surface border-slate-200 shadow-xl"
+                )}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="p-2.5 bg-amber-500/10 text-amber-400 rounded-xl">
