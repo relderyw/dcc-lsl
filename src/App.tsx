@@ -2227,9 +2227,9 @@ export default function App() {
                   <div className="relative h-72 w-full mt-4">
                     {(() => {
                       const controllerStats = filteredRecords
-                        .filter(r => r.controller) // Qualquer um que tenha o campo preenchido pelo script
+                        .filter(r => getLocationCategory(r.location) === 'Controlador')
                         .reduce((acc, r) => {
-                          const c = r.controller || 'NÃO IDENTIFICADO';
+                          const c = r.location || 'NÃO IDENTIFICADO';
                           if (!acc[c]) acc[c] = { count: 0, value: 0 };
                           acc[c].count += 1;
                           acc[c].value += (Number(r.VALOR_TOTAL_CARRO) || 0);
