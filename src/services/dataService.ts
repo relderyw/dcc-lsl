@@ -22,14 +22,7 @@ class DataService {
   private records: CarRecord[] = [];
 
   constructor() {
-    // Initial mock data based on user's provided spreadsheet snippet
-    this.records = [
-      { carId: 'C8646185', model: 'K2G', status: 'CHECK DCC', sectorId: '050010712', sectorName: 'SOLD.TQ.L1', location: 'PICK-06-02', carPhysical: 'C8646183', embarkDate: '18/08/2025', embarkTime: '17:22' },
-      { carId: 'C8655751', model: 'K1S', status: 'FORMATADO', sectorId: '100017205', sectorName: 'MONT. RODA', location: 'PICK-03-01', carPhysical: '', embarkDate: '15/08/2025', embarkTime: '21:24' },
-      { carId: 'C8656518', model: 'K1H 060NS', status: 'CHECK DCC', sectorId: '050010718', sectorName: 'SOLDA CHASSI', location: 'PICK-06-02', carPhysical: 'C8656518', embarkDate: '15/08/2025', embarkTime: '22:24' },
-      { carId: 'C8737161', model: 'K1H 050NS', status: 'CHECK DCC', sectorId: '050010809', sectorName: 'PINT.TQVZ2', location: 'ALAN', carPhysical: 'C8737374', embarkDate: '21/08/2025', embarkTime: '09:18' },
-      { carId: 'C8737750', model: 'K99', status: 'CHECK DCC', sectorId: '050011102', sectorName: 'L. MONT. 2', location: 'MARCO', carPhysical: 'C8739144', embarkDate: '26/08/2025', embarkTime: '10:30' },
-    ];
+    this.records = [];
   }
 
   getRecords() {
