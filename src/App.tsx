@@ -1158,7 +1158,8 @@ export default function App() {
               )}
 
               {/* Visualization Settings */}
-              <div className="space-y-3">
+              {mode === 'edit' && (
+                <div className="space-y-3">
                 <h2 className={cn(
                   "text-[10px] font-bold uppercase tracking-widest px-1 transition-colors duration-300",
                   theme === 'dark' ? "text-slate-500" : "text-slate-400"
@@ -1209,6 +1210,7 @@ export default function App() {
                   ))}
                 </div>
               </div>
+            )}
 
               {mode === 'database' ? (
                 <div className="space-y-4">
@@ -1298,38 +1300,38 @@ export default function App() {
                   animate={{ opacity: 1, y: 0 }}
                   className="space-y-4"
                 >
-                  <div className="flex items-center justify-between">
-                    <h2 className={cn(
-                      "text-xs font-bold uppercase tracking-widest transition-colors duration-300",
-                      theme === 'dark' ? "text-slate-500" : "text-slate-400"
-                    )}>
-                      Configuração da Baia
-                    </h2>
-                    {mode === 'edit' && (
-                      <div className="flex items-center gap-2">
-                        <button 
-                          onClick={() => duplicateBay(selectedBay)}
-                          className="flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold text-blue-500 hover:bg-blue-500/10 rounded-md transition-colors border border-blue-500/20"
-                        >
-                          <Copy className="w-3 h-3" />
-                          DUPLICAR
-                        </button>
-                        <button 
-                          onClick={() => {
-                            if (confirm('Tem certeza que deseja excluir esta baia?')) {
-                              deleteBay(selectedBay.id);
-                            }
-                          }}
-                          className="flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold text-rose-500 hover:bg-rose-500/10 rounded-md transition-colors border border-rose-500/20"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          EXCLUIR
-                        </button>
+                  {mode === 'edit' && (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <h2 className={cn(
+                          "text-xs font-bold uppercase tracking-widest transition-colors duration-300",
+                          theme === 'dark' ? "text-slate-500" : "text-slate-400"
+                        )}>
+                          Configuração da Baia
+                        </h2>
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => duplicateBay(selectedBay)}
+                            className="flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold text-blue-500 hover:bg-blue-500/10 rounded-md transition-colors border border-blue-500/20"
+                          >
+                            <Copy className="w-3 h-3" />
+                            DUPLICAR
+                          </button>
+                          <button 
+                            onClick={() => {
+                              if (confirm('Tem certeza que deseja excluir esta baia?')) {
+                                deleteBay(selectedBay.id);
+                              }
+                            }}
+                            className="flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold text-rose-500 hover:bg-rose-500/10 rounded-md transition-colors border border-rose-500/20"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            EXCLUIR
+                          </button>
+                        </div>
                       </div>
-                    )}
-                  </div>
 
-                  <div className={cn(
+                      <div className={cn(
                     "space-y-4 p-4 rounded-2xl border transition-all duration-300 shadow-sm",
                     theme === 'dark' 
                       ? "bg-slate-800/30 border-slate-800/50" 
@@ -1487,7 +1489,9 @@ export default function App() {
                         />
                       </div>
                     </div>
-                  </div>
+                      </div>
+                    </>
+                  )}
 
                   {/* Cars List in Bay */}
                   <div className="space-y-3 pt-4">
@@ -1638,9 +1642,9 @@ export default function App() {
 
         {mode === 'dashboard' ? (
           <div className={cn(
-            "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
+            "flex-1 p-3 sm:p-6 lg:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
             theme === 'dark' ? "bg-slate-950" : "bg-bg-main",
-            !sidebarOpen && "pl-20 sm:pl-28"
+            !sidebarOpen && "pl-16 sm:pl-28"
           )}>
             {/* Background Glows */}
             <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-indigo-500/5 blur-[120px] rounded-full -ml-64 -mt-64 pointer-events-none" />
@@ -1658,7 +1662,7 @@ export default function App() {
               </div>
 
               {/* KPI Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                   { label: 'Total de Carros', value: filteredRecords.length, icon: <Car className="w-5 h-5" />, color: 'indigo' },
                   { label: 'Embarcados', value: filteredRecords.filter(r => r.status === 'EMBARCADO').length, icon: <CheckCircle2 className="w-5 h-5" />, color: 'blue' },
@@ -1748,7 +1752,7 @@ export default function App() {
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-6 border-b border-slate-800/10">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pb-6 border-b border-slate-800/10">
                     {(() => {
                       const today = new Date();
                       const todayStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
@@ -2054,7 +2058,7 @@ export default function App() {
                               return acc;
                             }, {} as Record<string, number>);
 
-                          return Object.entries(modelStats)
+                          return (Object.entries(modelStats) as [string, number][])
                             .sort((a, b) => b[1] - a[1])
                             .slice(0, 5)
                             .map(([model, count]) => (
@@ -2081,7 +2085,7 @@ export default function App() {
                               return acc;
                             }, {} as Record<string, number>);
 
-                          return Object.entries(sectorStats)
+                          return (Object.entries(sectorStats) as [string, number][])
                             .sort((a, b) => b[1] - a[1])
                             .slice(0, 5)
                             .map(([sector, count]) => (
@@ -2189,11 +2193,11 @@ export default function App() {
                           return acc;
                         }, {} as Record<string, { count: number, value: number }>);
 
-                      const sortedLocations = Object.entries(locationStats)
+                      const sortedLocations = (Object.entries(locationStats) as [string, {count: number, value: number}][])
                         .sort((a, b) => pickingSortMode === 'count' ? b[1].count - a[1].count : b[1].value - a[1].value)
                         .slice(0, 10);
                       
-                      const maxVal = Math.max(...Object.values(locationStats).map(v => pickingSortMode === 'count' ? v.count : v.value), 1);
+                      const maxVal = Math.max(...(Object.values(locationStats) as {count: number, value: number}[]).map(v => pickingSortMode === 'count' ? v.count : v.value), 1);
 
                       if (sortedLocations.length === 0) return (
                         <div className="py-8 text-center opacity-40">
@@ -2278,11 +2282,11 @@ export default function App() {
                           return acc;
                         }, {} as Record<string, { count: number, value: number }>);
 
-                      const sortedControllers = Object.entries(controllerStats)
+                      const sortedControllers = (Object.entries(controllerStats) as [string, {count: number, value: number}][])
                         .sort((a, b) => controllerSortMode === 'count' ? b[1].count - a[1].count : b[1].value - a[1].value);
 
                       const displayControllers = sortedControllers.slice(controllerPageIndex * 10, (controllerPageIndex * 10) + 10);
-                      const maxVal = Math.max(...Object.values(controllerStats).map(v => controllerSortMode === 'count' ? v.count : v.value), 1);
+                      const maxVal = Math.max(...(Object.values(controllerStats) as {count: number, value: number}[]).map(v => controllerSortMode === 'count' ? v.count : v.value), 1);
 
                       if (sortedControllers.length === 0) return (
                         <div className="py-8 text-center opacity-40">
@@ -2406,9 +2410,9 @@ export default function App() {
           </div>
         ) : mode === 'kanban' ? (
           <div className={cn(
-            "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
+            "flex-1 p-3 sm:p-6 lg:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
             theme === 'dark' ? "bg-slate-950" : "bg-bg-main",
-            !sidebarOpen && "pl-20 sm:pl-28"
+            !sidebarOpen && "pl-16 sm:pl-28"
           )}>
             <div className="max-w-5xl mx-auto space-y-8">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -2447,7 +2451,7 @@ export default function App() {
                 "p-8 rounded-[3rem] border backdrop-blur-3xl shadow-2xl space-y-8 transition-all",
                 theme === 'dark' ? "bg-slate-900/60 border-white/5 ring-1 ring-white/10" : "bg-white border-slate-200 shadow-slate-200/50"
               )}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
                   <div className="space-y-4">
                     <label className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Configuração do Turno</label>
                     <div className="flex flex-wrap gap-2">
@@ -2562,13 +2566,13 @@ export default function App() {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: idx * 0.03 }}
-                        className="group flex items-center gap-6 p-5 rounded-2xl bg-bg-surface/5 border border-white/5 hover:border-indigo-500/30 transition-all relative"
+                        className="group flex items-center gap-4 md:gap-6 p-4 md:p-5 rounded-2xl bg-bg-surface/5 border border-white/5 hover:border-indigo-500/30 transition-all relative"
                       >
                         <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 font-black text-sm">
                           {idx + 1}
                         </div>
                         
-                        <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
                           <div className="flex flex-col">
                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Veículo</span>
                             <span className="text-sm font-black text-white">{r.carId}</span>
@@ -3336,7 +3340,7 @@ export default function App() {
                           "text-[10px] font-mono font-bold uppercase tracking-widest",
                           theme === 'dark' ? "text-indigo-400" : "text-indigo-600"
                         )}>
-                          Unit Monitor
+                          Resumo do carro
                         </span>
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       </div>
