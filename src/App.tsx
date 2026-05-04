@@ -1639,7 +1639,8 @@ export default function App() {
         {mode === 'dashboard' ? (
           <div className={cn(
             "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-slate-950" : "bg-bg-main"
+            theme === 'dark' ? "bg-slate-950" : "bg-bg-main",
+            !sidebarOpen && "pl-20 sm:pl-28"
           )}>
             {/* Background Glows */}
             <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-indigo-500/5 blur-[120px] rounded-full -ml-64 -mt-64 pointer-events-none" />
@@ -2405,8 +2406,9 @@ export default function App() {
           </div>
         ) : mode === 'kanban' ? (
           <div className={cn(
-            "flex-1 p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-slate-950" : "bg-bg-main"
+            "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
+            theme === 'dark' ? "bg-slate-950" : "bg-bg-main",
+            !sidebarOpen && "pl-20 sm:pl-28"
           )}>
             <div className="max-w-5xl mx-auto space-y-8">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -2797,7 +2799,8 @@ export default function App() {
             {/* Command Center & Filters */}
             <div className={cn(
               "p-4 lg:p-6 z-50 backdrop-blur-sm transition-colors duration-300",
-              theme === 'dark' ? "bg-slate-950/30 border-b border-white/5 shadow-md" : "bg-bg-main"
+              theme === 'dark' ? "bg-slate-950/30 border-b border-white/5 shadow-md" : "bg-bg-main",
+              !sidebarOpen && "pl-20 lg:pl-28"
             )}>
               {/* Command Center Overlay */}
               <div className={cn(
