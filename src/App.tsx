@@ -2093,8 +2093,12 @@ export default function App() {
                     <svg className="absolute inset-0 h-[calc(100%-40px)] w-full pointer-events-none z-30 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
                       <defs>
                         <linearGradient id="valueLineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor="#6366f1" />
-                          <stop offset="100%" stopColor="#a855f7" />
+                          <stop offset="0%" stopColor="#818cf8" />
+                          <stop offset="100%" stopColor="#c084fc" />
+                        </linearGradient>
+                        <linearGradient id="valueAreaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor="#818cf8" stopOpacity="0.4" />
+                          <stop offset="100%" stopColor="#818cf8" stopOpacity="0" />
                         </linearGradient>
                       </defs>
                       {(() => {
@@ -2105,25 +2109,33 @@ export default function App() {
                         }));
                         if (pts.length < 2) return null;
                         
-                        let d = `M ${pts[0].x} ${pts[0].y}`;
-                        for (let i = 0; i < pts.length - 1; i++) {
-                          const p1 = pts[i];
-                          const p2 = pts[i + 1];
-                          const cp1x = p1.x + (p2.x - p1.x) / 2;
-                          d += ` C ${cp1x} ${p1.y}, ${cp1x} ${p2.y}, ${p2.x} ${p2.y}`;
-                        }
+                        // Straight Polyline instead of Bezier
+                        const d = `M ${pts.map(p => `${p.x} ${p.y}`).join(' L ')}`;
+                        
+                        // Area under the line
+                        const areaD = `${d} L ${pts[pts.length-1].x} 98 L ${pts[0].x} 98 Z`;
+
                         return (
-                          <motion.path 
-                            d={d} 
-                            fill="none" 
-                            stroke="url(#valueLineGradient)" 
-                            strokeWidth="1" 
-                            strokeLinecap="round" 
-                            strokeOpacity="0.6"
-                            initial={{ pathLength: 0, opacity: 0 }} 
-                            animate={{ pathLength: 1, opacity: 1 }} 
-                            transition={{ duration: 1.5, ease: "easeOut" }} 
-                          />
+                          <g>
+                             <motion.path 
+                              d={areaD} 
+                              fill="url(#valueAreaGradient)" 
+                              initial={{ opacity: 0 }} 
+                              animate={{ opacity: 0.1 }} 
+                            />
+                             <motion.path 
+                              d={d} 
+                              fill="none" 
+                              stroke="#818cf8" 
+                              strokeWidth="1.5" 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round"
+                              style={{ vectorEffect: 'non-scaling-stroke' }}
+                              initial={{ pathLength: 0 }} 
+                              animate={{ pathLength: 1 }} 
+                              transition={{ duration: 1 }} 
+                            />
+                          </g>
                         );
                       })()}
                     </svg>
