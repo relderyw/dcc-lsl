@@ -2083,54 +2083,96 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                    {statusStats.slice(0, 15).map((stat, i) => {
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                    {statusStats.slice(0, 12).map((stat, i) => {
                       const maxCount = Math.max(...statusStats.map(s => s.count)) || 1;
                       const maxValue = Math.max(...statusStats.map(s => s.value)) || 1;
                       
-                      const volWidth = (stat.count / maxCount) * 100;
-                      const valWidth = (stat.value / maxValue) * 100;
+                      const volPerc = (stat.count / maxCount) * 100;
+                      const valPerc = (stat.value / maxValue) * 100;
                       
                       return (
-                        <div key={stat.status} className="group/item flex flex-col gap-1.5 p-3 rounded-xl hover:bg-white/5 transition-all duration-300 border border-transparent hover:border-white/5">
-                          <div className="flex items-center justify-between">
-                            <span className={cn(
-                              "text-xs font-black uppercase tracking-tight",
-                              theme === 'dark' ? "text-slate-200" : "text-slate-700"
-                            )}>
-                              {stat.status}
-                            </span>
-                            <div className="flex items-center gap-4 text-[10px] font-mono font-bold">
-                              <span className="text-emerald-400">{stat.count} <span className="text-[8px] opacity-50">CARS</span></span>
-                              <span className="text-indigo-400">
-                                {new Intl.NumberFormat('pt-BR', { 
-                                  style: 'currency', 
-                                  currency: 'BRL', 
-                                  notation: 'compact' 
-                                }).format(stat.value)}
+                        <motion.div 
+                          key={stat.status}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                          className={cn(
+                            "p-4 rounded-2xl border transition-all duration-300 group hover:scale-[1.02]",
+                            theme === 'dark' 
+                              ? "bg-slate-900/40 border-white/5 hover:border-indigo-500/30" 
+                              : "bg-slate-50 border-slate-200 hover:border-indigo-300 shadow-sm"
+                          )}
+                        >
+                          <div className="flex justify-between items-start mb-4">
+                            <div className="flex flex-col">
+                              <span className={cn(
+                                "text-[10px] font-black uppercase tracking-widest mb-1",
+                                theme === 'dark' ? "text-slate-500" : "text-slate-400"
+                              )}>
+                                Status
                               </span>
+                              <h4 className={cn(
+                                "text-sm font-black truncate max-w-[150px]",
+                                theme === 'dark' ? "text-white" : "text-slate-800"
+                              )}>
+                                {stat.status}
+                              </h4>
+                            </div>
+                            <div className={cn(
+                              "p-2 rounded-xl transition-colors",
+                              theme === 'dark' ? "bg-indigo-500/10 text-indigo-400" : "bg-indigo-100 text-indigo-600"
+                            )}>
+                              <Car className="w-4 h-4" />
                             </div>
                           </div>
-                          
-                          <div className="space-y-1.5">
-                            {/* Volume Bar */}
-                            <div className="h-1.5 w-full bg-slate-800/50 rounded-full overflow-hidden">
-                              <motion.div 
-                                initial={{ width: 0 }}
-                                animate={{ width: `${volWidth}%` }}
-                                className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full"
-                              />
+
+                          <div className="space-y-4">
+                            {/* Volume Section */}
+                            <div>
+                              <div className="flex items-baseline gap-1.5 mb-1">
+                                <span className={cn(
+                                  "text-2xl font-black tabular-nums",
+                                  theme === 'dark' ? "text-emerald-400" : "text-emerald-600"
+                                )}>
+                                  {stat.count}
+                                </span>
+                                <span className="text-[10px] font-bold text-slate-500 uppercase">Carros</span>
+                              </div>
+                              <div className="h-1.5 w-full bg-slate-800/50 rounded-full overflow-hidden">
+                                <motion.div 
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${volPerc}%` }}
+                                  className="h-full bg-emerald-500 rounded-full"
+                                />
+                              </div>
                             </div>
-                            {/* Value Bar */}
-                            <div className="h-1 w-full bg-slate-800/50 rounded-full overflow-hidden opacity-60">
-                              <motion.div 
-                                initial={{ width: 0 }}
-                                animate={{ width: `${valWidth}%` }}
-                                className="h-full bg-gradient-to-r from-indigo-600 to-indigo-400 rounded-full"
-                              />
+
+                            {/* Value Section */}
+                            <div className="pt-3 border-t border-white/5">
+                              <div className="flex justify-between items-end mb-1">
+                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Valor Total</span>
+                                <span className={cn(
+                                  "text-xs font-mono font-black tabular-nums",
+                                  theme === 'dark' ? "text-indigo-300" : "text-indigo-600"
+                                )}>
+                                  {new Intl.NumberFormat('pt-BR', { 
+                                    style: 'currency', 
+                                    currency: 'BRL',
+                                    notation: 'compact'
+                                  }).format(stat.value)}
+                                </span>
+                              </div>
+                              <div className="h-1 w-full bg-slate-800/50 rounded-full overflow-hidden">
+                                <motion.div 
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${valPerc}%` }}
+                                  className="h-full bg-indigo-500 rounded-full"
+                                />
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        </motion.div>
                       );
                     })}
                   </div>
