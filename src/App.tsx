@@ -2083,112 +2083,52 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="h-64 w-full relative flex items-end gap-2 px-2 pt-10">
-                    {/* Background Grid Lines */}
-                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-5">
-                      {[1, 2, 3].map(i => <div key={i} className="w-full h-px bg-bg-surface" />)}
-                    </div>
-
-                    {/* SVG Line for Values */}
-                    <svg className="absolute inset-0 h-[calc(100%-40px)] w-full pointer-events-none z-30 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
-                      <defs>
-                        <linearGradient id="valueLineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor="#818cf8" />
-                          <stop offset="100%" stopColor="#c084fc" />
-                        </linearGradient>
-                        <linearGradient id="valueAreaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                          <stop offset="0%" stopColor="#818cf8" stopOpacity="0.4" />
-                          <stop offset="100%" stopColor="#818cf8" stopOpacity="0" />
-                        </linearGradient>
-                      </defs>
-                      {(() => {
-                        const maxValue = Math.max(...statusStats.map(s => s.value)) || 1;
-                        const pts = statusStats.map((s, i) => ({
-                          x: ((i + 0.5) / statusStats.length) * 100,
-                          y: 95 - (s.value / maxValue) * 90
-                        }));
-                        if (pts.length < 2) return null;
-                        
-                        // Straight Polyline instead of Bezier
-                        const d = `M ${pts.map(p => `${p.x} ${p.y}`).join(' L ')}`;
-                        
-                        // Area under the line
-                        const areaD = `${d} L ${pts[pts.length-1].x} 98 L ${pts[0].x} 98 Z`;
-
-                        return (
-                          <g>
-                             <motion.path 
-                              d={areaD} 
-                              fill="url(#valueAreaGradient)" 
-                              initial={{ opacity: 0 }} 
-                              animate={{ opacity: 0.1 }} 
-                            />
-                             <motion.path 
-                              d={d} 
-                              fill="none" 
-                              stroke="#818cf8" 
-                              strokeWidth="1.5" 
-                              strokeLinecap="round" 
-                              strokeLinejoin="round"
-                              style={{ vectorEffect: 'non-scaling-stroke' }}
-                              initial={{ pathLength: 0 }} 
-                              animate={{ pathLength: 1 }} 
-                              transition={{ duration: 1 }} 
-                            />
-                          </g>
-                        );
-                      })()}
-                    </svg>
-
-                    {statusStats.slice(0, 12).map((stat, i) => {
+                  <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                    {statusStats.slice(0, 15).map((stat, i) => {
                       const maxCount = Math.max(...statusStats.map(s => s.count)) || 1;
-                      const hPerc = (stat.count / maxCount) * 75;
-                      
                       const maxValue = Math.max(...statusStats.map(s => s.value)) || 1;
-                      const yPos = 95 - (stat.value / maxValue) * 90;
+                      
+                      const volWidth = (stat.count / maxCount) * 100;
+                      const valWidth = (stat.value / maxValue) * 100;
                       
                       return (
-                        <div key={stat.status} className="flex-1 flex flex-col items-center group/stat relative h-full justify-end">
-                          {/* Value Point (Subtle Marker) */}
-                          <div 
-                            className="absolute z-40 w-1.5 h-1.5 rounded-full bg-indigo-400 border border-slate-900 transition-transform duration-300 group-hover/stat:scale-150"
-                            style={{ 
-                              left: '50%', 
-                              top: `${yPos}%`,
-                              transform: 'translate(-50%, -50%)'
-                            }}
-                          />
-
-                          {/* Volume Bar */}
-                          <motion.div 
-                            initial={{ height: 0 }}
-                            animate={{ height: `${Math.max(2, hPerc)}%` }}
-                            className={cn(
-                              "w-full max-w-[48px] rounded-t-lg transition-all duration-500 z-10 relative",
-                              theme === 'dark' 
-                                ? "bg-emerald-500/20 border-t border-l border-r border-emerald-500/40 group-hover/stat:bg-emerald-500/40" 
-                                : "bg-emerald-50/80 border-t border-l border-r border-emerald-200 group-hover/stat:bg-emerald-100"
-                            )}
-                          >
-                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-black text-emerald-500 tabular-nums">
-                              {stat.count}
-                            </div>
-                          </motion.div>
-
-                          {/* Status Label */}
-                          <div className="mt-3 text-[9px] font-black uppercase tracking-tighter text-slate-500 text-center truncate w-full h-10 flex flex-col justify-start leading-tight">
-                            <span className="truncate px-1">{stat.status}</span>
+                        <div key={stat.status} className="group/item flex flex-col gap-1.5 p-3 rounded-xl hover:bg-white/5 transition-all duration-300 border border-transparent hover:border-white/5">
+                          <div className="flex items-center justify-between">
                             <span className={cn(
-                              "text-[8px] font-mono mt-0.5",
-                              theme === 'dark' ? "text-indigo-400" : "text-indigo-600"
+                              "text-xs font-black uppercase tracking-tight",
+                              theme === 'dark' ? "text-slate-200" : "text-slate-700"
                             )}>
-                              {new Intl.NumberFormat('pt-BR', { 
-                                style: 'currency', 
-                                currency: 'BRL', 
-                                notation: 'compact',
-                                maximumFractionDigits: 1 
-                              }).format(stat.value)}
+                              {stat.status}
                             </span>
+                            <div className="flex items-center gap-4 text-[10px] font-mono font-bold">
+                              <span className="text-emerald-400">{stat.count} <span className="text-[8px] opacity-50">CARS</span></span>
+                              <span className="text-indigo-400">
+                                {new Intl.NumberFormat('pt-BR', { 
+                                  style: 'currency', 
+                                  currency: 'BRL', 
+                                  notation: 'compact' 
+                                }).format(stat.value)}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-1.5">
+                            {/* Volume Bar */}
+                            <div className="h-1.5 w-full bg-slate-800/50 rounded-full overflow-hidden">
+                              <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${volWidth}%` }}
+                                className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full"
+                              />
+                            </div>
+                            {/* Value Bar */}
+                            <div className="h-1 w-full bg-slate-800/50 rounded-full overflow-hidden opacity-60">
+                              <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${valWidth}%` }}
+                                className="h-full bg-gradient-to-r from-indigo-600 to-indigo-400 rounded-full"
+                              />
+                            </div>
                           </div>
                         </div>
                       );
