@@ -2093,8 +2093,8 @@ export default function App() {
                     <svg className="absolute inset-0 h-[calc(100%-40px)] w-full pointer-events-none z-30 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
                       <defs>
                         <linearGradient id="valueLineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor="#818cf8" />
-                          <stop offset="100%" stopColor="#c084fc" />
+                          <stop offset="0%" stopColor="#6366f1" />
+                          <stop offset="100%" stopColor="#a855f7" />
                         </linearGradient>
                       </defs>
                       {(() => {
@@ -2103,12 +2103,7 @@ export default function App() {
                           x: ((i + 0.5) / statusStats.length) * 100,
                           y: 95 - (s.value / maxValue) * 90
                         }));
-                        if (pts.length < 2) {
-                          if (pts.length === 1) {
-                             return <circle cx={`${pts[0].x}%`} cy={`${pts[0].y}%`} r="4" fill="#818cf8" />;
-                          }
-                          return null;
-                        }
+                        if (pts.length < 2) return null;
                         
                         let d = `M ${pts[0].x} ${pts[0].y}`;
                         for (let i = 0; i < pts.length - 1; i++) {
@@ -2118,21 +2113,16 @@ export default function App() {
                           d += ` C ${cp1x} ${p1.y}, ${cp1x} ${p2.y}, ${p2.x} ${p2.y}`;
                         }
                         return (
-                          <g>
-                            <motion.path 
-                              d={d} 
-                              fill="none" 
-                              stroke="url(#valueLineGradient)" 
-                              strokeWidth="3" 
-                              strokeLinecap="round" 
-                              initial={{ pathLength: 0, opacity: 0 }} 
-                              animate={{ pathLength: 1, opacity: 1 }} 
-                              transition={{ duration: 1.5, ease: "easeOut" }} 
-                            />
-                            {pts.map((p, i) => (
-                              <circle key={i} cx={`${p.x}%`} cy={`${p.y}%`} r="3" className="fill-indigo-500 shadow-lg" />
-                            ))}
-                          </g>
+                          <motion.path 
+                            d={d} 
+                            fill="none" 
+                            stroke="url(#valueLineGradient)" 
+                            strokeWidth="1.5" 
+                            strokeLinecap="round" 
+                            initial={{ pathLength: 0, opacity: 0 }} 
+                            animate={{ pathLength: 1, opacity: 1 }} 
+                            transition={{ duration: 1.5, ease: "easeOut" }} 
+                          />
                         );
                       })()}
                     </svg>
@@ -2141,8 +2131,21 @@ export default function App() {
                       const maxCount = Math.max(...statusStats.map(s => s.count)) || 1;
                       const hPerc = (stat.count / maxCount) * 75;
                       
+                      const maxValue = Math.max(...statusStats.map(s => s.value)) || 1;
+                      const yPos = 95 - (stat.value / maxValue) * 90;
+                      
                       return (
                         <div key={stat.status} className="flex-1 flex flex-col items-center group/stat relative h-full justify-end">
+                          {/* Value Point (Div to avoid SVG distortion) */}
+                          <div 
+                            className="absolute z-40 w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-slate-900 shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-transform duration-300 group-hover/stat:scale-125"
+                            style={{ 
+                              left: '50%', 
+                              top: `${yPos}%`,
+                              transform: 'translate(-50%, -50%)'
+                            }}
+                          />
+
                           {/* Volume Bar */}
                           <motion.div 
                             initial={{ height: 0 }}
