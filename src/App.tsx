@@ -157,7 +157,7 @@ const BayCard = React.memo(({
   } = filters;
 
   const carsInBay = dbRecords
-    .filter((r: any) => r.location === bay.name)
+    .filter((r: any) => r.location === bay.name && r.status !== 'EMBARCADO')
     .sort((a: any, b: any) => {
       const dateA = parseExcelDate(a.embarkDate, a.embarkTime);
       const dateB = parseExcelDate(b.embarkDate, b.embarkTime);
@@ -444,6 +444,19 @@ export default function App() {
              matchController && matchDate && matchTime;
     });
   }, [dbRecords, filterModel, filterSector, filterStatus, filterExcelStatus, filterCarId, filterController, filterDate, filterTime]);
+  
+  const statusStats = useMemo(() => {
+    const map: Record<string, { count: number; value: number }> = {};
+    filteredRecords.forEach(r => {
+      const s = r.status || 'Sem Status';
+      if (!map[s]) map[s] = { count: 0, value: 0 };
+      map[s].count++;
+      map[s].value += Number(r.VALOR_TOTAL_CARRO) || 0;
+    });
+    return Object.entries(map)
+      .map(([status, data]) => ({ status, ...data }))
+      .sort((a, b) => b.count - a.count);
+  }, [filteredRecords]);
 
   const isAnyFilterActive = useMemo(() => {
     return filterSector !== 'ALL' || 
@@ -464,8 +477,8 @@ export default function App() {
       // If no filter, show all in this group
       if (!isAnyFilterActive) return true;
       
-      // If filtering, only show bays that have matching cars
-      return filteredRecords.some(r => r.location === bay.name);
+      // If filtering, only show bays that have matching cars (excluding EMBARCADO from map count)
+      return filteredRecords.some(r => r.location === bay.name && r.status !== 'EMBARCADO');
     });
   }, [bays, activeTabGroup, isAnyFilterActive, filteredRecords]);
 
@@ -730,7 +743,7 @@ export default function App() {
   // Cars in selected bay
   const carsInSelectedBay = useMemo(() => {
     if (!selectedBay) return [];
-    return dbRecords.filter(r => r.location === selectedBay.name);
+    return dbRecords.filter(r => r.location === selectedBay.name && r.status !== 'EMBARCADO');
   }, [selectedBay, dbRecords]);
 
   // --- Map Interactions ---
@@ -1819,7 +1832,7 @@ export default function App() {
 
                       const totalPlan = hourlyPlan.reduce((sum, val) => sum + val, 0) || 1;
                       const totalReal = hourlyReal.reduce((sum, val) => sum + val, 0);
-                      const yMaxLine = totalReal || 1;
+                      const yMaxLine = Math.max(totalPlan, totalReal) || 1;
                       
                       const currentHour = today.getHours();
                       const currentHourIndex = shiftHours.indexOf(currentHour) !== -1 ? shiftHours.indexOf(currentHour) : 23;
@@ -1858,13 +1871,16 @@ export default function App() {
                             ))}
 
                             {(() => {
-                              const pts = cumulativeData
-                                .filter(d => d.index <= currentHourIndex) // Só desenha a linha até a hora atual do turno
-                                .map(d => ({
-                                  x: ((d.index + 0.5) / 24) * 100,
-                                  y: 98 - (d.val / yMaxLine) * 96,
-                                  val: d.val
-                                }));
+                              const pts = [
+                                { x: 0, y: 98, val: 0 }, // Ponto inicial no eixo Y
+                                ...cumulativeData
+                                  .filter(d => d.index <= currentHourIndex)
+                                  .map(d => ({
+                                    x: ((d.index + 0.5) / 24) * 100,
+                                    y: 98 - (d.val / yMaxLine) * 96,
+                                    val: d.val
+                                  }))
+                              ];
                               
                               if (pts.length === 0) return null;
                               if (pts.length === 1) pts.push({ ...pts[0], x: pts[0].x + 0.1 });
@@ -1912,22 +1928,28 @@ export default function App() {
 
                           {/* Rótulo dinâmico marcando o final da linha de acumulado */}
                           {(() => {
-                            const pts = cumulativeData
-                                .filter(d => d.index <= currentHourIndex)
-                                .map(d => ({
-                                  x: ((d.index + 0.5) / 24) * 100,
-                                  y: 98 - (d.val / yMaxLine) * 96,
-                                  val: d.val
-                                }));
-                            if (pts.length === 0) return null;
+                            const pts = [
+                                { x: 0, y: 98, val: 0 },
+                                ...cumulativeData
+                                  .filter(d => d.index <= currentHourIndex)
+                                  .map(d => ({
+                                    x: ((d.index + 0.5) / 24) * 100,
+                                    y: 98 - (d.val / yMaxLine) * 96,
+                                    val: d.val
+                                  }))
+                            ];
+                            if (pts.length <= 1) return null;
                             const lastPt = pts[pts.length - 1];
+                            // Não mostrar se for 0 no início
+                            if (lastPt.val === 0 && lastPt.x < 5) return null;
+                            
                             return (
                               <div 
                                 className="absolute pointer-events-none transition-all duration-500 z-30 flex items-center justify-center transform -translate-x-1/2 -translate-y-full pb-2"
                                 style={{ left: `${lastPt.x}%`, top: `${lastPt.y}%` }}
                               >
                                 <span className={cn(
-                                  "px-2 py-0.5 rounded-md text-xs sm:text-sm font-black shadow-lg",
+                                  "px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-black shadow-lg",
                                   theme === 'dark' ? "bg-emerald-500 text-white shadow-emerald-500/20" : "bg-emerald-600 text-white"
                                 )}>
                                   {lastPt.val}
@@ -1994,7 +2016,7 @@ export default function App() {
                                   </motion.div>
 
                                   {/* Tooltip on Hover */}
-                                  <div className="absolute opacity-0 group-hover/bar:opacity-100 bottom-full mb-8 left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-200 z-50">
+                                  <div className="absolute opacity-0 group-hover/bar:opacity-100 bottom-full mb-2 left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-200 z-50">
                                     <div className={cn(
                                       "px-2.5 py-1.5 rounded border shadow-xl backdrop-blur-md flex flex-col items-center gap-0.5 whitespace-nowrap",
                                       theme === 'dark' ? "bg-slate-900/95 border-white/10" : "bg-bg-surface border-slate-200"
@@ -2027,6 +2049,134 @@ export default function App() {
                         </>
                       );
                     })()}
+                  </div>
+                </div>
+
+                {/* PERFORMANCE POR STATUS */}
+                <div className={cn(
+                  "xl:col-span-3 p-6 rounded-[var(--radius-card)] border transition-all duration-200 relative overflow-hidden",
+                  theme === 'dark' ? "bg-slate-900/60 border-white/5" : "bg-white border-slate-200 shadow-[var(--shadow-card)]"
+                )}>
+                   {theme === 'light' && (
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-[100px] pointer-events-none" />
+                  )}
+
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="ds-icon bg-blue-500/10 text-blue-400">
+                        <BarChart3 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="t-heading" style={{color: theme === 'dark' ? '#f1f5f9' : '#0f172a'}}>Performance por Status</h3>
+                        <p className="t-label text-slate-500">Volume de Carros e Valor Financeiro Total</p>
+                      </div>
+                    </div>
+                    <div className="hidden sm:flex items-center gap-4">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-lg bg-emerald-500/30 border border-emerald-500" />
+                        <span className="t-caption text-slate-500">Qtd. Carros</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+                        <span className="t-caption text-slate-500">Valor (R$)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="h-64 w-full relative flex items-end gap-2 px-2 pt-10">
+                    {/* Background Grid Lines */}
+                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-5">
+                      {[1, 2, 3].map(i => <div key={i} className="w-full h-px bg-bg-surface" />)}
+                    </div>
+
+                    {/* SVG Line for Values */}
+                    <svg className="absolute inset-0 h-[calc(100%-40px)] w-full pointer-events-none z-30 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+                      <defs>
+                        <linearGradient id="valueLineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor="#818cf8" />
+                          <stop offset="100%" stopColor="#c084fc" />
+                        </linearGradient>
+                      </defs>
+                      {(() => {
+                        const maxValue = Math.max(...statusStats.map(s => s.value)) || 1;
+                        const pts = statusStats.map((s, i) => ({
+                          x: ((i + 0.5) / statusStats.length) * 100,
+                          y: 95 - (s.value / maxValue) * 90
+                        }));
+                        if (pts.length < 2) {
+                          if (pts.length === 1) {
+                             return <circle cx={`${pts[0].x}%`} cy={`${pts[0].y}%`} r="4" fill="#818cf8" />;
+                          }
+                          return null;
+                        }
+                        
+                        let d = `M ${pts[0].x} ${pts[0].y}`;
+                        for (let i = 0; i < pts.length - 1; i++) {
+                          const p1 = pts[i];
+                          const p2 = pts[i + 1];
+                          const cp1x = p1.x + (p2.x - p1.x) / 2;
+                          d += ` C ${cp1x} ${p1.y}, ${cp1x} ${p2.y}, ${p2.x} ${p2.y}`;
+                        }
+                        return (
+                          <g>
+                            <motion.path 
+                              d={d} 
+                              fill="none" 
+                              stroke="url(#valueLineGradient)" 
+                              strokeWidth="3" 
+                              strokeLinecap="round" 
+                              initial={{ pathLength: 0, opacity: 0 }} 
+                              animate={{ pathLength: 1, opacity: 1 }} 
+                              transition={{ duration: 1.5, ease: "easeOut" }} 
+                            />
+                            {pts.map((p, i) => (
+                              <circle key={i} cx={`${p.x}%`} cy={`${p.y}%`} r="3" className="fill-indigo-500 shadow-lg" />
+                            ))}
+                          </g>
+                        );
+                      })()}
+                    </svg>
+
+                    {statusStats.slice(0, 12).map((stat, i) => {
+                      const maxCount = Math.max(...statusStats.map(s => s.count)) || 1;
+                      const hPerc = (stat.count / maxCount) * 75;
+                      
+                      return (
+                        <div key={stat.status} className="flex-1 flex flex-col items-center group/stat relative h-full justify-end">
+                          {/* Volume Bar */}
+                          <motion.div 
+                            initial={{ height: 0 }}
+                            animate={{ height: `${Math.max(2, hPerc)}%` }}
+                            className={cn(
+                              "w-full max-w-[48px] rounded-t-lg transition-all duration-500 z-10 relative",
+                              theme === 'dark' 
+                                ? "bg-emerald-500/20 border-t border-l border-r border-emerald-500/40 group-hover/stat:bg-emerald-500/40" 
+                                : "bg-emerald-50/80 border-t border-l border-r border-emerald-200 group-hover/stat:bg-emerald-100"
+                            )}
+                          >
+                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-black text-emerald-500 tabular-nums">
+                              {stat.count}
+                            </div>
+                          </motion.div>
+
+                          {/* Status Label */}
+                          <div className="mt-3 text-[9px] font-black uppercase tracking-tighter text-slate-500 text-center truncate w-full h-10 flex flex-col justify-start leading-tight">
+                            <span className="truncate px-1">{stat.status}</span>
+                            <span className={cn(
+                              "text-[8px] font-mono mt-0.5",
+                              theme === 'dark' ? "text-indigo-400" : "text-indigo-600"
+                            )}>
+                              {new Intl.NumberFormat('pt-BR', { 
+                                style: 'currency', 
+                                currency: 'BRL', 
+                                notation: 'compact',
+                                maximumFractionDigits: 1 
+                              }).format(stat.value)}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -3323,19 +3473,19 @@ export default function App() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     className={cn(
-                      "fixed z-[100] pointer-events-none p-3 rounded-xl border shadow-2xl backdrop-blur-md transition-colors duration-300",
+                      "fixed z-[100] pointer-events-none p-2 rounded-xl border shadow-2xl backdrop-blur-md transition-colors duration-300",
                       theme === 'dark' ? "bg-slate-900/90 border-slate-700" : "bg-bg-surface/90 border-slate-200"
                     )}
                     style={{ 
-                      left: hoveredCar.x + 15, 
-                      top: hoveredCar.y + 15,
-                      minWidth: '180px'
+                      left: hoveredCar.x + 10, 
+                      top: hoveredCar.y + 10,
+                      minWidth: '160px'
                     }}
                   >
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between border-b border-slate-700/30 pb-1.5 mb-1.5">
+                      <div className="flex items-center justify-between border-b border-slate-700/30 pb-1 mb-1">
                         <span className={cn(
-                          "text-[10px] font-mono font-bold uppercase tracking-widest",
+                          "text-[9px] font-mono font-bold uppercase tracking-widest",
                           theme === 'dark' ? "text-indigo-400" : "text-indigo-600"
                         )}>
                           Resumo do carro
@@ -3371,16 +3521,16 @@ export default function App() {
                           }
 
                           return (
-                            <div key={field.id} className="flex items-start gap-3 py-1 border-b border-slate-700/10 last:border-0">
-                              <div className="mt-1 text-slate-400">
+                            <div key={field.id} className="flex items-start gap-2 py-0.5 border-b border-slate-700/10 last:border-0">
+                              <div className="mt-0.5 text-slate-400">
                                 {field.icon}
                               </div>
                               <div className="flex flex-col">
-                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">
+                                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none mb-0.5">
                                   {field.label}
                                 </span>
                                 <span className={cn(
-                                  "text-[14px] font-mono font-black transition-colors duration-300",
+                                  "text-[12px] font-mono font-black transition-colors duration-300",
                                   theme === 'dark' ? "text-white" : "text-slate-900",
                                   field.id === 'VALOR_TOTAL_CARRO' && "text-emerald-400"
                                 )}>
