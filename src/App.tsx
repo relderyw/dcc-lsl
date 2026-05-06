@@ -2117,8 +2117,9 @@ export default function App() {
                             d={d} 
                             fill="none" 
                             stroke="url(#valueLineGradient)" 
-                            strokeWidth="1.5" 
+                            strokeWidth="1" 
                             strokeLinecap="round" 
+                            strokeOpacity="0.6"
                             initial={{ pathLength: 0, opacity: 0 }} 
                             animate={{ pathLength: 1, opacity: 1 }} 
                             transition={{ duration: 1.5, ease: "easeOut" }} 
@@ -2136,9 +2137,9 @@ export default function App() {
                       
                       return (
                         <div key={stat.status} className="flex-1 flex flex-col items-center group/stat relative h-full justify-end">
-                          {/* Value Point (Div to avoid SVG distortion) */}
+                          {/* Value Point (Subtle Marker) */}
                           <div 
-                            className="absolute z-40 w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-slate-900 shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-transform duration-300 group-hover/stat:scale-125"
+                            className="absolute z-40 w-1.5 h-1.5 rounded-full bg-indigo-400 border border-slate-900 transition-transform duration-300 group-hover/stat:scale-150"
                             style={{ 
                               left: '50%', 
                               top: `${yPos}%`,
