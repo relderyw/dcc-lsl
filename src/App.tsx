@@ -56,6 +56,12 @@ import { CustomSelect } from './components/CustomSelect';
 
 // --- Utilities ---
 const snapToGrid = (val: number, step = 1) => Math.round(val / step) * step;
+const formatNumber = (val: number | string) => {
+  if (typeof val === 'string' && val.includes('%')) return val;
+  const num = typeof val === 'string' ? parseFloat(val) : val;
+  if (isNaN(num)) return val;
+  return new Intl.NumberFormat('pt-BR').format(num);
+};
 
 // --- Types ---
 interface Bay {
@@ -1677,12 +1683,16 @@ export default function App() {
               {/* KPI Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                  { label: 'Total de Carros', value: filteredRecords.length, icon: <Car className="w-5 h-5" />, color: 'indigo' },
-                  { label: 'Embarcados', value: filteredRecords.filter(r => r.status === 'EMBARCADO').length, icon: <CheckCircle2 className="w-5 h-5" />, color: 'blue' },
-                  { label: 'Em Atraso', value: filteredRecords.filter(r => getSlaStatus(r).isLate).length, icon: <AlertCircle className="w-5 h-5" />, color: 'rose' },
+                  { label: 'Total de Carros', value: formatNumber(filteredRecords.length), icon: <Car className="w-5 h-5" />, color: 'indigo' },
+                  { label: 'Embarcados', value: formatNumber(filteredRecords.filter(r => r.status === 'EMBARCADO').length), icon: <CheckCircle2 className="w-5 h-5" />, color: 'blue' },
+                  { label: 'Em Atraso', value: formatNumber(filteredRecords.filter(r => getSlaStatus(r).isLate).length), icon: <AlertCircle className="w-5 h-5" />, color: 'rose' },
                   { 
                     label: 'Ocupação Total', 
-                    value: `${Math.round((bays.reduce((acc, b) => acc + (b.currentCars || 0), 0) / (bays.reduce((acc, b) => acc + b.capacity, 0) || 1)) * 100)}%`, 
+                    value: (() => {
+                      const totalCapacity = bays.reduce((acc, b) => acc + b.capacity, 0) || 1;
+                      const currentCarsCount = dbRecords.filter(r => r.status !== 'EMBARCADO' && bays.some(b => b.name === r.location)).length;
+                      return `${Math.round((currentCarsCount / totalCapacity) * 100)}%`;
+                    })(), 
                     icon: <TrendingUp className="w-5 h-5" />, 
                     color: 'emerald' 
                   },
@@ -1803,7 +1813,7 @@ export default function App() {
                       ].map((stat, i) => (
                         <div key={i}>
                           <p className="t-label text-slate-500 mb-2">{stat.label}</p>
-                          <p className={cn("t-metric", stat.color)}>{stat.value}</p>
+                          <p className={cn("t-metric", stat.color)}>{formatNumber(stat.value)}</p>
                           <p className="t-caption text-slate-500 mt-1">{stat.desc}</p>
                         </div>
                       ));
@@ -1952,7 +1962,7 @@ export default function App() {
                                   "px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-black shadow-lg",
                                   theme === 'dark' ? "bg-emerald-500 text-white shadow-emerald-500/20" : "bg-emerald-600 text-white"
                                 )}>
-                                  {lastPt.val}
+                                  {formatNumber(lastPt.val)}
                                 </span>
                               </div>
                             );
@@ -1983,12 +1993,12 @@ export default function App() {
                                   >
                                     {/* Real Number Label */}
                                     {realCount > 0 && (
-                                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 flex items-center justify-center">
+                                      <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 flex items-center justify-center">
                                         <span className={cn(
                                           "text-[10px] sm:text-[11px] font-black tabular-nums transition-all",
                                           theme === 'dark' ? "text-emerald-300 drop-shadow-md" : "text-emerald-700"
                                         )}>
-                                          {realCount}
+                                          {formatNumber(realCount)}
                                         </span>
                                       </div>
                                     )}
@@ -2007,16 +2017,16 @@ export default function App() {
                                   >
                                     {/* Plan Number Label */}
                                     {planCount > 0 && (
-                                      <div className="absolute -top-5 left-1/2 -translate-x-1/2 flex items-center justify-center">
-                                        <span className="text-[11px] sm:text-[12px] font-bold tabular-nums text-slate-500 transition-all opacity-80">
-                                          {planCount}
+                                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex items-center justify-center">
+                                        <span className="text-[11px] sm:text-[12px] font-black tabular-nums text-slate-500 transition-all opacity-80">
+                                          {formatNumber(planCount)}
                                         </span>
                                       </div>
                                     )}
                                   </motion.div>
 
                                   {/* Tooltip on Hover */}
-                                  <div className="absolute opacity-0 group-hover/bar:opacity-100 bottom-full mb-2 left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-200 z-50">
+                                  <div className="absolute opacity-0 group-hover/bar:opacity-100 top-10 left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-200 z-50">
                                     <div className={cn(
                                       "px-2.5 py-1.5 rounded border shadow-xl backdrop-blur-md flex flex-col items-center gap-0.5 whitespace-nowrap",
                                       theme === 'dark' ? "bg-slate-900/95 border-white/10" : "bg-bg-surface border-slate-200"
@@ -2135,7 +2145,7 @@ export default function App() {
                                   "text-2xl font-black tabular-nums",
                                   theme === 'dark' ? "text-emerald-400" : "text-emerald-600"
                                 )}>
-                                  {stat.count}
+                                  {formatNumber(stat.count)}
                                 </span>
                                 <span className="text-[10px] font-bold text-slate-500 uppercase">Carros</span>
                               </div>
@@ -2212,7 +2222,7 @@ export default function App() {
                             .map(([model, count]) => (
                               <div key={model} className="flex items-center justify-between text-[11px] font-bold p-3 rounded-2xl bg-bg-surface/5 border border-white/5 hover:border-rose-500/20 transition-colors group">
                                 <span className="text-slate-400 group-hover:text-slate-200 transition-colors">{model}</span>
-                                <span className="text-rose-500 tabular-nums bg-rose-500/10 px-2 py-0.5 rounded-lg">{count}</span>
+                                <span className="text-rose-500 tabular-nums bg-rose-500/10 px-2 py-0.5 rounded-lg">{formatNumber(count)}</span>
                               </div>
                             ));
                         })()}
@@ -2239,7 +2249,7 @@ export default function App() {
                             .map(([sector, count]) => (
                               <div key={sector} className="flex items-center justify-between text-[11px] font-bold p-3 rounded-2xl bg-bg-surface/5 border border-white/5 hover:border-rose-500/20 transition-colors group">
                                 <span className="text-slate-400 group-hover:text-slate-200 transition-colors">{sector}</span>
-                                <span className="text-rose-500 tabular-nums bg-rose-500/10 px-2 py-0.5 rounded-lg">{count}</span>
+                                <span className="text-rose-500 tabular-nums bg-rose-500/10 px-2 py-0.5 rounded-lg">{formatNumber(count)}</span>
                               </div>
                             ));
                         })()}
@@ -2279,10 +2289,10 @@ export default function App() {
                         
                         return (
                           <div key={cat} className="space-y-1.5">
-                            <div className="flex justify-between items-end px-1">
-                              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{cat}</span>
-                              <span className="text-[11px] font-bold text-slate-400 tabular-nums">{count}</span>
-                            </div>
+                              <div className="flex justify-between items-end px-1">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{cat}</span>
+                                <span className="text-[11px] font-bold text-slate-400 tabular-nums">{formatNumber(count)}</span>
+                              </div>
                             <div className={cn("h-1.5 w-full rounded-full overflow-hidden", theme === 'dark' ? "bg-bg-surface/5" : "bg-slate-100")}>
                               <motion.div 
                                 initial={{ width: 0 }}
