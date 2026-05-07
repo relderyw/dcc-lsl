@@ -1956,7 +1956,7 @@ export default function App() {
                             return (
                               <div 
                                 className="absolute pointer-events-none transition-all duration-500 z-30 flex items-center justify-center transform -translate-x-1/2 -translate-y-full pb-2"
-                                style={{ left: `${lastPt.x}%`, top: `calc(${lastPt.y}% - 10px)` }}
+                                style={{ left: `${lastPt.x}%`, top: `calc(${lastPt.y}% - 5px)` }}
                               >
                                 <span className={cn(
                                   "px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-black shadow-lg",
@@ -1972,8 +1972,8 @@ export default function App() {
                             {shiftHours.map((h, i) => {
                               const planCount = hourlyPlan[i];
                               const realCount = hourlyReal[i];
-                              const hPercPlan = (planCount / maxHourlyVal) * 55;
-                              const hPercReal = (realCount / maxHourlyVal) * 55;
+                              const hPercPlan = (planCount / maxHourlyVal) * 92;
+                              const hPercReal = (realCount / maxHourlyVal) * 92;
                               
                               return (
                                 <div key={i} className="flex-1 flex flex-col items-center group/bar relative h-full justify-end">
