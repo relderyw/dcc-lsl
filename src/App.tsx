@@ -1992,9 +1992,9 @@ export default function App() {
                                   >
                                     {/* Real Number Label */}
                                     {realCount > 0 && (
-                                      <div className="absolute -top-5 left-1/2 -translate-x-1/2 flex items-center justify-center z-30">
+                                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex items-center justify-center z-30">
                                         <span className={cn(
-                                          "text-[10px] font-black tabular-nums transition-all",
+                                          "text-[11px] sm:text-[12px] font-black tabular-nums transition-all",
                                           theme === 'dark' ? "text-emerald-400 drop-shadow-md" : "text-emerald-600"
                                         )}>
                                           {formatNumber(realCount)}
@@ -2016,8 +2016,8 @@ export default function App() {
                                   >
                                     {/* Plan Number Label */}
                                     {planCount > 0 && (
-                                      <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex items-center justify-center">
-                                        <span className="text-[10px] font-black tabular-nums text-slate-500 transition-all opacity-80">
+                                      <div className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center justify-center">
+                                        <span className="text-[11px] sm:text-[12px] font-black tabular-nums text-slate-500 transition-all opacity-80">
                                           {formatNumber(planCount)}
                                         </span>
                                       </div>
