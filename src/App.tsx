@@ -1820,9 +1820,9 @@ export default function App() {
                     })()}
                   </div>
 
-                  <div className="h-56 w-full relative flex items-end gap-1 group px-2 pt-8">
+                  <div className="h-72 w-full relative flex flex-col group px-2 pt-8">
                     {/* Background Grid Lines */}
-                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-5">
+                    <div className="absolute inset-0 h-[calc(100%-80px)] flex flex-col justify-between pointer-events-none opacity-5">
                       {[1, 2, 3, 4].map(i => <div key={i} className="w-full h-px bg-bg-surface" />)}
                     </div>
 
@@ -1857,7 +1857,7 @@ export default function App() {
 
                       return (
                         <>
-                          <svg className="absolute top-0 inset-x-0 h-[calc(100%-32px)] w-full pointer-events-none z-10 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+                          <svg className="absolute top-0 inset-x-0 h-[calc(100%-80px)] w-full pointer-events-none z-10 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
                             <defs>
                               <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                                 <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
@@ -1956,7 +1956,7 @@ export default function App() {
                             return (
                               <div 
                                 className="absolute pointer-events-none transition-all duration-500 z-30 flex items-center justify-center transform -translate-x-1/2 -translate-y-full pb-2"
-                                style={{ left: `${lastPt.x}%`, top: `${lastPt.y}%` }}
+                                style={{ left: `${lastPt.x}%`, top: `calc(${lastPt.y}% - 10px)` }}
                               >
                                 <span className={cn(
                                   "px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-black shadow-lg",
@@ -1968,65 +1968,43 @@ export default function App() {
                             );
                           })()}
 
-                          <div className="flex-1 h-full w-full flex items-end gap-[1px] relative z-20">
+                          <div className="flex-1 h-[calc(100%-80px)] w-full flex items-end gap-[1px] relative z-20">
                             {shiftHours.map((h, i) => {
                               const planCount = hourlyPlan[i];
                               const realCount = hourlyReal[i];
-                              // Ocupando no maximo 35%
-                              const hPercPlan = (planCount / maxHourlyVal) * 35;
-                              const hPercReal = (realCount / maxHourlyVal) * 35;
+                              const hPercPlan = (planCount / maxHourlyVal) * 55;
+                              const hPercReal = (realCount / maxHourlyVal) * 55;
                               
                               return (
                                 <div key={i} className="flex-1 flex flex-col items-center group/bar relative h-full justify-end">
-                                  <div className="absolute inset-x-[35%] bottom-0 h-full bg-emerald-500/0 group-hover/bar:bg-emerald-500/5 transition-colors duration-200" />
+                                  <div className="absolute inset-x-[15%] bottom-0 h-full bg-emerald-500/0 group-hover/bar:bg-emerald-500/5 transition-colors duration-200" />
                                   
                                   {/* Real Bar (Filled Green) */}
                                   <motion.div 
                                     initial={{ height: 0 }}
                                     animate={{ height: `${Math.max(1, hPercReal)}%` }}
                                     className={cn(
-                                      "absolute bottom-8 inset-x-[35%] rounded-t-[2px] transition-all duration-500 z-20 pointer-events-none",
+                                      "absolute bottom-0 inset-x-[15%] rounded-t-[2px] transition-all duration-500 z-20 pointer-events-none",
                                       realCount > 0 
                                         ? (theme === 'dark' ? "bg-emerald-500/85 drop-shadow-[0_0_8px_rgba(16,185,129,0.2)]" : "bg-emerald-500")
                                         : "bg-transparent"
                                     )}
-                                  >
-                                    {/* Real Number Label */}
-                                    {realCount > 0 && (
-                                      <div className="absolute -top-5 left-1/2 -translate-x-[110%] flex items-center justify-center z-30">
-                                        <span className={cn(
-                                          "text-[10px] font-black tabular-nums transition-all",
-                                          theme === 'dark' ? "text-emerald-400 drop-shadow-md" : "text-emerald-600"
-                                        )}>
-                                          {formatNumber(realCount)}
-                                        </span>
-                                      </div>
-                                    )}
-                                  </motion.div>
+                                  />
 
                                   {/* Plan Bar (Dashed Outline) */}
                                   <motion.div 
                                     initial={{ height: 0 }}
                                     animate={{ height: `${Math.max(1, hPercPlan)}%` }}
                                     className={cn(
-                                      "absolute bottom-8 inset-x-[35%] rounded-t-[2px] transition-all duration-500 z-10 pointer-events-none",
+                                      "absolute bottom-0 inset-x-[15%] rounded-t-[2px] transition-all duration-500 z-10 pointer-events-none",
                                       planCount > 0 
-                                        ? (theme === 'dark' ? "border-t border-l border-r border-dashed border-slate-500 bg-transparent" : "border-t border-l border-r border-dashed border-slate-400 bg-transparent")
+                                        ? (theme === 'dark' ? "border-t border-l border-r border-dashed border-slate-700 bg-transparent" : "border-t border-l border-r border-dashed border-slate-300 bg-transparent")
                                         : "bg-transparent"
                                     )}
-                                  >
-                                    {/* Plan Number Label */}
-                                    {planCount > 0 && (
-                                      <div className="absolute -top-5 left-1/2 translate-x-[10%] flex items-center justify-center">
-                                        <span className="text-[10px] font-black tabular-nums text-slate-500 transition-all opacity-80">
-                                          {formatNumber(planCount)}
-                                        </span>
-                                      </div>
-                                    )}
-                                  </motion.div>
+                                  />
 
                                   {/* Tooltip on Hover */}
-                                  <div className="absolute opacity-0 group-hover/bar:opacity-100 bottom-full mb-12 left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-200 z-50">
+                                  <div className="absolute opacity-0 group-hover/bar:opacity-100 bottom-full mb-4 left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-200 z-50">
                                     <div className={cn(
                                       "px-2.5 py-1.5 rounded border shadow-xl backdrop-blur-md flex flex-col items-center gap-0.5 whitespace-nowrap",
                                       theme === 'dark' ? "bg-slate-900/95 border-white/10" : "bg-bg-surface border-slate-200"
@@ -2045,16 +2023,49 @@ export default function App() {
                                       </div>
                                     </div>
                                   </div>
+                                </div>
+                              );
+                            })}
+                          </div>
 
+                          {/* Data Grid Section (Managerial View) */}
+                          <div className="h-20 w-full flex flex-col border-t border-slate-800/10 mt-1">
+                            {/* Hours Axis */}
+                            <div className="flex w-full h-6 items-center">
+                              {shiftHours.map((h, i) => (
+                                <div key={i} className="flex-1 text-center">
                                   <span className={cn(
-                                    "absolute bottom-0 text-xs sm:text-sm font-bold tabular-nums transition-colors duration-300 opacity-60 group-hover/bar:opacity-100",
-                                    theme === 'dark' ? "text-slate-300" : "text-slate-600"
+                                    "text-[10px] font-bold tabular-nums opacity-60",
+                                    theme === 'dark' ? "text-slate-400" : "text-slate-600"
                                   )}>
                                     {h}
                                   </span>
                                 </div>
-                              );
-                            })}
+                              ))}
+                            </div>
+                            {/* Plan Row */}
+                            <div className="flex w-full h-6 items-center bg-slate-500/5">
+                              {hourlyPlan.map((v, i) => (
+                                <div key={i} className="flex-1 text-center">
+                                  <span className="text-[9px] font-black text-slate-500 tabular-nums">
+                                    {v > 0 ? formatNumber(v) : '-'}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                            {/* Real Row */}
+                            <div className="flex w-full h-6 items-center">
+                              {hourlyReal.map((v, i) => (
+                                <div key={i} className="flex-1 text-center">
+                                  <span className={cn(
+                                    "text-[9px] font-black tabular-nums",
+                                    v > 0 ? "text-emerald-500" : "text-slate-500 opacity-20"
+                                  )}>
+                                    {v > 0 ? formatNumber(v) : '-'}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </>
                       );
