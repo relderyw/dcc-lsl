@@ -1989,7 +1989,19 @@ export default function App() {
                                         ? (theme === 'dark' ? "bg-emerald-500/85 drop-shadow-[0_0_8px_rgba(16,185,129,0.2)]" : "bg-emerald-500")
                                         : "bg-transparent"
                                     )}
-                                  />
+                                  >
+                                    {/* Real Number Label */}
+                                    {realCount > 0 && (
+                                      <div className="absolute -top-5 left-1/2 -translate-x-[110%] flex items-center justify-center z-30">
+                                        <span className={cn(
+                                          "text-[10px] font-black tabular-nums transition-all",
+                                          theme === 'dark' ? "text-emerald-400 drop-shadow-md" : "text-emerald-600"
+                                        )}>
+                                          {formatNumber(realCount)}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </motion.div>
 
                                   {/* Plan Bar (Dashed Outline) */}
                                   <motion.div 
@@ -2001,7 +2013,16 @@ export default function App() {
                                         ? (theme === 'dark' ? "border-t border-l border-r border-dashed border-slate-700 bg-transparent" : "border-t border-l border-r border-dashed border-slate-300 bg-transparent")
                                         : "bg-transparent"
                                     )}
-                                  />
+                                  >
+                                    {/* Plan Number Label */}
+                                    {planCount > 0 && (
+                                      <div className="absolute -top-5 left-1/2 translate-x-[10%] flex items-center justify-center">
+                                        <span className="text-[10px] font-black tabular-nums text-slate-500 transition-all opacity-80">
+                                          {formatNumber(planCount)}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </motion.div>
 
                                   {/* Tooltip on Hover */}
                                   <div className="absolute opacity-0 group-hover/bar:opacity-100 bottom-full mb-4 left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-200 z-50">
