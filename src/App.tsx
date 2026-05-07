@@ -1993,10 +1993,10 @@ export default function App() {
                                   >
                                     {/* Real Number Label */}
                                     {realCount > 0 && (
-                                      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex items-center justify-center z-30">
+                                      <div className="absolute -top-5 left-1/2 -translate-x-[110%] flex items-center justify-center z-30">
                                         <span className={cn(
-                                          "text-[9px] sm:text-[10px] font-black tabular-nums transition-all",
-                                          theme === 'dark' ? "text-white drop-shadow-md" : "text-white"
+                                          "text-[10px] font-black tabular-nums transition-all",
+                                          theme === 'dark' ? "text-emerald-400 drop-shadow-md" : "text-emerald-600"
                                         )}>
                                           {formatNumber(realCount)}
                                         </span>
@@ -2017,8 +2017,8 @@ export default function App() {
                                   >
                                     {/* Plan Number Label */}
                                     {planCount > 0 && (
-                                      <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex items-center justify-center">
-                                        <span className="text-[10px] sm:text-[11px] font-black tabular-nums text-slate-500 transition-all opacity-90">
+                                      <div className="absolute -top-5 left-1/2 translate-x-[10%] flex items-center justify-center">
+                                        <span className="text-[10px] font-black tabular-nums text-slate-500 transition-all opacity-80">
                                           {formatNumber(planCount)}
                                         </span>
                                       </div>
@@ -2026,7 +2026,7 @@ export default function App() {
                                   </motion.div>
 
                                   {/* Tooltip on Hover */}
-                                  <div className="absolute opacity-0 group-hover/bar:opacity-100 top-2 left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-200 z-50">
+                                  <div className="absolute opacity-0 group-hover/bar:opacity-100 bottom-full mb-12 left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-200 z-50">
                                     <div className={cn(
                                       "px-2.5 py-1.5 rounded border shadow-xl backdrop-blur-md flex flex-col items-center gap-0.5 whitespace-nowrap",
                                       theme === 'dark' ? "bg-slate-900/95 border-white/10" : "bg-bg-surface border-slate-200"
