@@ -1820,9 +1820,9 @@ export default function App() {
                     })()}
                   </div>
 
-                  <div className="h-72 w-full relative flex flex-col group px-2 pt-8">
+                  <div className="h-64 w-full relative flex flex-col group px-2 pt-8">
                     {/* Background Grid Lines */}
-                    <div className="absolute inset-0 h-[calc(100%-80px)] flex flex-col justify-between pointer-events-none opacity-5">
+                    <div className="absolute inset-0 h-[calc(100%-32px)] flex flex-col justify-between pointer-events-none opacity-5">
                       {[1, 2, 3, 4].map(i => <div key={i} className="w-full h-px bg-bg-surface" />)}
                     </div>
 
@@ -1857,7 +1857,7 @@ export default function App() {
 
                       return (
                         <>
-                          <svg className="absolute top-0 inset-x-0 h-[calc(100%-80px)] w-full pointer-events-none z-10 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+                          <svg className="absolute top-0 inset-x-0 h-[calc(100%-32px)] w-full pointer-events-none z-10 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
                             <defs>
                               <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                                 <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
@@ -1968,7 +1968,7 @@ export default function App() {
                             );
                           })()}
 
-                          <div className="flex-1 h-[calc(100%-80px)] w-full flex items-end gap-[1px] relative z-20">
+                          <div className="flex-1 h-[calc(100%-32px)] w-full flex items-end gap-[1px] relative z-20">
                             {shiftHours.map((h, i) => {
                               const planCount = hourlyPlan[i];
                               const realCount = hourlyReal[i];
@@ -1992,7 +1992,7 @@ export default function App() {
                                   >
                                     {/* Real Number Label */}
                                     {realCount > 0 && (
-                                      <div className="absolute -top-5 left-1/2 -translate-x-[110%] flex items-center justify-center z-30">
+                                      <div className="absolute -top-5 left-1/2 -translate-x-1/2 flex items-center justify-center z-30">
                                         <span className={cn(
                                           "text-[10px] font-black tabular-nums transition-all",
                                           theme === 'dark' ? "text-emerald-400 drop-shadow-md" : "text-emerald-600"
@@ -2016,7 +2016,7 @@ export default function App() {
                                   >
                                     {/* Plan Number Label */}
                                     {planCount > 0 && (
-                                      <div className="absolute -top-5 left-1/2 translate-x-[10%] flex items-center justify-center">
+                                      <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex items-center justify-center">
                                         <span className="text-[10px] font-black tabular-nums text-slate-500 transition-all opacity-80">
                                           {formatNumber(planCount)}
                                         </span>
@@ -2049,44 +2049,18 @@ export default function App() {
                             })}
                           </div>
 
-                          {/* Data Grid Section (Managerial View) */}
-                          <div className="h-20 w-full flex flex-col border-t border-slate-800/10 mt-1">
-                            {/* Hours Axis */}
-                            <div className="flex w-full h-6 items-center">
-                              {shiftHours.map((h, i) => (
-                                <div key={i} className="flex-1 text-center">
-                                  <span className={cn(
-                                    "text-[10px] font-bold tabular-nums opacity-60",
-                                    theme === 'dark' ? "text-slate-400" : "text-slate-600"
-                                  )}>
-                                    {h}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                            {/* Plan Row */}
-                            <div className="flex w-full h-6 items-center bg-slate-500/5">
-                              {hourlyPlan.map((v, i) => (
-                                <div key={i} className="flex-1 text-center">
-                                  <span className="text-[9px] font-black text-slate-500 tabular-nums">
-                                    {v > 0 ? formatNumber(v) : '-'}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                            {/* Real Row */}
-                            <div className="flex w-full h-6 items-center">
-                              {hourlyReal.map((v, i) => (
-                                <div key={i} className="flex-1 text-center">
-                                  <span className={cn(
-                                    "text-[9px] font-black tabular-nums",
-                                    v > 0 ? "text-emerald-500" : "text-slate-500 opacity-20"
-                                  )}>
-                                    {v > 0 ? formatNumber(v) : '-'}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
+                          {/* Hours Axis */}
+                          <div className="flex w-full h-8 items-center mt-2 border-t border-slate-800/10 pt-2">
+                            {shiftHours.map((h, i) => (
+                              <div key={i} className="flex-1 text-center">
+                                <span className={cn(
+                                  "text-xs sm:text-sm font-bold tabular-nums transition-colors duration-300 opacity-60",
+                                  theme === 'dark' ? "text-slate-300" : "text-slate-600"
+                                )}>
+                                  {h}
+                                </span>
+                              </div>
+                            ))}
                           </div>
                         </>
                       );
