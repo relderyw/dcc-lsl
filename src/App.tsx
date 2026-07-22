@@ -581,7 +581,7 @@ export default function App() {
       } else {
         const err = await response.json();
         console.error("Auto-refresh errored:", err);
-        alert(`Erro de Leitura Local: ${err.error || response.statusText}`);
+        // alert(`Erro de Leitura Local: ${err.error || response.statusText}`);
       }
     } catch (error) {
       console.error('Auto-refresh failed:', error);
