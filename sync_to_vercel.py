@@ -3,6 +3,7 @@ import requests
 import json
 
 file_path = 'w:\\PYTHON\\PICKING\\PICKING_v1.xlsb'
+# TODO: Atualize esta URL para o seu novo domínio (ex: render.com, railway.app, etc)
 url = 'https://dcc-lsl.vercel.app/api/sync'
 
 def sync_data():
