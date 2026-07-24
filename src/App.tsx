@@ -1172,6 +1172,59 @@ export default function App() {
                       <Trash2 className="w-4 h-4 text-rose-500 group-hover:scale-110 transition-transform" />
                       <span className="text-[9px] font-bold text-rose-600 uppercase tracking-tighter">Limpar Mapa</span>
                     </button>
+                    <button 
+                      onClick={() => {
+                        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bays));
+                        const downloadAnchorNode = document.createElement('a');
+                        downloadAnchorNode.setAttribute("href",     dataStr);
+                        downloadAnchorNode.setAttribute("download", "picking_layout.json");
+                        document.body.appendChild(downloadAnchorNode);
+                        downloadAnchorNode.click();
+                        downloadAnchorNode.remove();
+                      }}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-1.5 p-3 border rounded-xl transition-all group",
+                        theme === 'dark' 
+                          ? "bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20" 
+                          : "bg-blue-50 border-blue-100 hover:bg-blue-100"
+                      )}
+                    >
+                      <Upload className="w-4 h-4 text-blue-500 group-hover:scale-110 transition-transform" />
+                      <span className="text-[9px] font-bold text-blue-600 uppercase tracking-tighter">Exportar</span>
+                    </button>
+                    <label 
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-1.5 p-3 border rounded-xl transition-all group cursor-pointer",
+                        theme === 'dark' 
+                          ? "bg-fuchsia-500/10 border-fuchsia-500/20 hover:bg-fuchsia-500/20" 
+                          : "bg-fuchsia-50 border-fuchsia-100 hover:bg-fuchsia-100"
+                      )}
+                    >
+                      <Database className="w-4 h-4 text-fuchsia-500 group-hover:scale-110 transition-transform" />
+                      <span className="text-[9px] font-bold text-fuchsia-600 uppercase tracking-tighter">Importar</span>
+                      <input 
+                        type="file" 
+                        accept=".json" 
+                        className="hidden" 
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            try {
+                              const importedBays = JSON.parse(event.target?.result as string);
+                              if (Array.isArray(importedBays)) {
+                                saveBays(importedBays);
+                                alert("Layout importado e sincronizado com sucesso!");
+                              }
+                            } catch (err) {
+                              alert("Erro ao importar layout. Arquivo inválido.");
+                            }
+                          };
+                          reader.readAsText(file);
+                        }} 
+                      />
+                    </label>
                   </div>
                 </div>
               )}

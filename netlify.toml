@@ -1,0 +1,16 @@
+[build]
+  command   = "npm run build"
+  publish   = "dist"
+  functions = "netlify/functions"
+
+# Redireciona /api/sync → função serverless
+[[redirects]]
+  from   = "/api/sync"
+  to     = "/.netlify/functions/sync"
+  status = 200
+
+# SPA fallback — tudo que não for arquivo estático vai para o React
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

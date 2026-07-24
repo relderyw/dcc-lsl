@@ -44,7 +44,21 @@ def sync_data():
             }
             records.append(record)
 
-        requests.post(url, json={"records": records})
+        bays_data = None
+        try:
+            import os
+            layout_path = os.path.join(os.path.dirname(__file__), 'picking_layout.json')
+            if os.path.exists(layout_path):
+                with open(layout_path, 'r', encoding='utf-8') as f:
+                    bays_data = json.load(f)
+        except Exception as e:
+            print(f"Aviso: Não foi possível carregar picking_layout.json: {e}")
+
+        payload = {"records": records}
+        if bays_data:
+            payload["bays"] = bays_data
+
+        requests.post(url, json=payload)
         print(f"--- Sucesso! {len(records)} registros sincronizados. ---")
 
     except Exception as e:
