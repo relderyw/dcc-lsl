@@ -12,7 +12,20 @@ const LAYOUT_KEY  = 'picking_layout_data';
 const getClient = () => {
   // 1. Prioridade para REDIS_URL (ioredis)
   if (process.env.REDIS_URL) {
-    if (!ioredisClient) ioredisClient = new IORedis(process.env.REDIS_URL);
+    if (!ioredisClient) {
+      try {
+        ioredisClient = new IORedis(process.env.REDIS_URL, {
+          lazyConnect: true,
+          maxRetriesPerRequest: 1,
+          connectTimeout: 5000,
+        });
+        ioredisClient.on('error', (err: any) => {
+          console.error('Redis Client connection error:', err.message);
+        });
+      } catch (err: any) {
+        console.error('Failed to initialize Redis client:', err.message);
+      }
+    }
     return { type: 'ioredis', client: ioredisClient };
   }
 
