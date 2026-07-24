@@ -3,8 +3,8 @@ import requests
 import json
 
 file_path = 'w:\\PYTHON\\PICKING\\PICKING_v1.xlsb'
-# TODO: Atualize esta URL para o seu novo domínio (ex: render.com, railway.app, etc)
-url = 'https://dcc-lsl.onrender.com/api/sync'
+# URL do Netlify (domínio que o TI não bloqueou)
+url = 'https://picking-dcc.netlify.app/api/sync'
 
 def sync_data():
     print("--- Sincronização: Preservando campos para o Dashboard ---")
