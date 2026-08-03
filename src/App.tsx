@@ -136,6 +136,30 @@ function getCountColorClass(count: number): string {
   return "text-rose-500";
 }
 
+function isAllFilter(filterVal: string[] | string): boolean {
+  if (!filterVal) return true;
+  if (typeof filterVal === 'string') return filterVal === 'ALL' || filterVal === '';
+  return filterVal.length === 0 || filterVal.includes('ALL');
+}
+
+function matchesFilter(recordVal: string | undefined, filterVal: string[] | string): boolean {
+  if (isAllFilter(filterVal)) return true;
+  if (!recordVal) return false;
+  if (Array.isArray(filterVal)) return filterVal.includes(recordVal);
+  return recordVal === filterVal;
+}
+
+function matchesSlaFilter(carRecord: CarRecord, filterVal: string[] | string): boolean {
+  if (isAllFilter(filterVal)) return true;
+  const sla = getSlaStatus(carRecord);
+  const arr = Array.isArray(filterVal) ? filterVal : [filterVal];
+  let matched = false;
+  if (arr.includes('LATE') && sla.isLate) matched = true;
+  if (arr.includes('NEXT') && sla.text === 'PRÓX. EMB.') matched = true;
+  if (arr.includes('ONTIME') && sla.text === 'NO PRAZO') matched = true;
+  return matched;
+}
+
 
 const BayCard = React.memo(({ 
   bay, 
@@ -176,19 +200,14 @@ const BayCard = React.memo(({
 
   const visibleCarsInBay = carsInBay.filter((car: any) => {
     let isVisible = true;
-    const slaInfo = getSlaStatus(car);
-    if (filterModel !== 'ALL' && car.model !== filterModel) isVisible = false;
-    if (filterSector !== 'ALL' && car.sectorName !== filterSector) isVisible = false;
-    if (filterExcelStatus !== 'ALL' && car.status !== filterExcelStatus) isVisible = false;
-    if (filterController !== 'ALL' && car.controller !== filterController) isVisible = false;
-    if (filterDate !== 'ALL' && car.embarkDate !== filterDate) isVisible = false;
-    if (filterTime !== 'ALL' && car.embarkTime !== filterTime) isVisible = false;
+    if (!matchesFilter(car.model, filterModel)) isVisible = false;
+    if (!matchesFilter(car.sectorName, filterSector)) isVisible = false;
+    if (!matchesFilter(car.status, filterExcelStatus)) isVisible = false;
+    if (!matchesFilter(car.location, filterController)) isVisible = false;
+    if (!matchesFilter(car.embarkDate, filterDate)) isVisible = false;
+    if (!matchesFilter(car.embarkTime, filterTime)) isVisible = false;
     if (filterCarId !== '' && !car.carId.toLowerCase().includes(filterCarId.toLowerCase())) isVisible = false;
-    if (filterStatus !== 'ALL') {
-      if (filterStatus === 'LATE' && !slaInfo?.isLate) isVisible = false;
-      if (filterStatus === 'NEXT' && slaInfo?.text !== 'PRÓX. EMB.') isVisible = false;
-      if (filterStatus === 'ONTIME' && slaInfo?.text !== 'NO PRAZO') isVisible = false;
-    }
+    if (!matchesSlaFilter(car, filterStatus)) isVisible = false;
     return isVisible;
   });
 
@@ -238,18 +257,14 @@ const BayCard = React.memo(({
             let slaInfo = car ? getSlaStatus(car) : null;
             
             if (car && !isAnyFilterActive) {
-              if (filterModel !== 'ALL' && car.model !== filterModel) isVisible = false;
-              if (filterSector !== 'ALL' && car.sectorName !== filterSector) isVisible = false;
-              if (filterExcelStatus !== 'ALL' && car.status !== filterExcelStatus) isVisible = false;
-              if (filterController !== 'ALL' && car.controller !== filterController) isVisible = false;
-              if (filterDate !== 'ALL' && car.embarkDate !== filterDate) isVisible = false;
-              if (filterTime !== 'ALL' && car.embarkTime !== filterTime) isVisible = false;
+              if (!matchesFilter(car.model, filterModel)) isVisible = false;
+              if (!matchesFilter(car.sectorName, filterSector)) isVisible = false;
+              if (!matchesFilter(car.status, filterExcelStatus)) isVisible = false;
+              if (!matchesFilter(car.location, filterController)) isVisible = false;
+              if (!matchesFilter(car.embarkDate, filterDate)) isVisible = false;
+              if (!matchesFilter(car.embarkTime, filterTime)) isVisible = false;
               if (filterCarId !== '' && !car.carId.toLowerCase().includes(filterCarId.toLowerCase())) isVisible = false;
-              if (filterStatus !== 'ALL') {
-                if (filterStatus === 'LATE' && !slaInfo?.isLate) isVisible = false;
-                if (filterStatus === 'NEXT' && slaInfo?.text !== 'PRÓX. EMB.') isVisible = false;
-                if (filterStatus === 'ONTIME' && slaInfo?.text !== 'NO PRAZO') isVisible = false;
-              }
+              if (!matchesSlaFilter(car, filterStatus)) isVisible = false;
             }
             
             // Só marca setor errado se a baia tiver sectorCheck ativado
@@ -411,14 +426,14 @@ export default function App() {
 
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  // Filters State
-  const [filterModel, setFilterModel] = useState<string>('ALL');
-  const [filterSector, setFilterSector] = useState<string>('ALL');
-  const [filterStatus, setFilterStatus] = useState<string>('ALL'); // 'ALL' | 'LATE' | 'NEXT' | 'ONTIME'
-  const [filterExcelStatus, setFilterExcelStatus] = useState<string>('ALL'); // 'ALL' | string from Excel 'status' column
-  const [filterController, setFilterController] = useState<string>('ALL');
-  const [filterDate, setFilterDate] = useState<string>('ALL');
-  const [filterTime, setFilterTime] = useState<string>('ALL');
+  // Filters State — Multi-select support
+  const [filterModel, setFilterModel] = useState<string[]>(['ALL']);
+  const [filterSector, setFilterSector] = useState<string[]>(['ALL']);
+  const [filterStatus, setFilterStatus] = useState<string[]>(['ALL']); // 'ALL' | 'LATE' | 'NEXT' | 'ONTIME'
+  const [filterExcelStatus, setFilterExcelStatus] = useState<string[]>(['ALL']); // 'ALL' | string from Excel 'status' column
+  const [filterController, setFilterController] = useState<string[]>(['ALL']);
+  const [filterDate, setFilterDate] = useState<string[]>(['ALL']);
+  const [filterTime, setFilterTime] = useState<string[]>(['ALL']);
   const [filterCarId, setFilterCarId] = useState<string>('');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [controllerPageIndex, setControllerPageIndex] = useState(0);
@@ -434,19 +449,14 @@ export default function App() {
   // --- Filtered Data ---
   const filteredRecords = useMemo(() => {
     return dbRecords.filter(r => {
-      const matchModel = filterModel === 'ALL' || r.model === filterModel;
-      const matchSector = filterSector === 'ALL' || r.sectorName === filterSector;
-      const matchExcelStatus = filterExcelStatus === 'ALL' || r.status === filterExcelStatus;
-      const matchController = filterController === 'ALL' || r.location === filterController;
-      const matchDate = filterDate === 'ALL' || r.embarkDate === filterDate;
-      const matchTime = filterTime === 'ALL' || r.embarkTime === filterTime;
+      const matchModel = matchesFilter(r.model, filterModel);
+      const matchSector = matchesFilter(r.sectorName, filterSector);
+      const matchExcelStatus = matchesFilter(r.status, filterExcelStatus);
+      const matchController = matchesFilter(r.location, filterController);
+      const matchDate = matchesFilter(r.embarkDate, filterDate);
+      const matchTime = matchesFilter(r.embarkTime, filterTime);
       const matchCarId = !filterCarId || r.carId.toLowerCase().includes(filterCarId.toLowerCase());
-      
-      const sla = getSlaStatus(r);
-      const matchStatus = filterStatus === 'ALL' || 
-        (filterStatus === 'LATE' && sla.isLate) ||
-        (filterStatus === 'NEXT' && sla.text === 'PRÓX. EMB.') ||
-        (filterStatus === 'ONTIME' && sla.text === 'NO PRAZO');
+      const matchStatus = matchesSlaFilter(r, filterStatus);
 
       return matchModel && matchSector && matchStatus && matchExcelStatus && matchCarId && 
              matchController && matchDate && matchTime;
@@ -467,13 +477,13 @@ export default function App() {
   }, [filteredRecords]);
 
   const isAnyFilterActive = useMemo(() => {
-    return filterSector !== 'ALL' || 
-           filterModel !== 'ALL' || 
-           filterStatus !== 'ALL' || 
-           filterExcelStatus !== 'ALL' || 
-           filterController !== 'ALL' || 
-           filterDate !== 'ALL' || 
-           filterTime !== 'ALL' || 
+    return !isAllFilter(filterSector) || 
+           !isAllFilter(filterModel) || 
+           !isAllFilter(filterStatus) || 
+           !isAllFilter(filterExcelStatus) || 
+           !isAllFilter(filterController) || 
+           !isAllFilter(filterDate) || 
+           !isAllFilter(filterTime) || 
            (filterCarId && filterCarId.trim() !== '');
   }, [filterSector, filterModel, filterStatus, filterExcelStatus, filterController, filterDate, filterTime, filterCarId]);
 
@@ -738,12 +748,13 @@ export default function App() {
   const availableDates = useMemo(() => {
     return Array.from(new Set(dbRecords.map(r => r.embarkDate).filter(Boolean))).sort((a, b) => {
       const parseDate = (d: string) => {
+        if (!d) return 0;
         const parts = d.split('/');
         if (parts.length < 3) return 0;
         const [day, month, year] = parts.map(Number);
         return new Date(year, month - 1, day).getTime();
       };
-      return parseDate(b as string) - parseDate(a as string); // Newest first
+      return parseDate(a as string) - parseDate(b as string); // Ascending / chronological order
     });
   }, [dbRecords]);
 
@@ -2851,16 +2862,16 @@ export default function App() {
                   <p className="text-slate-400 text-[10px] sm:text-sm">Exibindo {filteredRecords.length} de {dbRecords.length} veículos.</p>
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto">
-                  {(filterSector !== 'ALL' || filterModel !== 'ALL' || filterController !== 'ALL' || filterDate !== 'ALL' || filterTime !== 'ALL' || filterExcelStatus !== 'ALL' || filterCarId) && (
+                  {isAnyFilterActive && (
                     <button 
                       onClick={() => {
-                        setFilterSector('ALL');
-                        setFilterModel('ALL');
-                        setFilterStatus('ALL');
-                        setFilterExcelStatus('ALL');
-                        setFilterController('ALL');
-                        setFilterDate('ALL');
-                        setFilterTime('ALL');
+                        setFilterSector(['ALL']);
+                        setFilterModel(['ALL']);
+                        setFilterStatus(['ALL']);
+                        setFilterExcelStatus(['ALL']);
+                        setFilterController(['ALL']);
+                        setFilterDate(['ALL']);
+                        setFilterTime(['ALL']);
                         setFilterCarId('');
                       }}
                       className="px-4 py-3 bg-rose-500/10 text-rose-500 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-500/20 transition-all border border-rose-500/20"
@@ -3186,13 +3197,13 @@ export default function App() {
                       {/* Clear Actions */}
                        <button
                         onClick={() => {
-                          setFilterSector('ALL');
-                          setFilterModel('ALL');
-                          setFilterStatus('ALL');
-                          setFilterExcelStatus('ALL');
-                          setFilterController('ALL');
-                          setFilterDate('ALL');
-                          setFilterTime('ALL');
+                          setFilterSector(['ALL']);
+                          setFilterModel(['ALL']);
+                          setFilterStatus(['ALL']);
+                          setFilterExcelStatus(['ALL']);
+                          setFilterController(['ALL']);
+                          setFilterDate(['ALL']);
+                          setFilterTime(['ALL']);
                           setFilterCarId('');
                         }}
                         className="p-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl transition-all shadow-lg shadow-rose-500/20 active:scale-95 flex items-center gap-2 group"
