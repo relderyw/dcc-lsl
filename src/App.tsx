@@ -481,7 +481,7 @@ export default function App() {
   const [controllerSortMode, setControllerSortMode] = useState<'count' | 'value'>('count');
   const [stagnantSortMode, setStagnantSortMode] = useState<'days' | 'value'>('days');
   const [stagnantMinDays, setStagnantMinDays] = useState<number>(0);
-  const [kanbanShift, setKanbanShift] = useState<string[]>(['all']);
+  const [kanbanHours, setKanbanHours] = useState<string[]>(['ALL']);
   const [kanbanSector, setKanbanSector] = useState<string[]>(['all']);
   const [kanbanModels, setKanbanModels] = useState<string[]>([]);
   const [kanbanAssignments, setKanbanAssignments] = useState<Record<string, string[]>>({
@@ -2743,9 +2743,11 @@ export default function App() {
                           
                           if (kanbanModels.length > 0 && !kanbanModels.includes(r.model)) return false;
                           
-                          const isAllKanbanShift = !kanbanShift || kanbanShift.length === 0 || kanbanShift.includes('all');
-                          const shift = getShiftFromTime(r.embarkTime);
-                          if (!isAllKanbanShift && !kanbanShift.includes(shift)) return false;
+                          const isAllKanbanHours = !kanbanHours || kanbanHours.length === 0 || kanbanHours.includes('ALL');
+                          if (!isAllKanbanHours) {
+                            const carHour = (r.embarkTime || '').split(':')[0].padStart(2, '0');
+                            if (!kanbanHours.includes(carHour)) return false;
+                          }
                           
                           return true;
                         }).length}
@@ -2759,52 +2761,102 @@ export default function App() {
                 "p-8 rounded-[3rem] border backdrop-blur-3xl shadow-2xl space-y-8 transition-all",
                 theme === 'dark' ? "bg-slate-900/60 border-white/5 ring-1 ring-white/10" : "bg-white border-slate-200 shadow-slate-200/50"
               )}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+                <div className="grid grid-cols-1 gap-6">
                   <div className="space-y-4">
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Configuração do Turno (Múltiplo)</label>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <label className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] ml-2 flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-indigo-400" />
+                        Seleção de Horários por Turno (Múltiplo)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setKanbanHours(['ALL'])}
+                        className={cn(
+                          "text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl border transition-all",
+                          kanbanHours.includes('ALL') || kanbanHours.length === 0
+                            ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-500/20"
+                            : "bg-bg-surface/5 border-white/10 text-slate-400 hover:text-white"
+                        )}
+                      >
+                        Todas as Horas
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                       {[
-                        { id: 'all', label: 'TODOS', icon: <Activity className="w-4 h-4" /> },
-                        { id: '1', label: '1º TURNO', sub: '06h-16h' },
-                        { id: '2', label: '2º TURNO', sub: '17h-02h' },
-                        { id: '3', label: '3º TURNO', sub: '03h-05h' }
-                      ].map(s => {
-                        const isSelected = kanbanShift.includes(s.id);
+                        { label: '1º TURNO', sub: '06h-16h', hours: ['06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16'] },
+                        { label: '2º TURNO', sub: '17h-02h', hours: ['17', '18', '19', '20', '21', '22', '23', '00', '01', '02'] },
+                        { label: '3º TURNO', sub: '03h-05h', hours: ['03', '04', '05'] }
+                      ].map(group => {
+                        const allGroupHoursSelected = group.hours.every(h => kanbanHours.includes(h));
+                        const someGroupHoursSelected = group.hours.some(h => kanbanHours.includes(h));
+
                         return (
-                          <button
-                            key={s.id}
-                            type="button"
-                            onClick={() => {
-                              if (s.id === 'all') {
-                                setKanbanShift(['all']);
-                              } else {
-                                const isAllSelected = kanbanShift.includes('all');
-                                if (isAllSelected) {
-                                  setKanbanShift([s.id]);
-                                } else if (kanbanShift.includes(s.id)) {
-                                  const next = kanbanShift.filter(x => x !== s.id);
-                                  if (next.length === 0) {
-                                    setKanbanShift(['all']);
+                          <div key={group.label} className={cn(
+                            "p-3.5 rounded-2xl border transition-all space-y-2.5 flex flex-col justify-between",
+                            someGroupHoursSelected && !kanbanHours.includes('ALL')
+                              ? (theme === 'dark' ? "bg-indigo-950/30 border-indigo-500/30" : "bg-indigo-50/50 border-indigo-200")
+                              : (theme === 'dark' ? "bg-bg-surface/5 border-white/5" : "bg-slate-50 border-slate-200")
+                          )}>
+                            <div className="flex items-center justify-between">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  let next: string[];
+                                  if (allGroupHoursSelected && !kanbanHours.includes('ALL')) {
+                                    next = kanbanHours.filter(h => !group.hours.includes(h));
+                                    if (next.length === 0) next = ['ALL'];
                                   } else {
-                                    setKanbanShift(next);
+                                    const cleaned = kanbanHours.filter(h => h !== 'ALL');
+                                    next = Array.from(new Set([...cleaned, ...group.hours]));
                                   }
-                                } else {
-                                  setKanbanShift([...kanbanShift, s.id]);
-                                }
-                              }
-                            }}
-                            className={cn(
-                              "flex-1 min-w-[120px] p-4 rounded-2xl border transition-all text-left group",
-                              isSelected 
-                                ? "bg-indigo-600 border-indigo-500 text-white shadow-xl shadow-indigo-500/20" 
-                                : "bg-bg-surface/5 border-white/5 text-slate-400 hover:border-indigo-500/30"
-                            )}
-                          >
-                            <div className="flex flex-col">
-                              <span className="text-xs font-black uppercase tracking-widest">{s.label}</span>
-                              {s.sub && <span className={cn("text-[9px] font-bold opacity-60", isSelected ? "text-white" : "text-slate-500")}>{s.sub}</span>}
+                                  setKanbanHours(next);
+                                }}
+                                className={cn(
+                                  "text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-xl border transition-all text-left flex items-center gap-2 group",
+                                  allGroupHoursSelected && !kanbanHours.includes('ALL')
+                                    ? "bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-500/20"
+                                    : "bg-bg-surface/10 border-white/10 text-slate-300 hover:border-indigo-500/30"
+                                )}
+                                title="Selecionar/deselecionar todas as horas deste turno"
+                              >
+                                <span>{group.label}</span>
+                                <span className="text-[9px] font-medium opacity-70">({group.sub})</span>
+                              </button>
                             </div>
-                          </button>
+
+                            <div className="flex flex-wrap gap-1.5">
+                              {group.hours.map(h => {
+                                const isHourActive = !kanbanHours.includes('ALL') && kanbanHours.includes(h);
+                                return (
+                                  <button
+                                    key={h}
+                                    type="button"
+                                    onClick={() => {
+                                      let next: string[];
+                                      if (kanbanHours.includes('ALL')) {
+                                        next = [h];
+                                      } else if (kanbanHours.includes(h)) {
+                                        next = kanbanHours.filter(x => x !== h);
+                                        if (next.length === 0) next = ['ALL'];
+                                      } else {
+                                        next = [...kanbanHours, h];
+                                      }
+                                      setKanbanHours(next);
+                                    }}
+                                    className={cn(
+                                      "px-2.5 py-1 rounded-lg text-[11px] font-black font-mono transition-all border",
+                                      isHourActive
+                                        ? "bg-indigo-500 border-indigo-400 text-white shadow-md shadow-indigo-500/30 scale-105"
+                                        : (theme === 'dark' ? "bg-black/30 border-white/10 text-slate-400 hover:text-white hover:border-white/20" : "bg-white border-slate-200 text-slate-700 hover:border-slate-300")
+                                    )}
+                                  >
+                                    {h}h
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
                         );
                       })}
                     </div>
@@ -2882,9 +2934,11 @@ export default function App() {
                       
                       if (kanbanModels.length > 0 && !kanbanModels.includes(r.model)) return false;
                       
-                      const isAllKanbanShift = !kanbanShift || kanbanShift.length === 0 || kanbanShift.includes('all');
-                      const shift = getShiftFromTime(r.embarkTime);
-                      if (!isAllKanbanShift && !kanbanShift.includes(shift)) return false;
+                      const isAllKanbanHours = !kanbanHours || kanbanHours.length === 0 || kanbanHours.includes('ALL');
+                      if (!isAllKanbanHours) {
+                        const carHour = (r.embarkTime || '').split(':')[0].padStart(2, '0');
+                        if (!kanbanHours.includes(carHour)) return false;
+                      }
                       
                       return true;
                     })
@@ -2943,9 +2997,11 @@ export default function App() {
                       
                       if (kanbanModels.length > 0 && !kanbanModels.includes(r.model)) return false;
                       
-                      const isAllKanbanShift = !kanbanShift || kanbanShift.length === 0 || kanbanShift.includes('all');
-                      const shift = getShiftFromTime(r.embarkTime);
-                      if (!isAllKanbanShift && !kanbanShift.includes(shift)) return false;
+                      const isAllKanbanHours = !kanbanHours || kanbanHours.length === 0 || kanbanHours.includes('ALL');
+                      if (!isAllKanbanHours) {
+                        const carHour = (r.embarkTime || '').split(':')[0].padStart(2, '0');
+                        if (!kanbanHours.includes(carHour)) return false;
+                      }
                       
                       return true;
                     }).length === 0 && (
