@@ -160,6 +160,15 @@ function matchesSlaFilter(carRecord: CarRecord, filterVal: string[] | string): b
   return matched;
 }
 
+function getShiftFromTime(embarkTime: string | undefined): string {
+  if (!embarkTime) return '3';
+  const hour = parseInt(embarkTime.split(':')[0]);
+  if (isNaN(hour)) return '3';
+  if (hour >= 6 && hour <= 16) return '1';
+  if (hour >= 17 || hour <= 2) return '2';
+  return '3'; // 3, 4, 5
+}
+
 function getStatusBadgeStyle(status: string | undefined, theme: 'light' | 'dark') {
   const s = (status || '').toUpperCase().trim();
   if (s.includes('FORMATADO')) {
@@ -472,8 +481,8 @@ export default function App() {
   const [controllerSortMode, setControllerSortMode] = useState<'count' | 'value'>('count');
   const [stagnantSortMode, setStagnantSortMode] = useState<'days' | 'value'>('days');
   const [stagnantMinDays, setStagnantMinDays] = useState<number>(0);
-  const [kanbanShift, setKanbanShift] = useState<string>('all');
-  const [kanbanSector, setKanbanSector] = useState<string>('all');
+  const [kanbanShift, setKanbanShift] = useState<string[]>(['all']);
+  const [kanbanSector, setKanbanSector] = useState<string[]>(['all']);
   const [kanbanModels, setKanbanModels] = useState<string[]>([]);
   const [kanbanAssignments, setKanbanAssignments] = useState<Record<string, string[]>>({
     'Operador 1': [],
@@ -2728,13 +2737,16 @@ export default function App() {
                       <span className="text-3xl font-black text-white tabular-nums">
                         {dbRecords.filter(r => {
                           if (r.status === 'EMBARCADO') return false;
-                          if (kanbanSector !== 'all' && r.sectorName !== kanbanSector) return false;
+                          
+                          const isAllKanbanSector = !kanbanSector || kanbanSector.length === 0 || kanbanSector.includes('all');
+                          if (!isAllKanbanSector && !kanbanSector.includes(r.sectorName)) return false;
+                          
                           if (kanbanModels.length > 0 && !kanbanModels.includes(r.model)) return false;
-                          const hour = parseInt((r.embarkTime || '0').split(':')[0]);
-                          let shift = '3';
-                          if (hour >= 7 && hour <= 16) shift = '1';
-                          else if (hour >= 17 || hour <= 2) shift = '2';
-                          if (kanbanShift !== 'all' && shift !== kanbanShift) return false;
+                          
+                          const isAllKanbanShift = !kanbanShift || kanbanShift.length === 0 || kanbanShift.includes('all');
+                          const shift = getShiftFromTime(r.embarkTime);
+                          if (!isAllKanbanShift && !kanbanShift.includes(shift)) return false;
+                          
                           return true;
                         }).length}
                       </span>
@@ -2749,48 +2761,66 @@ export default function App() {
               )}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
                   <div className="space-y-4">
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Configuração do Turno</label>
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Configuração do Turno (Múltiplo)</label>
                     <div className="flex flex-wrap gap-2">
                       {[
                         { id: 'all', label: 'TODOS', icon: <Activity className="w-4 h-4" /> },
-                        { id: '1', label: '1º TURNO', sub: '07h-16h' },
+                        { id: '1', label: '1º TURNO', sub: '06h-16h' },
                         { id: '2', label: '2º TURNO', sub: '17h-02h' },
-                        { id: '3', label: '3º TURNO', sub: '03h-06h' }
-                      ].map(s => (
-                        <button
-                          key={s.id}
-                          onClick={() => setKanbanShift(s.id)}
-                          className={cn(
-                            "flex-1 min-w-[120px] p-4 rounded-2xl border transition-all text-left group",
-                            kanbanShift === s.id 
-                              ? "bg-indigo-600 border-indigo-500 text-white shadow-xl shadow-indigo-500/20" 
-                              : "bg-bg-surface/5 border-white/5 text-slate-400 hover:border-indigo-500/30"
-                          )}
-                        >
-                          <div className="flex flex-col">
-                            <span className="text-xs font-black uppercase tracking-widest">{s.label}</span>
-                            {s.sub && <span className={cn("text-[9px] font-bold opacity-60", kanbanShift === s.id ? "text-white" : "text-slate-500")}>{s.sub}</span>}
-                          </div>
-                        </button>
-                      ))}
+                        { id: '3', label: '3º TURNO', sub: '03h-05h' }
+                      ].map(s => {
+                        const isSelected = kanbanShift.includes(s.id);
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => {
+                              if (s.id === 'all') {
+                                setKanbanShift(['all']);
+                              } else {
+                                const isAllSelected = kanbanShift.includes('all');
+                                if (isAllSelected) {
+                                  setKanbanShift([s.id]);
+                                } else if (kanbanShift.includes(s.id)) {
+                                  const next = kanbanShift.filter(x => x !== s.id);
+                                  if (next.length === 0) {
+                                    setKanbanShift(['all']);
+                                  } else {
+                                    setKanbanShift(next);
+                                  }
+                                } else {
+                                  setKanbanShift([...kanbanShift, s.id]);
+                                }
+                              }
+                            }}
+                            className={cn(
+                              "flex-1 min-w-[120px] p-4 rounded-2xl border transition-all text-left group",
+                              isSelected 
+                                ? "bg-indigo-600 border-indigo-500 text-white shadow-xl shadow-indigo-500/20" 
+                                : "bg-bg-surface/5 border-white/5 text-slate-400 hover:border-indigo-500/30"
+                            )}
+                          >
+                            <div className="flex flex-col">
+                              <span className="text-xs font-black uppercase tracking-widest">{s.label}</span>
+                              {s.sub && <span className={cn("text-[9px] font-bold opacity-60", isSelected ? "text-white" : "text-slate-500")}>{s.sub}</span>}
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Setor de Origem</label>
-                    <select 
+                  <div className="space-y-1.5 flex flex-col justify-end">
+                    <CustomSelect
+                      label="Setor de Origem"
                       value={kanbanSector}
-                      onChange={(e) => setKanbanSector(e.target.value)}
-                      className={cn(
-                        "w-full p-4 rounded-2xl border-2 transition-all text-sm font-black focus:ring-4",
-                        theme === 'dark' ? "bg-slate-950 border-white/5 text-slate-200 focus:ring-indigo-500/20" : "bg-slate-50 border-slate-200 text-slate-900"
-                      )}
-                    >
-                      <option value="all">TODOS OS SETORES</option>
-                      {Array.from(new Set(dbRecords.map(r => r.sectorName))).filter(Boolean).sort().map(s => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
+                      onChange={setKanbanSector}
+                      options={[
+                        { value: 'all', label: 'TODOS OS SETORES' },
+                        ...Array.from(new Set(dbRecords.map(r => r.sectorName))).filter(Boolean).sort().map(s => ({ value: s as string, label: s as string }))
+                      ]}
+                      theme={theme}
+                    />
                   </div>
                 </div>
 
@@ -2846,13 +2876,16 @@ export default function App() {
                   {dbRecords
                     .filter(r => {
                       if (r.status === 'EMBARCADO') return false;
-                      if (kanbanSector !== 'all' && r.sectorName !== kanbanSector) return false;
+                      
+                      const isAllKanbanSector = !kanbanSector || kanbanSector.length === 0 || kanbanSector.includes('all');
+                      if (!isAllKanbanSector && !kanbanSector.includes(r.sectorName)) return false;
+                      
                       if (kanbanModels.length > 0 && !kanbanModels.includes(r.model)) return false;
-                      const hour = parseInt((r.embarkTime || '0').split(':')[0]);
-                      let shift = '3';
-                      if (hour >= 7 && hour <= 16) shift = '1';
-                      else if (hour >= 17 || hour <= 2) shift = '2';
-                      if (kanbanShift !== 'all' && shift !== kanbanShift) return false;
+                      
+                      const isAllKanbanShift = !kanbanShift || kanbanShift.length === 0 || kanbanShift.includes('all');
+                      const shift = getShiftFromTime(r.embarkTime);
+                      if (!isAllKanbanShift && !kanbanShift.includes(shift)) return false;
+                      
                       return true;
                     })
                     .sort((a, b) => (a.location || '').localeCompare(b.location || '')) // LINEAR SORTING
@@ -2870,7 +2903,7 @@ export default function App() {
                         
                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
                           <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Veículo</span>
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Carro</span>
                             <span className="text-sm font-black text-white">{r.carId}</span>
                           </div>
                           <div className="flex flex-col">
@@ -2878,16 +2911,16 @@ export default function App() {
                             <span className="text-sm font-black text-slate-300">{r.model}</span>
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Localização</span>
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Locação</span>
                             <div className="flex items-center gap-2">
                               <MapPin className="w-3.5 h-3.5 text-indigo-400" />
                               <span className="text-sm font-black text-indigo-400 uppercase tracking-widest">{r.location || 'SEM LOC.'}</span>
                             </div>
                           </div>
                           <div className="flex flex-col items-end">
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Valor</span>
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Data Pre</span>
                             <span className="text-sm font-black text-emerald-400">
-                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(r.VALOR_TOTAL_CARRO || 0)}
+                              {r.embarkDate} {r.embarkTime}
                             </span>
                           </div>
                         </div>
@@ -2904,13 +2937,16 @@ export default function App() {
                   
                   {dbRecords.filter(r => {
                       if (r.status === 'EMBARCADO') return false;
-                      if (kanbanSector !== 'all' && r.sectorName !== kanbanSector) return false;
+                      
+                      const isAllKanbanSector = !kanbanSector || kanbanSector.length === 0 || kanbanSector.includes('all');
+                      if (!isAllKanbanSector && !kanbanSector.includes(r.sectorName)) return false;
+                      
                       if (kanbanModels.length > 0 && !kanbanModels.includes(r.model)) return false;
-                      const hour = parseInt((r.embarkTime || '0').split(':')[0]);
-                      let shift = '3';
-                      if (hour >= 7 && hour <= 16) shift = '1';
-                      else if (hour >= 17 || hour <= 2) shift = '2';
-                      if (kanbanShift !== 'all' && shift !== kanbanShift) return false;
+                      
+                      const isAllKanbanShift = !kanbanShift || kanbanShift.length === 0 || kanbanShift.includes('all');
+                      const shift = getShiftFromTime(r.embarkTime);
+                      if (!isAllKanbanShift && !kanbanShift.includes(shift)) return false;
+                      
                       return true;
                     }).length === 0 && (
                       <div className="py-20 text-center opacity-30">
@@ -3527,6 +3563,7 @@ export default function App() {
                                setSelectedBayId={setSelectedBayId}
                                setHoveredCar={setHoveredCar}
                                filters={filters}
+                               cardBadgeDisplayMode={cardBadgeDisplayMode}
                              />
                           </motion.div>
                         ))}
@@ -3648,7 +3685,8 @@ export default function App() {
                                     isDrawing={isDrawing}
                                     mode={mode}
                                     setSelectedBayId={setSelectedBayId}
-                                      cardBadgeDisplayMode={cardBadgeDisplayMode}
+                                    setHoveredCar={setHoveredCar}
+                                    cardBadgeDisplayMode={cardBadgeDisplayMode}
                                     filters={filters}
                                   />
                                 </div>
