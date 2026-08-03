@@ -71,6 +71,7 @@ interface Bay {
   currentCars: number; // Manual override if not synced
   sectors: string[];
   sector?: string;
+  sectorCheck?: boolean; // Se ativo, considera setor na checagem de cor/alerta
   x: number; // percentage 0-100
   y: number; // percentage 0-100
   width: number; // percentage 0-100
@@ -251,7 +252,8 @@ const BayCard = React.memo(({
               }
             }
             
-            const isWrongSector = car && displayBay.sector && car.sectorName !== displayBay.sector;
+            // Só marca setor errado se a baia tiver sectorCheck ativado
+            const isWrongSector = car && displayBay.sector && displayBay.sectorCheck && car.sectorName !== displayBay.sector;
             
             return (
               <div 
@@ -282,10 +284,10 @@ const BayCard = React.memo(({
                   displayBay.orientation === 'horizontal' ? "w-full flex-1" : "flex-1 h-full",
                   car 
                     ? (theme === 'dark'
-                        ? (isWrongSector ? "bg-gradient-to-r from-fuchsia-600/90 to-purple-600/90 border-fuchsia-500/50" : color === 'rose' ? "bg-gradient-to-r from-rose-600/90 to-red-600/90 border-rose-500/50" : color === 'amber' ? "bg-gradient-to-r from-amber-600/90 to-orange-500/90 border-amber-500/50" : "bg-gradient-to-r from-emerald-600/90 to-teal-500/90 border-emerald-500/50")
+                        ? (isWrongSector ? "bg-gradient-to-r from-amber-700/80 to-orange-800/80 border-amber-600/50" : color === 'rose' ? "bg-gradient-to-r from-rose-700/85 to-red-700/85 border-rose-600/50" : color === 'amber' ? "bg-gradient-to-r from-amber-600/85 to-orange-600/85 border-amber-500/50" : "bg-gradient-to-r from-emerald-700/85 to-teal-600/85 border-emerald-600/50")
                         : (isWrongSector 
-                            ? "bg-amber-100/60 border-amber-300 shadow-md" 
-                            : "bg-white border-slate-300 shadow-xl shadow-slate-400/30")
+                            ? "bg-amber-50 border-amber-300 shadow-md" 
+                            : "bg-white border-slate-200 shadow-sm")
                       )
                     : "bg-transparent border-transparent", 
                   car && "hover:scale-[1.03] hover:shadow-2xl hover:z-10 hover:brightness-110 cursor-help"
@@ -306,11 +308,11 @@ const BayCard = React.memo(({
                     <div className={cn("w-full h-full flex px-1.5 gap-1", displayBay.orientation === 'horizontal' ? "flex-col items-center justify-center py-1" : "flex-row items-center justify-between")}>
                       <div className={cn("flex items-center min-w-0 flex-1 gap-1.5", displayBay.orientation === 'horizontal' && "justify-center mb-0.5 w-full")}>
                         {isWrongSector ? (
-                          <AlertTriangle className={cn("shrink-0 animate-pulse", displayBay.orientation === 'horizontal' ? "w-4 h-4" : "w-3 h-3", theme === 'dark' ? "text-white" : "text-amber-500")} />
+                          <AlertTriangle className={cn("shrink-0 animate-pulse", displayBay.orientation === 'horizontal' ? "w-4 h-4" : "w-3 h-3", theme === 'dark' ? "text-amber-300" : "text-amber-500")} />
                         ) : slaInfo?.isLate ? (
-                          <Clock className={cn("shrink-0", displayBay.orientation === 'horizontal' ? "w-4 h-4" : "w-3 h-3", theme === 'dark' ? "text-white/80" : "text-rose-400")} />
+                          <Clock className={cn("shrink-0", displayBay.orientation === 'horizontal' ? "w-4 h-4" : "w-3 h-3", theme === 'dark' ? "text-rose-300" : "text-rose-500")} />
                         ) : (
-                          <div className={cn("rounded-full shrink-0", displayBay.orientation === 'horizontal' ? "w-2.5 h-2.5" : "w-1.5 h-1.5", theme === 'dark' ? "bg-bg-surface/40" : "bg-emerald-400/60")} />
+                          <div className={cn("rounded-full shrink-0", displayBay.orientation === 'horizontal' ? "w-2.5 h-2.5" : "w-1.5 h-1.5", theme === 'dark' ? "bg-emerald-400/50" : "bg-emerald-400/70")} />
                         )}
                         {(!displayBay.orientation || displayBay.orientation === 'vertical') && (
                           <span className={cn("font-mono font-bold leading-none truncate text-[14px] tracking-tight", theme === 'dark' ? "text-white drop-shadow-sm" : "text-slate-900")}>
@@ -588,19 +590,24 @@ export default function App() {
     }
   };
 
-  // Auto-refresh logic
+  // Auto-refresh logic — usando ref para evitar stale closure
+  const fetchDataRef = useRef(fetchData);
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    fetchDataRef.current = fetchData;
+  });
 
-    if (autoRefresh) {
-      fetchData(); // Initial fetch
-      interval = setInterval(fetchData, 30000); // Every 30s
-    }
+  useEffect(() => {
+    if (!autoRefresh) return;
 
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [autoRefresh, localExcelPath]);
+    // Dispara imediatamente ao ativar
+    fetchDataRef.current();
+
+    const interval = setInterval(() => {
+      fetchDataRef.current();
+    }, 30000); // A cada 30s
+
+    return () => clearInterval(interval);
+  }, [autoRefresh]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -950,7 +957,7 @@ export default function App() {
   return (
     <div className={cn(
       "flex h-screen w-screen font-sans overflow-hidden relative",
-      theme === 'dark' ? "dark-theme bg-slate-950 text-slate-200" : "bg-bg-main text-slate-900"
+      theme === 'dark' ? "dark-theme bg-[#0d1117] text-[#e6edf3]" : "bg-bg-main text-slate-800"
     )}>
       {/* Mobile Backdrop */}
       <AnimatePresence>
@@ -971,44 +978,44 @@ export default function App() {
             initial={{ x: -450 }}
             animate={{ x: 0 }}
             exit={{ x: -450 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 220 }}
             className={cn(
-              "w-80 shrink-0 h-full border-r flex flex-col z-50 transition-colors duration-300",
+              "w-[17.5rem] shrink-0 h-full border-r flex flex-col z-50 transition-colors duration-300",
               "fixed lg:relative inset-y-0 left-0",
               theme === 'dark'
-                ? "bg-slate-900 border-white/5 shadow-2xl shadow-black/40"
-                : "bg-white border-slate-200 shadow-xl shadow-slate-200/60"
+                ? "bg-[#161b22] border-white/[0.07] shadow-2xl shadow-black/50"
+                : "bg-white border-slate-200/80 shadow-xl shadow-slate-200/50"
             )}
           >
             <div className={cn(
-              "px-6 py-8 border-b flex flex-col gap-6 transition-colors duration-300 relative overflow-hidden",
-              theme === 'dark' ? "border-white/5" : "border-slate-200"
+              "px-5 py-6 border-b flex flex-col gap-5 transition-colors duration-300 relative overflow-hidden",
+              theme === 'dark' ? "border-white/[0.06]" : "border-slate-100"
             )}>
               {/* Decorative background glow for sidebar header */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[60px] rounded-full -mr-16 -mt-16" />
+              <div className="absolute top-0 right-0 w-28 h-28 bg-[#4d9de0]/8 blur-[50px] rounded-full -mr-14 -mt-14" />
               
               <div className="flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className={cn(
-                    "w-12 h-12 rounded-full overflow-hidden flex items-center justify-center border transition-all duration-500 bg-white shrink-0",
+                    "w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center border transition-all duration-500 bg-white shrink-0",
                     theme === 'dark' 
-                      ? "border-white/10 shadow-xl shadow-indigo-500/10" 
-                      : "border-slate-200 shadow-lg shadow-slate-200/50"
+                      ? "border-white/10 shadow-lg" 
+                      : "border-slate-200 shadow-md"
                   )}>
-                    <img src={LOGO_URL} alt="Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
+                    <img src={LOGO_URL} alt="Logo" className="w-7 h-7 object-contain" referrerPolicy="no-referrer" />
                   </div>
                   <div className="flex flex-col shrink-0">
                     <span className={cn(
-                      "font-black text-[9px] uppercase tracking-[0.25em] leading-none mb-0.5",
-                      theme === 'dark' ? "text-slate-400" : "text-slate-500"
+                      "font-semibold text-[9px] uppercase tracking-[0.22em] leading-none mb-0.5",
+                      theme === 'dark' ? "text-[#768390]" : "text-slate-400"
                     )}>
                       Logística
                     </span>
                     <h1 className={cn(
-                      "font-black text-[19px] tracking-tight leading-none transition-colors duration-300",
-                      theme === 'dark' ? "text-white" : "text-slate-900"
+                      "font-bold text-[17px] tracking-tight leading-none transition-colors duration-300",
+                      theme === 'dark' ? "text-[#e6edf3]" : "text-slate-900"
                     )}>
-                      DCC <span className="text-indigo-600">Picking</span>
+                      DCC <span className={theme === 'dark' ? "text-[#4d9de0]" : "text-blue-600"}>Picking</span>
                     </h1>
                   </div>
                 </div>
@@ -1016,125 +1023,66 @@ export default function App() {
                   <button 
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                     className={cn(
-                      "p-2 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95",
+                      "p-1.5 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95",
                       theme === 'dark' 
-                        ? "bg-bg-surface/5 hover:bg-bg-surface/10 text-amber-400 border border-white/10" 
+                        ? "bg-white/[0.05] hover:bg-white/[0.09] text-amber-400 border border-white/[0.08]" 
                         : "bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200"
                     )}
                   >
-                    {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                    {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
                   </button>
                   <button 
                     onClick={() => setSidebarOpen(false)}
                     className={cn(
-                      "p-2 rounded-xl transition-all hover:scale-110 active:scale-95 group/collapse",
-                      theme === 'dark' ? "bg-bg-surface/5 hover:bg-bg-surface/10 text-slate-400 hover:text-white border border-white/10" : "bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 border border-slate-200"
+                      "p-1.5 rounded-lg transition-all hover:scale-110 active:scale-95 group/collapse",
+                      theme === 'dark' ? "bg-white/[0.05] hover:bg-white/[0.09] text-[#768390] hover:text-[#e6edf3] border border-white/[0.08]" : "bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 border border-slate-200"
                     )}
                     title="Retrair Painel"
                   >
-                    <ChevronLeft className="w-5 h-5 group-hover/collapse:-translate-x-0.5 transition-transform" />
+                    <ChevronLeft className="w-4 h-4 group-hover/collapse:-translate-x-0.5 transition-transform" />
                   </button>
                 </div>
               </div>
             </div>
-                       <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
+            <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-5 space-y-6">
               {/* Navigation Group */}
-              <div className="space-y-3">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] pl-2">Navegação</span>
+              <div className="space-y-2">
+                <span className={cn("text-[9.5px] font-semibold uppercase tracking-[0.18em] pl-1", theme === 'dark' ? "text-[#768390]" : "text-slate-400")}>Navegação</span>
                 
                 <div className={cn(
-                  "p-1.5 rounded-[2rem] flex flex-col gap-1 transition-all duration-300",
-                  theme === 'dark' ? "bg-black/40 border border-white/5 shadow-inner" : "bg-slate-100/50 border border-slate-200/60 shadow-inner"
+                  "p-1 rounded-xl flex flex-col gap-0.5 transition-all duration-300",
+                  theme === 'dark' ? "bg-black/30 border border-white/[0.05]" : "bg-slate-50 border border-slate-200/70"
                 )}>
-                  <button
-                    onClick={() => setMode('dashboard')}
-                    className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-[11px] font-bold transition-all",
-                      mode === 'dashboard' 
-                        ? (theme === 'dark' ? "bg-slate-800 text-white shadow-lg ring-1 ring-white/10" : "bg-white text-slate-900 shadow-xl shadow-slate-200/60 ring-1 ring-slate-100") 
-                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40" : "text-slate-500 hover:text-slate-900 hover:bg-white/60")
-                    )}
-                  >
-                    <div className={cn(
-                      "p-2 rounded-xl transition-colors",
-                      mode === 'dashboard' ? "bg-indigo-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500")
-                    )}>
-                      <LayoutDashboard className="w-4 h-4" />
-                    </div>
-                    Dashboard Geral
-                  </button>
-
-                  <button
-                    onClick={() => setMode('view')}
-                    className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-[11px] font-bold transition-all",
-                      mode === 'view' 
-                        ? (theme === 'dark' ? "bg-slate-800 text-white shadow-lg ring-1 ring-white/10" : "bg-white text-slate-900 shadow-xl shadow-slate-200/60 ring-1 ring-slate-100") 
-                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40" : "text-slate-500 hover:text-slate-900 hover:bg-white/60")
-                    )}
-                  >
-                    <div className={cn(
-                      "p-2 rounded-xl transition-colors",
-                      mode === 'view' ? "bg-indigo-600 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500")
-                    )}>
-                      <MousePointer2 className="w-4 h-4" />
-                    </div>
-                    Monitoramento
-                  </button>
-                  
-                  <button
-                    onClick={() => setMode('database')}
-                    className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-[11px] font-bold transition-all",
-                      mode === 'database' 
-                        ? (theme === 'dark' ? "bg-slate-800 text-white shadow-lg ring-1 ring-white/10" : "bg-white text-slate-900 shadow-xl shadow-slate-200/60 ring-1 ring-slate-100") 
-                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40" : "text-slate-600 hover:text-slate-900 hover:bg-white/60")
-                    )}
-                  >
-                    <div className={cn(
-                      "p-2 rounded-xl transition-colors",
-                      mode === 'database' ? "bg-blue-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500")
-                    )}>
-                      <Database className="w-4 h-4" />
-                    </div>
-                    Base de Dados
-                  </button>
-
-                  <button
-                    onClick={() => setMode('kanban')}
-                    className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-[11px] font-bold transition-all",
-                      mode === 'kanban' 
-                        ? (theme === 'dark' ? "bg-slate-800 text-white shadow-lg ring-1 ring-white/10" : "bg-white text-slate-900 shadow-xl shadow-slate-200/60 ring-1 ring-slate-100") 
-                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40" : "text-slate-600 hover:text-slate-900 hover:bg-white/60")
-                    )}
-                  >
-                    <div className={cn(
-                      "p-2 rounded-xl transition-colors",
-                      mode === 'kanban' ? "bg-indigo-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500")
-                    )}>
-                      <Trello className="w-4 h-4" />
-                    </div>
-                    Kanban Logístico
-                  </button>
-
-                  <button
-                    onClick={() => setMode('edit')}
-                    className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-2xl text-[11px] font-bold transition-all",
-                      mode === 'edit' 
-                        ? (theme === 'dark' ? "bg-slate-800 text-white shadow-lg ring-1 ring-white/10" : "bg-white text-slate-900 shadow-xl shadow-slate-200/60 ring-1 ring-slate-100") 
-                        : (theme === 'dark' ? "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40" : "text-slate-600 hover:text-slate-900 hover:bg-white/60")
-                    )}
-                  >
-                    <div className={cn(
-                      "p-2 rounded-xl transition-colors",
-                      mode === 'edit' ? "bg-amber-500 text-white" : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500")
-                    )}>
-                      <Settings2 className="w-4 h-4" />
-                    </div>
-                    Editar Layout
-                  </button>
+                  {([
+                    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, color: 'bg-[#4d9de0]' },
+                    { id: 'view', label: 'Monitoramento', icon: MousePointer2, color: 'bg-[#4d9de0]' },
+                    { id: 'database', label: 'Base de Dados', icon: Database, color: 'bg-blue-500' },
+                    { id: 'kanban', label: 'Kanban', icon: Trello, color: 'bg-violet-500' },
+                    { id: 'edit', label: 'Editar Layout', icon: Settings2, color: 'bg-amber-500' },
+                  ] as const).map(({ id, label, icon: Icon, color }) => (
+                    <button
+                      key={id}
+                      onClick={() => setMode(id as Mode)}
+                      className={cn(
+                        "flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11.5px] font-medium transition-all",
+                        mode === id 
+                          ? (theme === 'dark' 
+                              ? "bg-white/[0.07] text-[#e6edf3] shadow-sm" 
+                              : "bg-white text-slate-900 shadow-sm ring-1 ring-slate-100") 
+                          : (theme === 'dark' 
+                              ? "text-[#768390] hover:text-[#adbac7] hover:bg-white/[0.04]" 
+                              : "text-slate-500 hover:text-slate-800 hover:bg-white/70")
+                      )}
+                    >
+                      <div className={cn(
+                        "w-6 h-6 rounded-md flex items-center justify-center transition-colors shrink-0",
+                        mode === id ? color + " text-white" : (theme === 'dark' ? "bg-white/[0.06] text-[#768390]" : "bg-slate-100 text-slate-400")
+                      )}>
+                        <Icon className="w-3.5 h-3.5" />
+                      </div>
+                      {label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -1439,8 +1387,8 @@ export default function App() {
                         value={selectedBay.sector || ''}
                         onChange={(e) => updateBay(selectedBay.id, { sector: e.target.value })}
                         className={cn(
-                          "w-full border rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all",
-                          theme === 'dark' ? "bg-slate-900 border-slate-700 text-white" : "bg-bg-surface border-slate-300 text-slate-900"
+                          "w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all",
+                          theme === 'dark' ? "bg-[#0d1117] border-white/10 text-[#e6edf3] placeholder:text-white/20" : "bg-bg-surface border-slate-200 text-slate-900"
                         )}
                         placeholder="Selecione ou digite o Setor..."
                       />
@@ -1450,6 +1398,47 @@ export default function App() {
                         ))}
                       </datalist>
                     </div>
+
+                    {/* Toggle: Considerar Setor na Checagem */}
+                    <button
+                      type="button"
+                      onClick={() => updateBay(selectedBay.id, { sectorCheck: !selectedBay.sectorCheck })}
+                      className={cn(
+                        "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border transition-all duration-200",
+                        selectedBay.sectorCheck
+                          ? (theme === 'dark'
+                              ? "bg-amber-900/25 border-amber-600/40 text-amber-300"
+                              : "bg-amber-50 border-amber-300 text-amber-700")
+                          : (theme === 'dark'
+                              ? "bg-white/[0.03] border-white/[0.07] text-white/30 hover:bg-white/[0.06]"
+                              : "bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100")
+                      )}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <AlertTriangle className={cn("w-3.5 h-3.5 shrink-0", selectedBay.sectorCheck ? "" : "opacity-40")} />
+                        <div className="text-left">
+                          <div className="text-[11px] font-semibold leading-tight">Checagem de Setor</div>
+                          <div className={cn("text-[10px] leading-tight mt-0.5", selectedBay.sectorCheck ? "opacity-70" : "opacity-50")}>
+                            {selectedBay.sectorCheck ? "Alertas de setor ATIVOS" : "Apenas data/hora"}
+                          </div>
+                        </div>
+                      </div>
+                      {/* Toggle visual */}
+                      <div className={cn(
+                        "relative w-9 h-5 rounded-full transition-all duration-200 shrink-0",
+                        selectedBay.sectorCheck
+                          ? (theme === 'dark' ? "bg-amber-500" : "bg-amber-400")
+                          : (theme === 'dark' ? "bg-white/10" : "bg-slate-200")
+                      )}>
+                        <div className={cn(
+                          "absolute top-0.5 w-4 h-4 rounded-full shadow transition-all duration-200",
+                          selectedBay.sectorCheck
+                            ? "left-[calc(100%-18px)] bg-white"
+                            : "left-0.5 bg-white/60"
+                        )} />
+                      </div>
+                    </button>
+
 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
@@ -1582,17 +1571,17 @@ export default function App() {
                       </div>
                     </div>
                     
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {carsInSelectedBay.length > 0 ? (
                         carsInSelectedBay.map(car => {
-                          const isWrongSector = selectedBay.sector && car.sectorName !== selectedBay.sector;
+                          const isWrongSector = selectedBay.sectorCheck && selectedBay.sector && car.sectorName !== selectedBay.sector;
                           return (
                           <div 
                             key={car.carId} 
                             className={cn(
-                              "p-4 rounded-xl border flex items-center justify-between group transition-all duration-300",
-                              theme === 'dark' ? "bg-slate-800/50 border-slate-700/50 hover:bg-slate-800" : "bg-bg-surface border-slate-200 hover:bg-slate-50 shadow-sm",
-                              isWrongSector && (theme === 'dark' ? "border-fuchsia-500/50 bg-fuchsia-500/10" : "border-fuchsia-500 border bg-fuchsia-50")
+                              "p-3.5 rounded-xl border flex items-center justify-between group transition-all duration-200",
+                              theme === 'dark' ? "bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06]" : "bg-bg-surface border-slate-100 hover:bg-slate-50 shadow-sm",
+                              isWrongSector && (theme === 'dark' ? "border-amber-500/40 bg-amber-900/20" : "border-amber-400 border bg-amber-50")
                             )}
                           >
                             <div className="space-y-1">
@@ -1715,7 +1704,7 @@ export default function App() {
         {mode === 'dashboard' ? (
           <div className={cn(
             "flex-1 p-3 sm:p-6 lg:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-slate-950" : "bg-bg-main",
+            theme === 'dark' ? "bg-[#0d1117]" : "bg-bg-main",
             !sidebarOpen && "pl-16 sm:pl-28"
           )}>
             {/* Background Glows */}
@@ -2626,7 +2615,7 @@ export default function App() {
         ) : mode === 'kanban' ? (
           <div className={cn(
             "flex-1 p-3 sm:p-6 lg:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-slate-950" : "bg-bg-main",
+            theme === 'dark' ? "bg-[#0d1117]" : "bg-bg-main",
             !sidebarOpen && "pl-16 sm:pl-28"
           )}>
             <div className="max-w-5xl mx-auto space-y-8">
@@ -2844,7 +2833,7 @@ export default function App() {
         ) : mode === 'database' ? (
           <div className={cn(
             "flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar transition-colors duration-300 relative",
-            theme === 'dark' ? "bg-slate-950" : "bg-bg-main"
+            theme === 'dark' ? "bg-[#0d1117]" : "bg-bg-main"
           )}>
             {/* Decorative background glows for Database View */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 blur-[120px] rounded-full -mr-64 -mt-64 pointer-events-none" />
@@ -3023,10 +3012,10 @@ export default function App() {
             )}>
               {/* Command Center Overlay */}
               <div className={cn(
-                  "flex items-center gap-4 px-4 py-2.5 border rounded-[2.5rem] shadow-xl transition-all duration-500 w-full",
+                  "flex items-center gap-3 px-3 py-2 border rounded-2xl shadow-lg transition-all duration-500 w-full",
                   theme === 'dark' 
-                    ? "bg-slate-900/60 border-white/10 shadow-black/60 ring-1 ring-white/5" 
-                    : "bg-white border-slate-200 shadow-xl shadow-slate-200/50"
+                    ? "bg-[#161b22]/80 border-white/[0.08] shadow-black/40" 
+                    : "bg-white border-slate-200/80 shadow-slate-200/40"
                 )}>
                   {/* Left Section: Sidebar & Basic Stats */}
                   <div className="flex items-center gap-3">
@@ -3046,10 +3035,10 @@ export default function App() {
                   {/* Center Section: Global Search Command */}
                   <div className="flex-1 max-w-2xl relative group">
                     <div className={cn(
-                      "flex items-center gap-3 px-6 py-2.5 rounded-[1.5rem] transition-all duration-300 border",
+                      "flex items-center gap-2.5 px-4 py-2 rounded-xl transition-all duration-200 border",
                       theme === 'dark' 
-                        ? "bg-black/20 border-white/10 hover:border-indigo-500/50 focus-within:border-indigo-500" 
-                        : "bg-slate-50/50 border-slate-200 hover:border-slate-300 focus-within:border-slate-900 focus-within:bg-white"
+                        ? "bg-black/20 border-white/[0.07] hover:border-[#4d9de0]/40 focus-within:border-[#4d9de0]/60" 
+                        : "bg-slate-50 border-slate-200 hover:border-slate-300 focus-within:border-blue-400 focus-within:bg-white"
                     )}>
                       <Search className={cn("w-4 h-4 transition-colors", filterCarId ? "text-emerald-500" : "text-slate-400")} />
                       <input 
@@ -3220,7 +3209,7 @@ export default function App() {
             {/* Map Area */}
             <div className={cn(
               "flex-1 relative w-full h-full overflow-hidden flex flex-col transition-colors duration-300",
-              theme === 'dark' ? "bg-slate-950" : "bg-bg-main"
+              theme === 'dark' ? "bg-[#0d1117]" : "bg-bg-main"
             )}>
               {/* Map Header & Tabs */}
               <div className="flex-none p-4 pb-0 z-20">

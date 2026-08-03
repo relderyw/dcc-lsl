@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 @import "tailwindcss";
 
 /* ============================================
@@ -20,9 +20,9 @@
   --color-accent-primary: var(--accent-primary);
   --color-accent-secondary: var(--accent-secondary);
 
-  /* Border Radius Scale — 3 níveis, sem mistura */
-  --radius-card: 1.25rem;      /* 20px — cards principais */
-  --radius-inner: 0.75rem;     /* 12px — elementos internos */
+  /* Border Radius Scale */
+  --radius-card: 1rem;         /* 16px — cards principais */
+  --radius-inner: 0.625rem;    /* 10px — elementos internos */
   --radius-pill: 9999px;       /* pills e badges */
 }
 
@@ -31,52 +31,67 @@
    ============================================ */
 
 :root {
-  --bg-main: #f1f5f9;
+  /* Light Theme */
+  --bg-main: #f4f6f9;
   --bg-surface: #ffffff;
-  --bg-glass: rgba(255, 255, 255, 0.9);
-  --text-primary: #0f172a;
-  --text-secondary: #334155;
-  --text-muted: #64748b;
-  --accent-primary: #6366f1;
-  --accent-secondary: #10b981;
-  --border-subtle: rgba(15, 23, 42, 0.07);
-  --border-bright: rgba(15, 23, 42, 0.15);
-  --glass-blur: 12px;
-  --shadow-card: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.05);
-  --shadow-elevated: 0 8px 32px rgba(0,0,0,.10), 0 2px 8px rgba(0,0,0,.06);
+  --bg-glass: rgba(255, 255, 255, 0.92);
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
+  --accent-primary: #4f63d2;
+  --accent-secondary: #059669;
+  --border-subtle: rgba(17, 24, 39, 0.07);
+  --border-bright: rgba(17, 24, 39, 0.14);
+  --glass-blur: 14px;
+  --shadow-card: 0 1px 2px rgba(0,0,0,.04), 0 3px 12px rgba(0,0,0,.05);
+  --shadow-elevated: 0 6px 24px rgba(0,0,0,.09), 0 2px 6px rgba(0,0,0,.05);
 }
 
-/* Dark theme applied via className on root div */
+/* Dark theme — cores suaves, confortáveis aos olhos */
 .dark-theme {
-  --bg-main: #020617;
-  --bg-surface: #0f172a;
-  --bg-glass: rgba(15, 23, 42, 0.75);
-  --text-primary: #f1f5f9;
-  --text-secondary: #cbd5e1;
-  --text-muted: #64748b;
-  --accent-primary: #818cf8;
-  --accent-secondary: #34d399;
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-bright: rgba(255, 255, 255, 0.12);
-  --shadow-card: 0 1px 3px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
-  --shadow-elevated: 0 8px 32px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.3);
+  --bg-main: #0d1117;
+  --bg-surface: #161b22;
+  --bg-glass: rgba(22, 27, 34, 0.82);
+  --text-primary: #e6edf3;
+  --text-secondary: #adbac7;
+  --text-muted: #768390;
+  /* Azul-slate suave — muito menos agressivo que o roxo */
+  --accent-primary: #4d9de0;
+  --accent-secondary: #3fb950;
+  --border-subtle: rgba(240, 246, 252, 0.06);
+  --border-bright: rgba(240, 246, 252, 0.12);
+  --shadow-card: 0 1px 3px rgba(0,0,0,.35), 0 4px 16px rgba(0,0,0,.28);
+  --shadow-elevated: 0 8px 32px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.32);
 }
 
 /* ============================================
    BASE RESET
    ============================================ */
 
-html, body, #root {
+html {
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
   background-color: var(--bg-main);
   color: var(--text-primary);
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.4s ease, color 0.4s ease;
+  /* Scrollbar always visible at page level */
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  height: 100%;
+  min-height: 100vh;
 }
 
 * {
@@ -84,41 +99,41 @@ html, body, #root {
 }
 
 /* ============================================
-   TYPOGRAPHY SYSTEM — 4 Níveis Fixos
+   TYPOGRAPHY SYSTEM — refinado
    ============================================ */
 
 /* Hero value — métricas principais */
 .t-metric {
-  font-size: 2.25rem;    /* 36px */
-  font-weight: 900;
+  font-size: 2rem;
+  font-weight: 800;
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.025em;
   font-variant-numeric: tabular-nums;
 }
 
 /* Section heading */
 .t-heading {
-  font-size: 1rem;       /* 16px */
-  font-weight: 800;
+  font-size: 0.9375rem;
+  font-weight: 700;
   line-height: 1.3;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.008em;
 }
 
 /* Card label / small heading */
 .t-label {
-  font-size: 0.6875rem;  /* 11px */
-  font-weight: 700;
+  font-size: 0.6875rem;
+  font-weight: 600;
   line-height: 1;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
 /* Caption / metadata */
 .t-caption {
-  font-size: 0.625rem;   /* 10px */
-  font-weight: 600;
+  font-size: 0.625rem;
+  font-weight: 500;
   line-height: 1.4;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
 }
 
 /* ============================================
@@ -131,7 +146,7 @@ html, body, #root {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
-  padding: 1.5rem;
+  padding: 1.25rem;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -140,23 +155,16 @@ html, body, #root {
   box-shadow: var(--shadow-elevated);
 }
 
-/* Dark card override */
-.dark .ds-card {
-  background: rgba(15, 23, 42, 0.5);
-  border-color: rgba(255,255,255,0.06);
-  box-shadow: var(--shadow-card);
-}
-
 /* --- Badge / Pill --- */
 .ds-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.25rem 0.625rem;
+  padding: 0.2rem 0.55rem;
   border-radius: var(--radius-pill);
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
@@ -165,19 +173,19 @@ html, body, #root {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2rem;
+  height: 2rem;
   border-radius: var(--radius-inner);
   flex-shrink: 0;
 }
 
 /* --- Pill Toggle Button --- */
 .ds-pill {
-  padding: 0.375rem 0.875rem;
+  padding: 0.3rem 0.75rem;
   border-radius: var(--radius-pill);
   font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-weight: 600;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   border: 1px solid transparent;
   transition: all 0.15s ease;
@@ -185,9 +193,9 @@ html, body, #root {
 }
 
 .ds-pill-active {
-  background: #6366f1;
+  background: #4f63d2;
   color: #fff;
-  box-shadow: 0 2px 8px rgba(99,102,241,0.3);
+  box-shadow: 0 2px 6px rgba(79,99,210,0.28);
 }
 
 .ds-pill-inactive {
@@ -202,9 +210,29 @@ html, body, #root {
 }
 
 /* ============================================
-   SCROLLBAR
+   SCROLLBARS — visíveis e elegantes
    ============================================ */
 
+/* Scrollbar global para o body/html no light mode */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-bright);
+  border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Custom scrollbar para elementos com essa classe */
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
   height: 4px;
@@ -221,6 +249,17 @@ html, body, #root {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}
+
+/* Scrollbar para dark theme — mais visível */
+.dark-theme ::-webkit-scrollbar-thumb,
+.dark-theme .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(110, 130, 150, 0.35);
+}
+
+.dark-theme ::-webkit-scrollbar-thumb:hover,
+.dark-theme .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(110, 130, 150, 0.6);
 }
 
 .custom-scrollbar-none::-webkit-scrollbar {
@@ -258,11 +297,36 @@ html, body, #root {
 }
 
 .group\/car:hover {
-  transform: scale(1.15) translateY(-2px);
-  filter: brightness(1.1) saturate(1.2);
+  transform: scale(1.12) translateY(-2px);
+  filter: brightness(1.08) saturate(1.15);
 }
 
 /* Glow utilities for map elements */
-.glow-emerald { box-shadow: 0 0 20px rgba(16, 185, 129, 0.25); }
-.glow-indigo  { box-shadow: 0 0 20px rgba(99, 102, 241, 0.25); }
-.glow-rose    { box-shadow: 0 0 20px rgba(244, 63, 94, 0.25); }
+.glow-emerald { box-shadow: 0 0 16px rgba(16, 185, 129, 0.22); }
+.glow-indigo  { box-shadow: 0 0 16px rgba(77, 157, 224, 0.22); }
+.glow-rose    { box-shadow: 0 0 16px rgba(244, 63, 94, 0.22); }
+
+/* ============================================
+   DARK THEME — BAIA WRONG SECTOR
+   Substituir fuchsia/roxo por âmbar escuro
+   ============================================ */
+
+.dark-theme .slot-wrong-sector {
+  background: linear-gradient(135deg, rgba(180,83,9,0.85), rgba(146,64,14,0.85));
+  border-color: rgba(251,146,60,0.45);
+}
+
+/* ============================================
+   REFINAMENTO GERAL
+   ============================================ */
+
+/* Inputs & Selects */
+input, select, textarea {
+  font-family: inherit;
+  font-size: 0.8125rem;
+}
+
+/* Transições suaves globais */
+button {
+  transition: all 0.15s ease;
+}
