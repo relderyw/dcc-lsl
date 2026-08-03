@@ -9,6 +9,7 @@ interface CustomSelectProps {
   onChange: (value: string[]) => void;
   options: { value: string; label: string }[];
   theme: 'light' | 'dark';
+  key?: string | number;
 }
 
 export function CustomSelect({ label, value, onChange, options, theme }: CustomSelectProps) {
