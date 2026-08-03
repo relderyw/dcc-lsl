@@ -211,7 +211,8 @@ const BayCard = React.memo(({
   mode,
   setSelectedBayId,
   setHoveredCar,
-  filters
+  filters,
+  cardBadgeDisplayMode = 'status'
 }: any) => {
   const { 
     filterModel, 
@@ -357,16 +358,16 @@ const BayCard = React.memo(({
                 onMouseLeave={() => setHoveredCar(null)}
                 >
                   {car && (
-                    <div className={cn("w-full h-full flex px-1.5 gap-1 items-center relative", displayBay.orientation === 'horizontal' ? "flex-col justify-center py-1" : "flex-row justify-between")}>
+                    <div className={cn("w-full h-full flex px-2 gap-1.5 items-center relative overflow-hidden", displayBay.orientation === 'horizontal' ? "flex-col justify-center py-1" : "flex-row justify-between")}>
                       {/* Status Left Accent Strip */}
                       {car.status && (
                         <div className={cn(
-                          "absolute left-0 top-0 bottom-0 w-[3px] rounded-l opacity-80",
+                          "absolute left-0 top-0 bottom-0 w-[3.5px] rounded-l opacity-90",
                           getStatusBadgeStyle(car.status, theme).accent
                         )} />
                       )}
 
-                      <div className={cn("flex items-center min-w-0 flex-1 gap-1 pl-1", displayBay.orientation === 'horizontal' && "justify-center mb-0.5 w-full pl-0")}>
+                      <div className={cn("flex items-center min-w-0 flex-1 gap-1.5 overflow-hidden pl-1", displayBay.orientation === 'horizontal' && "justify-center mb-0.5 w-full pl-0")}>
                         {isWrongSector ? (
                           <AlertTriangle className={cn("shrink-0 animate-pulse", displayBay.orientation === 'horizontal' ? "w-4 h-4" : "w-3 h-3", theme === 'dark' ? "text-amber-300" : "text-amber-500")} />
                         ) : slaInfo?.isLate ? (
@@ -375,43 +376,55 @@ const BayCard = React.memo(({
                           <div className={cn("rounded-full shrink-0", displayBay.orientation === 'horizontal' ? "w-2.5 h-2.5" : "w-1.5 h-1.5", theme === 'dark' ? "bg-emerald-400/50" : "bg-emerald-400/70")} />
                         )}
                         {(!displayBay.orientation || displayBay.orientation === 'vertical') && (
-                          <span className={cn("font-mono font-bold leading-none truncate text-[13px] tracking-tight shrink-0", theme === 'dark' ? "text-white drop-shadow-sm" : "text-slate-900")}>
+                          <span className={cn("font-mono font-bold leading-none truncate text-[12.5px] tracking-tight shrink-0", theme === 'dark' ? "text-white drop-shadow-sm" : "text-slate-900")}>
                             {car.carId}
-                          </span>
-                        )}
-                        {/* Status Badge Tag on Slot */}
-                        {car.status && (!displayBay.orientation || displayBay.orientation === 'vertical') && (
-                          <span className={cn(
-                            "px-1.5 py-[1px] rounded text-[7.5px] font-black uppercase tracking-tight whitespace-nowrap border shrink-0 ml-1 max-w-[85px] truncate",
-                            getStatusBadgeStyle(car.status, theme).bg,
-                            getStatusBadgeStyle(car.status, theme).text,
-                            getStatusBadgeStyle(car.status, theme).border
-                          )}>
-                            {car.status}
                           </span>
                         )}
                       </div>
                       
                       {(!displayBay.slotHeight || displayBay.slotHeight >= 20 || displayBay.orientation === 'horizontal') && (
-                        <div className={cn("flex shrink-0 overflow-hidden items-center", displayBay.orientation === 'horizontal' ? "w-full flex-col items-center gap-0.5 mt-auto" : "justify-end ml-auto gap-1.5")}>
-                          {car.status && displayBay.orientation === 'horizontal' && (
-                            <span className={cn(
-                              "px-1 py-[0.5px] rounded text-[6.5px] font-black uppercase tracking-tighter whitespace-nowrap border shrink-0 my-0.5 truncate w-full text-center",
-                              getStatusBadgeStyle(car.status, theme).bg,
-                              getStatusBadgeStyle(car.status, theme).text,
-                              getStatusBadgeStyle(car.status, theme).border
-                            )}>
-                              {car.status}
-                            </span>
-                          )}
-                          <span className={cn("text-[12px] font-mono font-black tracking-tight truncate", theme === 'dark' ? "text-white/90 drop-shadow-sm" : "text-slate-600")}>
+                        <div className={cn("flex shrink-0 items-center gap-1.5 ml-auto overflow-hidden", displayBay.orientation === 'horizontal' ? "w-full flex-col items-center gap-0.5 mt-auto" : "justify-end")}>
+                          <span className={cn("text-[11px] font-mono font-bold tracking-tight truncate shrink-0 opacity-80", theme === 'dark' ? "text-white" : "text-slate-700")}>
                             {displayBay.orientation === 'horizontal' ? car.carId : car.embarkTime}
                           </span>
+                          
                           {(() => {
                             const sla = slaInfo || getSlaStatus(car);
+                            const statusStyle = getStatusBadgeStyle(car.status, theme);
+
+                            if (cardBadgeDisplayMode === 'status' || (!sla.isLate && cardBadgeDisplayMode !== 'sla')) {
+                              return (
+                                <div className={cn(
+                                  "rounded-full text-[7.5px] font-black uppercase whitespace-nowrap border text-center px-2 py-0.5 shadow-sm shrink-0",
+                                  displayBay.orientation === 'horizontal' ? "w-full px-1 py-[1px] text-[6.5px]" : "",
+                                  statusStyle.bg, statusStyle.text, statusStyle.border
+                                )}>
+                                  {car.status || 'ABERTO'}
+                                </div>
+                              );
+                            }
+
+                            if (cardBadgeDisplayMode === 'both' && car.status) {
+                              return (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <div className={cn(
+                                    "rounded-full text-[7px] font-black uppercase whitespace-nowrap border text-center px-1.5 py-0.5 shadow-sm",
+                                    statusStyle.bg, statusStyle.text, statusStyle.border
+                                  )}>
+                                    {car.status}
+                                  </div>
+                                  {sla.isLate && (
+                                    <div className="rounded-full text-[6.5px] font-extrabold uppercase whitespace-nowrap bg-rose-500 text-white px-1 py-[1px]">
+                                      ATRASADO
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            }
+
                             return (
-                              <div className={cn("rounded-full text-[7px] font-bold uppercase whitespace-nowrap border text-center",
-                                displayBay.orientation === 'horizontal' ? "w-full px-1 py-[1px] leading-tight text-[6px]" : "px-1.5 py-[2px]",
+                              <div className={cn("rounded-full text-[7px] font-bold uppercase whitespace-nowrap border text-center shrink-0",
+                                displayBay.orientation === 'horizontal' ? "w-full px-1 py-[1px] text-[6px]" : "px-1.5 py-[2px]",
                                 theme === 'dark' 
                                   ? (sla.text === 'ATRASADO' ? "bg-rose-500 text-white border-rose-400/50 shadow-[0_0_8px_rgba(244,63,94,0.6)]" : sla.text === 'PRÓX. EMB.' ? "bg-amber-500 text-white border-amber-400/50 shadow-[0_0_8px_rgba(245,158,11,0.6)]" : "bg-emerald-500 text-white border-emerald-400/50 shadow-[0_0_8px_rgba(16,185,129,0.6)]")
                                   : (sla.text === 'ATRASADO' ? "bg-rose-50 text-rose-600 border-rose-100" : sla.text === 'PRÓX. EMB.' ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-emerald-50 text-emerald-600 border-emerald-100")
@@ -492,7 +505,7 @@ export default function App() {
 
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  // Filters State — Multi-select support
+  const [cardBadgeDisplayMode, setCardBadgeDisplayMode] = useState<'status' | 'sla' | 'both'>('status');
   const [filterModel, setFilterModel] = useState<string[]>(['ALL']);
   const [filterSector, setFilterSector] = useState<string[]>(['ALL']);
   const [filterStatus, setFilterStatus] = useState<string[]>(['ALL']); // 'ALL' | 'LATE' | 'NEXT' | 'ONTIME'
@@ -3158,7 +3171,51 @@ export default function App() {
                       )}
                     </button>
 
-                    {/* Legenda de Tipos Popover */}
+                      {/* Card Display Mode Selector Toggle */}
+                      <div className={cn(
+                        "hidden md:flex items-center p-1 rounded-xl border text-[10px] font-bold gap-0.5 shrink-0",
+                        theme === 'dark' ? "bg-black/30 border-white/10" : "bg-slate-100 border-slate-200"
+                      )}>
+                        <button
+                          type="button"
+                          onClick={() => setCardBadgeDisplayMode('status')}
+                          className={cn(
+                            "px-2.5 py-1 rounded-lg transition-all uppercase tracking-wider",
+                            cardBadgeDisplayMode === 'status'
+                              ? "bg-indigo-600 text-white shadow-sm font-black"
+                              : (theme === 'dark' ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900")
+                          )}
+                          title="Exibir tipo do carro (Formatado, Check DCC, etc.) nos cards"
+                        >
+                          Tipo do Carro
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCardBadgeDisplayMode('sla')}
+                          className={cn(
+                            "px-2.5 py-1 rounded-lg transition-all uppercase tracking-wider",
+                            cardBadgeDisplayMode === 'sla'
+                              ? "bg-indigo-600 text-white shadow-sm font-black"
+                              : (theme === 'dark' ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900")
+                          )}
+                          title="Exibir status SLA (Atrasado, No prazo) nos cards"
+                        >
+                          SLA
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCardBadgeDisplayMode('both')}
+                          className={cn(
+                            "px-2.5 py-1 rounded-lg transition-all uppercase tracking-wider",
+                            cardBadgeDisplayMode === 'both'
+                              ? "bg-indigo-600 text-white shadow-sm font-black"
+                              : (theme === 'dark' ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900")
+                          )}
+                          title="Exibir Tipo do Carro + Status SLA"
+                        >
+                          Ambos
+                        </button>
+                      </div>
                     <div className="relative group/legend hidden xl:block">
                       <button type="button" className={cn(
                         "px-3 py-2.5 rounded-2xl transition-all border flex items-center gap-1.5 text-[10px] font-bold tracking-wider",
@@ -3591,7 +3648,7 @@ export default function App() {
                                     isDrawing={isDrawing}
                                     mode={mode}
                                     setSelectedBayId={setSelectedBayId}
-                                    setHoveredCar={setHoveredCar}
+                                      cardBadgeDisplayMode={cardBadgeDisplayMode}
                                     filters={filters}
                                   />
                                 </div>
