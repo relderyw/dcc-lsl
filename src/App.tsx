@@ -160,6 +160,43 @@ function matchesSlaFilter(carRecord: CarRecord, filterVal: string[] | string): b
   return matched;
 }
 
+function getStatusBadgeStyle(status: string | undefined, theme: 'light' | 'dark') {
+  const s = (status || '').toUpperCase().trim();
+  if (s.includes('FORMATADO')) {
+    return theme === 'dark' 
+      ? { bg: 'bg-emerald-500/20', text: 'text-emerald-300', border: 'border-emerald-500/40', accent: 'bg-emerald-500' }
+      : { bg: 'bg-emerald-100', text: 'text-emerald-800', border: 'border-emerald-300', accent: 'bg-emerald-600' };
+  }
+  if (s.includes('CHECK')) {
+    return theme === 'dark'
+      ? { bg: 'bg-sky-500/20', text: 'text-sky-300', border: 'border-sky-500/40', accent: 'bg-sky-500' }
+      : { bg: 'bg-sky-100', text: 'text-sky-800', border: 'border-sky-300', accent: 'bg-sky-600' };
+  }
+  if (s.includes('CONF')) {
+    return theme === 'dark'
+      ? { bg: 'bg-cyan-500/20', text: 'text-cyan-300', border: 'border-cyan-500/40', accent: 'bg-cyan-500' }
+      : { bg: 'bg-cyan-100', text: 'text-cyan-800', border: 'border-cyan-300', accent: 'bg-cyan-600' };
+  }
+  if (s.includes('DIVERG')) {
+    return theme === 'dark'
+      ? { bg: 'bg-amber-500/20', text: 'text-amber-300', border: 'border-amber-500/40', accent: 'bg-amber-500' }
+      : { bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-300', accent: 'bg-amber-600' };
+  }
+  if (s.includes('RECEBIDO')) {
+    return theme === 'dark'
+      ? { bg: 'bg-purple-500/20', text: 'text-purple-300', border: 'border-purple-500/40', accent: 'bg-purple-500' }
+      : { bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-300', accent: 'bg-purple-600' };
+  }
+  if (s.includes('ABERTO')) {
+    return theme === 'dark'
+      ? { bg: 'bg-blue-500/20', text: 'text-blue-300', border: 'border-blue-500/40', accent: 'bg-blue-500' }
+      : { bg: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-200', accent: 'bg-blue-600' };
+  }
+  return theme === 'dark'
+    ? { bg: 'bg-slate-500/20', text: 'text-slate-300', border: 'border-slate-500/40', accent: 'bg-slate-500' }
+    : { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-300', accent: 'bg-slate-500' };
+}
+
 
 const BayCard = React.memo(({ 
   bay, 
@@ -295,7 +332,7 @@ const BayCard = React.memo(({
                   {i + 1}
                 </span>
                 <div className={cn(
-                  "rounded-[4px] transition-all duration-300 overflow-hidden shadow-md border flex items-center justify-center",
+                  "rounded-[4px] transition-all duration-300 overflow-hidden shadow-md border flex items-center justify-center relative",
                   displayBay.orientation === 'horizontal' ? "w-full flex-1" : "flex-1 h-full",
                   car 
                     ? (theme === 'dark'
@@ -320,8 +357,16 @@ const BayCard = React.memo(({
                 onMouseLeave={() => setHoveredCar(null)}
                 >
                   {car && (
-                    <div className={cn("w-full h-full flex px-1.5 gap-1", displayBay.orientation === 'horizontal' ? "flex-col items-center justify-center py-1" : "flex-row items-center justify-between")}>
-                      <div className={cn("flex items-center min-w-0 flex-1 gap-1.5", displayBay.orientation === 'horizontal' && "justify-center mb-0.5 w-full")}>
+                    <div className={cn("w-full h-full flex px-1.5 gap-1 items-center relative", displayBay.orientation === 'horizontal' ? "flex-col justify-center py-1" : "flex-row justify-between")}>
+                      {/* Status Left Accent Strip */}
+                      {car.status && (
+                        <div className={cn(
+                          "absolute left-0 top-0 bottom-0 w-[3px] rounded-l opacity-80",
+                          getStatusBadgeStyle(car.status, theme).accent
+                        )} />
+                      )}
+
+                      <div className={cn("flex items-center min-w-0 flex-1 gap-1 pl-1", displayBay.orientation === 'horizontal' && "justify-center mb-0.5 w-full pl-0")}>
                         {isWrongSector ? (
                           <AlertTriangle className={cn("shrink-0 animate-pulse", displayBay.orientation === 'horizontal' ? "w-4 h-4" : "w-3 h-3", theme === 'dark' ? "text-amber-300" : "text-amber-500")} />
                         ) : slaInfo?.isLate ? (
@@ -330,14 +375,35 @@ const BayCard = React.memo(({
                           <div className={cn("rounded-full shrink-0", displayBay.orientation === 'horizontal' ? "w-2.5 h-2.5" : "w-1.5 h-1.5", theme === 'dark' ? "bg-emerald-400/50" : "bg-emerald-400/70")} />
                         )}
                         {(!displayBay.orientation || displayBay.orientation === 'vertical') && (
-                          <span className={cn("font-mono font-bold leading-none truncate text-[14px] tracking-tight", theme === 'dark' ? "text-white drop-shadow-sm" : "text-slate-900")}>
+                          <span className={cn("font-mono font-bold leading-none truncate text-[13px] tracking-tight shrink-0", theme === 'dark' ? "text-white drop-shadow-sm" : "text-slate-900")}>
                             {car.carId}
+                          </span>
+                        )}
+                        {/* Status Badge Tag on Slot */}
+                        {car.status && (!displayBay.orientation || displayBay.orientation === 'vertical') && (
+                          <span className={cn(
+                            "px-1.5 py-[1px] rounded text-[7.5px] font-black uppercase tracking-tight whitespace-nowrap border shrink-0 ml-1 max-w-[85px] truncate",
+                            getStatusBadgeStyle(car.status, theme).bg,
+                            getStatusBadgeStyle(car.status, theme).text,
+                            getStatusBadgeStyle(car.status, theme).border
+                          )}>
+                            {car.status}
                           </span>
                         )}
                       </div>
                       
                       {(!displayBay.slotHeight || displayBay.slotHeight >= 20 || displayBay.orientation === 'horizontal') && (
-                        <div className={cn("flex shrink-0 overflow-hidden", displayBay.orientation === 'horizontal' ? "w-full flex-col items-center gap-0.5 mt-auto" : "items-center justify-end ml-auto gap-1.5")}>
+                        <div className={cn("flex shrink-0 overflow-hidden items-center", displayBay.orientation === 'horizontal' ? "w-full flex-col items-center gap-0.5 mt-auto" : "justify-end ml-auto gap-1.5")}>
+                          {car.status && displayBay.orientation === 'horizontal' && (
+                            <span className={cn(
+                              "px-1 py-[0.5px] rounded text-[6.5px] font-black uppercase tracking-tighter whitespace-nowrap border shrink-0 my-0.5 truncate w-full text-center",
+                              getStatusBadgeStyle(car.status, theme).bg,
+                              getStatusBadgeStyle(car.status, theme).text,
+                              getStatusBadgeStyle(car.status, theme).border
+                            )}>
+                              {car.status}
+                            </span>
+                          )}
                           <span className={cn("text-[12px] font-mono font-black tracking-tight truncate", theme === 'dark' ? "text-white/90 drop-shadow-sm" : "text-slate-600")}>
                             {displayBay.orientation === 'horizontal' ? car.carId : car.embarkTime}
                           </span>
@@ -1616,8 +1682,10 @@ export default function App() {
                             </div>
                             <div className="flex flex-col items-end gap-1.5">
                               <div className={cn(
-                                "text-[10px] px-2 py-1 rounded font-bold uppercase",
-                                car.status === 'EMBARCADO' ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-700"
+                                "text-[9.5px] px-2 py-0.5 rounded font-black uppercase border",
+                                getStatusBadgeStyle(car.status, theme).bg,
+                                getStatusBadgeStyle(car.status, theme).text,
+                                getStatusBadgeStyle(car.status, theme).border
                               )}>
                                 {car.status}
                               </div>
@@ -3075,7 +3143,7 @@ export default function App() {
                     <button 
                       onClick={() => setShowMobileFilters(!showMobileFilters)}
                       className={cn(
-                        "p-3 rounded-2xl transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group relative overflow-hidden",
+                        "px-4 py-2.5 rounded-2xl font-bold flex items-center gap-2 transition-all duration-300 relative group border",
                         showMobileFilters 
                           ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30" 
                           : (theme === 'dark' ? "bg-slate-800 text-slate-400" : "bg-white text-slate-900 border border-slate-200 shadow-md hover:bg-slate-50")
@@ -3089,6 +3157,43 @@ export default function App() {
                         </div>
                       )}
                     </button>
+
+                    {/* Legenda de Tipos Popover */}
+                    <div className="relative group/legend hidden xl:block">
+                      <button type="button" className={cn(
+                        "px-3 py-2.5 rounded-2xl transition-all border flex items-center gap-1.5 text-[10px] font-bold tracking-wider",
+                        theme === 'dark' ? "bg-white/[0.05] border-white/10 text-slate-300 hover:bg-white/10" : "bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200"
+                      )}>
+                        <Info className="w-3.5 h-3.5 text-indigo-400" />
+                        <span>TIPOS DE CARRO</span>
+                      </button>
+                      <div className={cn(
+                        "absolute top-full right-0 mt-2 p-3 rounded-2xl border shadow-2xl z-[100] hidden group-hover/legend:block w-52 backdrop-blur-xl transition-all",
+                        theme === 'dark' ? "bg-[#161b22]/95 border-white/10 text-white shadow-black/80" : "bg-white/95 border-slate-200 text-slate-900 shadow-xl"
+                      )}>
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Legenda de Tipos (Status)</span>
+                        <div className="space-y-1.5">
+                          {[
+                            { name: 'FORMATADO', label: 'Formatado' },
+                            { name: 'CHECK DCC', label: 'Check DCC' },
+                            { name: 'CONF DCC', label: 'Conf DCC' },
+                            { name: 'DIVERG DCC', label: 'Diverg DCC' },
+                            { name: 'RECEBIDO', label: 'Recebido' },
+                            { name: 'ABERTO', label: 'Aberto' }
+                          ].map(item => {
+                            const style = getStatusBadgeStyle(item.name, theme);
+                            return (
+                              <div key={item.name} className="flex items-center justify-between text-[10px]">
+                                <span className="font-medium text-slate-300">{item.label}</span>
+                                <span className={cn("px-1.5 py-0.5 rounded text-[8px] font-black border uppercase", style.bg, style.text, style.border)}>
+                                  {item.name}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
 
                     <div className="w-px h-8 bg-slate-500/20 mx-1 hidden sm:block" />
 
